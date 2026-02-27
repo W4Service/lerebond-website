@@ -1,0 +1,267 @@
+/* ============================================
+   LE REBOND - THEMES
+   Fichier séparé pour modifier facilement les couleurs de chaque thème
+   ============================================ */
+
+/* ============================================
+   COULEURS DE BASE (Palette LE REBOND)
+   ============================================ */
+:root {
+    --softsun: #f4c941;
+    --filthy-brown: #efa707;
+    --prehistoric-meteor: #ea1a15;
+    --fading-ember: #e06c1e;
+    --plum-cheese: #680920;
+    --planetarium: #2072af;
+    --glacial-green: #70b7a9;
+    --romance: #f4f0e6;
+    --tombstone-grey: #cec3b6;
+    --loyal-blue: #074459;
+    --eerie-black: #1a1a1a;
+
+    /* Alias --color-xxx pour les inline styles */
+    --color-softsun: #f4c941;
+    --color-filthy-brown: #efa707;
+    --color-prehistoric-meteor: #ea1a15;
+    --color-fading-ember: #e06c1e;
+    --color-plum-cheese: #680920;
+    --color-planetarium: #2072af;
+    --color-glacial-green: #70b7a9;
+    --color-loyal-blue: #074459;
+}
+
+/* ============================================
+   THEME PAR DEFAUT (Bordeaux) - appliqué à :root
+   ============================================ */
+:root {
+    /* Couleurs principales */
+    --primary: #680920;           /* Bordeaux - Dominant */
+    --primary-light: #8a1230;
+    --secondary: #1a1a1a;         /* Noir - Structure */
+    --accent: #efa707;            /* Orange - Respiration */
+    --accent-hover: #efa707;
+
+    /* Fond & Structure */
+    --dark: #1a1a1a;              /* Noir */
+    --light: #f4f0e6;             /* Crème */
+    --grey: #e8e0d5;              /* Gris clair pour les placeholders */
+    --muted: #cec3b6;             /* Gris */
+
+    /* Texte */
+    --text-on-primary: #f4f0e6;   /* Crème sur bordeaux */
+    --text-on-dark: #f4f0e6;      /* Crème sur noir */
+    --text-on-light: #1a1a1a;     /* Noir sur crème */
+    --text-on-grey: #1a1a1a;      /* Noir sur gris */
+
+    /* Header & Hero */
+    --header-bg: #680920;
+    --hero-gradient-1: #680920;
+    --hero-gradient-2: #680920;
+    --hero-gradient-3: #1a1a1a;
+
+    /* Boutons */
+    --btn-primary-bg: #efa707;
+    --btn-primary-text: #f4f0e6;
+    --btn-secondary-bg: #cec3b6;
+    --btn-secondary-text: #1a1a1a;
+
+    /* Cartes */
+    --card-bg: #f4f0e6;
+}
+
+/* ============================================
+   THEME 1: JAUNE
+   Fond jaune, Titres bleu, Texte/structure noir, Crème pour respiration
+   ============================================ */
+[data-theme="jaune"] {
+    /* Couleurs principales */
+    --primary: #f4c941;           /* Jaune - Fond dominant */
+    --primary-light: #efa707;
+    --secondary: #2072af;         /* Bleu - Titres */
+    --accent: #2072af;            /* Bleu - Titres & accents */
+    --accent-hover: #3089c9;
+
+    /* Fond & Structure */
+    --dark: #1a1a1a;
+    --light: #f4f0e6;             /* Crème */
+    --grey: #e8e0d5;              /* Gris clair */
+    --muted: #cec3b6;
+
+    /* Texte */
+    --text-on-primary: #1a1a1a;   /* Noir sur fond jaune */
+    --text-on-dark: #f4f0e6;      /* Crème sur fond sombre */
+    --text-on-light: #1a1a1a;     /* Noir sur crème */
+    --text-on-grey: #1a1a1a;      /* Noir sur gris */
+
+    /* Header & Hero */
+    --header-bg: #f4c941;
+    --hero-gradient-1: #f4c941;
+    --hero-gradient-2: #f4c941;
+    --hero-gradient-3: #efa707;
+
+    /* Boutons */
+    --btn-primary-bg: #2072af;    /* Bleu */
+    --btn-primary-text: #f4f0e6;  /* Crème */
+    --btn-secondary-bg: #f4f0e6;  /* Crème */
+    --btn-secondary-text: #1a1a1a;
+
+    /* Cartes */
+    --card-bg: #f4f0e6;           /* Crème */
+}
+
+/* ============================================
+   THEME 2: GRIS
+   Gris dominant, Crème titre, Noir texte/structure, Orange foncé respiration
+   ============================================ */
+[data-theme="gris"] {
+    /* Couleurs principales */
+    --primary: #cec3b6;           /* Gris - Dominant */
+    --primary-light: #e0d6c9;
+    --secondary: #1a1a1a;         /* Noir - Structure */
+    --accent: #e06c1e;            /* Orange foncé */
+    --accent-hover: #efa707;
+
+    /* Fond & Structure */
+    --dark: #1a1a1a;              /* Noir */
+    --light: #f4f0e6;             /* Crème */
+    --grey: #e8e0d5;              /* Gris clair */
+    --muted: #b0a598;
+
+    /* Texte */
+    --text-on-primary: #1a1a1a;
+    --text-on-dark: #f4f0e6;
+    --text-on-light: #1a1a1a;     /* Noir sur crème */
+    --text-on-grey: #1a1a1a;      /* Noir sur gris */
+
+    /* Header & Hero */
+    --header-bg: #cec3b6;
+    --hero-gradient-1: #cec3b6;
+    --hero-gradient-2: #9a8f82;
+
+    /* Boutons */
+    --btn-primary-bg: #e06c1e;
+    --btn-primary-text: #f4f0e6;
+    --btn-secondary-bg: #f4f0e6;
+    --btn-secondary-text: #1a1a1a;
+
+    /* Cartes */
+    --card-bg: #f4f0e6;
+}
+
+/* ============================================
+   THEME 3: BORDEAUX (défaut)
+   Bordeaux dominant, Crème texte, Noir structure, Orange respiration
+   ============================================ */
+[data-theme="bordeaux"] {
+    /* Couleurs principales */
+    --primary: #680920;           /* Bordeaux - Dominant */
+    --primary-light: #8a1230;
+    --secondary: #cec3b6;         /* Gris - Structure */
+    --accent: #efa707;            /* Orange - Respiration */
+    --accent-hover: #efa707;
+
+    /* Fond & Structure */
+    --dark: #cec3b6;              /* Gris */
+    --light: #f4f0e6;             /* Crème */
+    --grey: #e8e0d5;              /* Gris clair pour les placeholders */
+    --muted: #cec3b6;             /* Gris */
+
+    /* Texte */
+    --text-on-primary: #f4f0e6;   /* Crème sur bordeaux */
+    --text-on-dark: #f4f0e6;      /* Crème sur gris */
+    --text-on-light: #cec3b6;     /* Gris sur crème */
+    --text-on-grey: #cec3b6;      /* Gris sur gris */
+
+    /* Header & Hero */
+    --header-bg: #680920;
+    --hero-gradient-1: #680920;
+    --hero-gradient-2: #680920;
+    --hero-gradient-3: #cec3b6;
+
+    /* Boutons */
+    --btn-primary-bg: #efa707;
+    --btn-primary-text: #cec3b6;
+    --btn-secondary-bg: #cec3b6;
+    --btn-secondary-text: #cec3b6;
+
+    /* Cartes */
+    --card-bg: #f4f0e6;
+}
+
+/* ============================================
+   THEME 4: BLEU-VERT
+   Bleu-vert clair dominant, Rouge titre, Crème texte/structure, Noir détails
+   ============================================ */
+[data-theme="bleu-vert"] {
+    /* Couleurs principales */
+    --primary: #70b7a9;           /* Bleu-vert clair - Dominant */
+    --primary-light: #8fcdc0;
+    --secondary: #1a1a1a;         /* Noir - Structure */
+    --accent: #ea1a15;            /* Rouge */
+    --accent-hover: #e06c1e;
+
+    /* Fond & Structure */
+    --dark: #1a1a1a;              /* Noir - Détails */
+    --light: #f4f0e6;             /* Crème */
+    --grey: #e8e0d5;              /* Gris clair */
+    --muted: #cec3b6;
+
+    /* Texte */
+    --text-on-primary: #f4f0e6;
+    --text-on-dark: #f4f0e6;
+    --text-on-light: #1a1a1a;     /* Noir sur crème */
+    --text-on-grey: #1a1a1a;      /* Noir sur gris */
+
+    /* Header & Hero */
+    --header-bg: #70b7a9;
+    --hero-gradient-1: #70b7a9;
+    --hero-gradient-2: #4a9a8a;
+
+    /* Boutons */
+    --btn-primary-bg: #ea1a15;
+    --btn-primary-text: #f4f0e6;
+    --btn-secondary-bg: #1a1a1a;
+    --btn-secondary-text: #f4f0e6;
+
+    /* Cartes */
+    --card-bg: #f4f0e6;
+}
+
+/* ============================================
+   THEME 5: BLEU CLASSIQUE
+   Bleu dominant, Noir texte/structure, Crème respiration, Orange foncé détails
+   ============================================ */
+[data-theme="bleu"] {
+    /* Couleurs principales */
+    --primary: #2072af;           /* Bleu classique - Dominant */
+    --primary-light: #3089c9;
+    --secondary: #1a1a1a;         /* Noir - Structure */
+    --accent: #e06c1e;            /* Orange foncé - Détails */
+    --accent-hover: #efa707;
+
+    /* Fond & Structure */
+    --dark: #1a1a1a;              /* Noir */
+    --light: #f4f0e6;             /* Crème - Respiration */
+    --grey: #e8e0d5;              /* Gris clair */
+    --muted: #cec3b6;
+
+    /* Texte */
+    --text-on-primary: #f4f0e6;
+    --text-on-dark: #f4f0e6;
+    --text-on-light: #1a1a1a;     /* Noir sur crème */
+    --text-on-grey: #1a1a1a;      /* Noir sur gris */
+
+    /* Header & Hero */
+    --header-bg: #2072af;
+    --hero-gradient-1: #2072af;
+    --hero-gradient-2: #074459;
+
+    /* Boutons */
+    --btn-primary-bg: #e06c1e;
+    --btn-primary-text: #f4f0e6;
+    --btn-secondary-bg: #f4f0e6;
+    --btn-secondary-text: #1a1a1a;
+
+    /* Cartes */
+    --card-bg: #f4f0e6;
+}

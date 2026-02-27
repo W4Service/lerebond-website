@@ -1,0 +1,16 @@
+# ============================================
+# LE REBOND - URL Rewriting
+# Masquer l'extension .html dans les URLs
+# ============================================
+
+RewriteEngine On
+
+# Rediriger les URLs avec .html vers sans .html (301)
+RewriteCond %{THE_REQUEST} /([^.]+)\.html [NC]
+RewriteRule ^ /%1 [NC,L,R=301]
+
+# Servir le fichier .html quand l'URL n'a pas d'extension
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+)$ $1.html [L]

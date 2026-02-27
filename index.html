@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="bordeaux">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Le Rebond à Noyon (60) : complexe sportif avec 3 terrains de padel, 1 terrain de five et un bar-restaurant. Réservez votre terrain en ligne !">
+    <meta name="keywords" content="padel Noyon, five Noyon, terrain padel Oise, football five, complexe sportif Noyon, bar restaurant sport, réservation padel">
+    <title>Le Rebond | Padel & Five à Noyon (60) - Complexe Sportif</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="img/logomark-9.png">
+
+    <!-- Polices -->
+    <link rel="stylesheet" href="css/fonts.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles-v2.css">
+    <link rel="stylesheet" href="css/styles-v3.css">
+</head>
+<body>
+    <!-- Event Banner -->
+    <div class="event-banner">
+        <div class="event-banner__inner">
+            <span class="event-banner__text"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Prochain tournoi : Tournoi Découverte Padel - Prochainement</span>
+            <a href="evenements.html" class="event-banner__link">S'inscrire →</a>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header__inner">
+            <a href="index.html" class="header__logo">
+                <img src="img/logo-8.png" alt="Le Rebond" class="header__logo-img" id="site-logo">
+            </a>
+
+            <nav class="nav">
+                <ul class="nav__list">
+                    <li><a href="index.html" class="nav__link active">Accueil</a></li>
+                    <li><a href="evenements.html" class="nav__link">Événements</a></li>
+                    <li><a href="bar-restaurant.html" class="nav__link">Bar & Restaurant</a></li>
+                    <li><a href="tarifs.html" class="nav__link">Tarifs</a></li>
+                    <li><a href="groupes.html" class="nav__link">Groupes</a></li>
+                    <li><a href="contact.html" class="nav__link">Contact</a></li>
+                </ul>
+                <div style="display:flex;gap:0.5rem;">
+                    <a href="reserver.html" class="btn btn--primary nav__cta" style="color:#f4f0e6;">Terrain</a>
+                    <a href="reserver-restaurant.html" class="btn btn--outline-dark nav__cta">Table</a>
+                </div>
+            </nav>
+
+            <button class="nav__toggle" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero__bg">
+            <div class="hero__bg-pattern"></div>
+            <div class="hero__bg-court"></div>
+            <canvas id="particles-canvas"></canvas>
+        </div>
+
+        <div class="hero__content">
+            <div class="hero__badge">
+                <span class="hero__badge-dot"></span>
+                <span class="hero__badge-text">Nouveau à Noyon</span>
+            </div>
+
+            <h1 class="hero__title">
+                <span>Padel</span> & <span>Five</span><br>à Noyon
+            </h1>
+
+            <p class="hero__subtitle">
+                Le premier complexe sportif indoor de Noyon.<br>
+                3 terrains de padel, 1 terrain five, bar & restaurant.
+            </p>
+
+            <p class="hero__tagline">A PLACE IN MOTION</p>
+
+            <!-- Countdown Timer -->
+            <div class="countdown-hero" id="countdown-hero">
+                <p class="countdown-hero__label">Ouverture dans</p>
+                <div class="countdown-hero__timer" id="countdown-hero-timer"></div>
+            </div>
+
+            <div class="hero__cta">
+                <a href="reserver.html" class="btn btn--primary btn--large" style="color:#f4f0e6;">Réserver un terrain</a>
+                <a href="evenements.html" class="btn btn--outline btn--large">Voir les événements</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="section bg-dark">
+        <div class="container">
+            <div class="stats" data-animate>
+                <div class="stat">
+                    <div class="stat__number" data-counter="3">3</div>
+                    <div class="stat__label">Terrains Padel</div>
+                </div>
+                <div class="stat">
+                    <div class="stat__number" data-counter="1">1</div>
+                    <div class="stat__label">Terrain Five</div>
+                </div>
+                <div class="stat">
+                    <div class="stat__number" data-counter="40">40</div>
+                    <div class="stat__label">Couverts</div>
+                </div>
+                <div class="stat">
+                    <div class="stat__number">7j/7</div>
+                    <div class="stat__label">Ouvert</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installations Section -->
+    <section class="section" id="installations">
+        <div class="container">
+            <div class="section-header" data-animate>
+                <span class="section-header__label">Nos installations</span>
+                <h2 class="section-header__title">Des terrains de <span class="text-primary">qualité professionnelle</span></h2>
+                <p class="section-header__text">Découvrez nos infrastructures modernes conçues pour vous offrir la meilleure expérience sportive.</p>
+            </div>
+
+            <div class="grid grid--4">
+                <div class="card card--terrain" data-animate data-delay="1">
+                    <div class="card__image">
+                        <img src="img/five-joueur-trophees.jpg" alt="Terrain de padel indoor au Rebond à Noyon" title="Padel Court 1 - Le Rebond Noyon">
+                    </div>
+                    <div class="card__overlay">
+                        <span class="card__badge">Indoor</span>
+                        <h3 class="card__title">Padel Court 1</h3>
+                        <p class="card__text">Terrain avec éclairage LED</p>
+                    </div>
+                </div>
+
+                <div class="card card--terrain" data-animate data-delay="2">
+                    <div class="card__image">
+                        <img src="img/five-saut-acrobatique.jpg" alt="Joueur de five en action au Rebond Noyon" title="Padel Court 2 - Le Rebond Noyon">
+                    </div>
+                    <div class="card__overlay">
+                        <span class="card__badge">Indoor</span>
+                        <h3 class="card__title">Padel Court 2</h3>
+                        <p class="card__text">Terrain standard avec parois vitrées</p>
+                    </div>
+                </div>
+
+                <div class="card card--terrain" data-animate data-delay="3">
+                    <div class="card__image">
+                        <img src="img/fitness-fente-dynamique.jpg" alt="Salle de sport et fitness au Rebond Noyon" title="Padel Court 3 - Le Rebond Noyon">
+                    </div>
+                    <div class="card__overlay">
+                        <span class="card__badge">Indoor</span>
+                        <h3 class="card__title">Padel Court 3</h3>
+                        <p class="card__text">Terrain compétition homologué FFT</p>
+                    </div>
+                </div>
+
+                <div class="card card--terrain" data-animate data-delay="4">
+                    <div class="card__image">
+                        <img src="img/five-pause-terrain.jpg" alt="Terrain de five football indoor au Rebond Noyon" title="Five Arena - Le Rebond Noyon">
+                    </div>
+                    <div class="card__overlay">
+                        <span class="card__badge">Indoor</span>
+                        <h3 class="card__title">Five Arena</h3>
+                        <p class="card__text">Terrain futsal gazon synthétique dernière génération</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Terrains Connectés Section -->
+    <section class="section bg-primary" id="tech">
+        <div class="container">
+            <div class="section-header" data-animate>
+                <span class="section-header__label" style="color:var(--accent);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Technologie</span>
+                <h2 class="section-header__title" style="color:var(--light);">Terrains <span style="color:var(--accent);">connectés</span></h2>
+                <p class="section-header__text" style="color:#cec3b6;">Tous nos terrains sont équipés pour une expérience unique</p>
+            </div>
+
+            <div class="grid grid--3" data-animate data-delay="1">
+                <div style="background:rgba(255,255,255,0.08);border-radius:1rem;padding:2rem;text-align:center;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:3rem;height:3rem;border-radius:50%;background:rgba(239,167,7,0.15);color:var(--accent);margin-bottom:1rem;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></span>
+                    <h4 style="color:var(--light);margin-bottom:0.5rem;font-size:1.1rem;">Terrains filmés</h4>
+                    <p style="color:#cec3b6;font-size:0.95rem;line-height:1.6;">Chaque terrain est filmé en continu. Revivez vos matchs et partagez vos plus beaux points.</p>
+                </div>
+                <div style="background:rgba(255,255,255,0.08);border-radius:1rem;padding:2rem;text-align:center;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:3rem;height:3rem;border-radius:50%;background:rgba(239,167,7,0.15);color:var(--accent);margin-bottom:1rem;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+                    <h4 style="color:var(--light);margin-bottom:0.5rem;font-size:1.1rem;">Diffusion en direct</h4>
+                    <p style="color:#cec3b6;font-size:0.95rem;line-height:1.6;">Retransmission en direct de tous les matchs dans notre espace bar & restaurant ainsi que sur notre application mobile.</p>
+                </div>
+                <div style="background:rgba(255,255,255,0.08);border-radius:1rem;padding:2rem;text-align:center;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:3rem;height:3rem;border-radius:50%;background:rgba(239,167,7,0.15);color:var(--accent);margin-bottom:1rem;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
+                    <h4 style="color:var(--light);margin-bottom:0.5rem;font-size:1.1rem;">Suivi du score</h4>
+                    <p style="color:#cec3b6;font-size:0.95rem;line-height:1.6;">Une tablette sur chaque terrain pour suivre le score en temps réel pendant vos matchs.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Events Section -->
+    <section class="section" id="events">
+        <div class="container">
+            <div class="section-header" data-animate>
+                <span class="section-header__label">Prochains événements</span>
+                <h2 class="section-header__title">Rejoignez la <span class="text-primary">communauté</span></h2>
+                <p class="section-header__text">Tournois, ligues, montantes/descendantes... Il y en a pour tous les niveaux !</p>
+            </div>
+
+            <div class="grid grid--3">
+                <div class="card card--event" data-animate data-delay="1">
+                    <div class="card__image">
+                        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#680920,#8b1a3a);color:var(--light);"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
+                        <div class="card__date">
+                            <span class="card__date-day" style="font-size:1rem;">Bientôt</span>
+                        </div>
+                    </div>
+                    <div class="card__content">
+                        <span class="card__badge" style="position:static;margin-bottom:0.5rem;display:inline-block;">Tournoi</span>
+                        <h3 class="card__title">Tournoi Découverte</h3>
+                        <p class="card__text">Tournoi P500 ouvert à tous les niveaux. Format mixte, ambiance conviviale garantie.</p>
+                        <div class="card__meta">
+                            <span class="card__meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Le Rebond</span>
+                            <span class="card__meta-item">⏰ 14h-20h</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card--event" data-animate data-delay="2">
+                    <div class="card__image">
+                        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#680920,#8b1a3a);color:var(--light);"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+                        <div class="card__date">
+                            <span class="card__date-day" style="font-size:1rem;">Bientôt</span>
+                        </div>
+                    </div>
+                    <div class="card__content">
+                        <span class="card__badge" style="position:static;margin-bottom:0.5rem;display:inline-block;">Ligue</span>
+                        <h3 class="card__title">Ligue Hebdo Padel</h3>
+                        <p class="card__text">Inscrivez votre équipe pour la ligue du jeudi soir. 8 équipes, 10 semaines de compétition.</p>
+                        <div class="card__meta">
+                            <span class="card__meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Le Rebond</span>
+                            <span class="card__meta-item">⏰ 19h-22h</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card--event" data-animate data-delay="3">
+                    <div class="card__image">
+                        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#680920,#8b1a3a);color:var(--light);"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></div>
+                        <div class="card__date">
+                            <span class="card__date-day" style="font-size:1rem;">Bientôt</span>
+                        </div>
+                    </div>
+                    <div class="card__content">
+                        <span class="card__badge" style="position:static;margin-bottom:0.5rem;display:inline-block;">Animation</span>
+                        <h3 class="card__title">Montante/Descendante</h3>
+                        <p class="card__text">Venez seul ou en duo, on forme les équipes sur place. Idéal pour rencontrer de nouveaux partenaires.</p>
+                        <div class="card__meta">
+                            <span class="card__meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Le Rebond</span>
+                            <span class="card__meta-item">⏰ 18h-21h</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="evenements.html" class="btn btn--secondary" style="background:#f4f0e6;color:#680920;border-color:#f4f0e6;">Voir tous les événements</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bar & Restaurant Section -->
+    <section class="section" id="bar-restaurant">
+        <div class="container">
+            <div class="restaurant-grid">
+                <div class="restaurant-image" data-animate data-delay="1">
+                    <img src="img/bar-tabourets-verre.jpg" alt="Bar et restaurant du complexe sportif Le Rebond à Noyon" title="Bar & Restaurant - Le Rebond Noyon">
+                </div>
+
+                <div class="restaurant-content" data-animate data-delay="2">
+                    <span class="section-header__label" style="justify-content:flex-start;margin-bottom:1rem;">Après le match</span>
+                    <h2 class="restaurant-content__title">Bar & <span class="text-primary">Restaurant</span></h2>
+                    <p class="restaurant-content__text">
+                        Une ambiance sport & convivialité. Retrouvez-nous pour un déjeuner (11h-14h),
+                        un apéro d'après-match ou un dîner (19h-23h) devant nos écrans géants.
+                    </p>
+
+                    <div class="restaurant-content__features">
+                        <div class="restaurant-feature">
+                            <span class="restaurant-feature__icon" style="color:#cec3b6;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></span>
+                            <span>Pizzas artisanales</span>
+                        </div>
+                        <div class="restaurant-feature">
+                            <span class="restaurant-feature__icon" style="color:#cec3b6;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></span>
+                            <span>Planches à partager</span>
+                        </div>
+                        <div class="restaurant-feature">
+                            <span class="restaurant-feature__icon" style="color:#cec3b6;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12v6"/><path d="M13 12v6"/><path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 3 11 3s2 .5 3 .5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.5-.5-2.5-.5z"/><path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8"/></svg></span>
+                            <span>Bar à bières</span>
+                        </div>
+                        <div class="restaurant-feature">
+                            <span class="restaurant-feature__icon" style="color:#cec3b6;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></span>
+                            <span>Écrans géants</span>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                        <a href="bar-restaurant.html" class="btn btn--primary" style="color:#f4f0e6;">Découvrir la carte</a>
+                        <a href="reserver-restaurant.html" class="btn btn--outline-dark">Réserver une table</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Notre Carte Section -->
+    <section class="section-v2 section-v2--dark" id="carte">
+        <div class="container-v2">
+            <div class="section-header" data-animate>
+                <span class="section-header__label">Notre carte</span>
+                <h2 class="section-header__title">Des plats <span class="text-primary">généreux</span></h2>
+                <p class="section-header__text">Des plats savoureux pour tous les appétits</p>
+            </div>
+
+            <div class="text-center" data-animate data-delay="100" style="padding:3rem 1rem;">
+                <p style="font-size:1.2rem;color:#cec3b6;font-weight:500;">Carte en cours d'élaboration</p>
+                <p style="margin-top:0.75rem;opacity:0.7;">Notre carte sera bientôt disponible. Restez connectés !</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Séparateur -->
+    <div style="height:2px;background:linear-gradient(to right,transparent,rgba(206,195,182,0.3),transparent);"></div>
+
+    <!-- Ligues & Tournois Section -->
+    <section class="section-v2 section-v2--dark" id="ligues">
+        <div class="container-v2">
+            <div class="section-v2__header">
+                <h2 class="section-v2__title">
+                    <span class="section-v2__title-light">LIGUES &</span>
+                    <span class="section-v2__title-accent">TOURNOIS</span>
+                </h2>
+            </div>
+
+            <div class="tarifs-grid-v3">
+                <div class="tarifs-card-v2 tarifs-card-v3">
+                    <div class="tarif-item-v2">
+                        <div class="tarif-item-v2__info">
+                            <span class="tarif-item-v2__name">Inscription ligue</span>
+                            <span class="tarif-item-v2__desc">Par session (hebdomadaire)</span>
+                        </div>
+                        <span class="tarif-item-v2__price" style="font-size:0.85rem;color:#cec3b6;">En cours d'élaboration</span>
+                    </div>
+                    <div class="tarif-item-v2">
+                        <div class="tarif-item-v2__info">
+                            <span class="tarif-item-v2__name">Pass ligue mensuel</span>
+                            <span class="tarif-item-v2__desc">4 sessions incluses</span>
+                        </div>
+                        <span class="tarif-item-v2__price" style="font-size:0.85rem;color:#cec3b6;">En cours d'élaboration</span>
+                    </div>
+                    <div class="tarif-item-v2">
+                        <div class="tarif-item-v2__info">
+                            <span class="tarif-item-v2__name">Tournoi P25-P100</span>
+                            <span class="tarif-item-v2__desc">Inscription par joueur</span>
+                        </div>
+                        <span class="tarif-item-v2__price">20€/joueur</span>
+                    </div>
+                    <div class="tarif-item-v2">
+                        <div class="tarif-item-v2__info">
+                            <span class="tarif-item-v2__name">Tournoi P250</span>
+                            <span class="tarif-item-v2__desc">Inscription par joueur</span>
+                        </div>
+                        <span class="tarif-item-v2__price">25€/joueur</span>
+                    </div>
+                    <div class="tarif-item-v2">
+                        <div class="tarif-item-v2__info">
+                            <span class="tarif-item-v2__name">Montante/Descendante</span>
+                            <span class="tarif-item-v2__desc">Par personne</span>
+                        </div>
+                        <span class="tarif-item-v2__price" style="font-size:0.85rem;color:#cec3b6;">En cours d'élaboration</span>
+                    </div>
+                </div>
+
+                <div class="tarifs-side-v3">
+                    <div class="tarif-tile-v3">
+                        <span class="tarif-tile-v3__label">Tournoi P25-P100</span>
+                        <span class="tarif-tile-v3__value">20€ / joueur</span>
+                        <p class="tarif-tile-v3__text">Lots et remise des prix.</p>
+                    </div>
+                    <div class="tarif-tile-v3">
+                        <span class="tarif-tile-v3__label">Tournoi P250</span>
+                        <span class="tarif-tile-v3__value">25€ / joueur</span>
+                        <p class="tarif-tile-v3__text">Compétition de niveau intermédiaire.</p>
+                    </div>
+                    <div class="tarif-tile-v3">
+                        <span class="tarif-tile-v3__label">Ligues & Montantes</span>
+                        <span class="tarif-tile-v3__value" style="font-size:0.9rem;">En cours d'élaboration</span>
+                        <p class="tarif-tile-v3__text">Tarifs bientôt disponibles.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="tarifs.html" class="btn btn--outline" style="border-color:var(--light);color:var(--light);">Voir tous les tarifs</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Séparateur -->
+    <div style="height:2px;background:linear-gradient(to right,transparent,rgba(206,195,182,0.3),transparent);"></div>
+
+    <!-- Offres & Tarifs Section -->
+    <section class="section" id="offres">
+        <div class="container">
+            <div class="section-header" data-animate>
+                <span class="section-header__label">Offres & Tarifs</span>
+                <h2 class="section-header__title">Des formules pour <span class="text-primary">tous</span></h2>
+                <p class="section-header__text">Réservation à l'heure, ligue, privatisation... Trouvez la formule qui vous convient.</p>
+            </div>
+
+            <div class="pricing-grid">
+                <div class="pricing-card" data-animate data-delay="1">
+                    <h3 class="pricing-card__title">Montante / Descendante</h3>
+                    <p class="pricing-card__subtitle">Format fun et compétitif</p>
+                    <div class="pricing-card__price" style="font-size:1.2rem;color:#cec3b6;">En cours d'élaboration</div>
+                    <div class="pricing-card__features">
+                        <div class="pricing-card__feature">Changez de partenaire à chaque match</div>
+                        <div class="pricing-card__feature">Venez seul ou en duo</div>
+                        <div class="pricing-card__feature">Ambiance garantie</div>
+                        <div class="pricing-card__feature">Tous niveaux</div>
+                    </div>
+                    <a href="evenements.html" class="btn btn--secondary" style="width:100%;">S'inscrire</a>
+                </div>
+
+                <div class="pricing-card pricing-card--featured" data-animate data-delay="2">
+                    <span class="pricing-card__badge">Populaire</span>
+                    <h3 class="pricing-card__title">Réservation Terrain</h3>
+                    <p class="pricing-card__subtitle">Padel ou Five à l'heure</p>
+                    <div class="pricing-card__price">32€<span class="pricing-card__price-suffix">/h</span></div>
+                    <div class="pricing-card__features">
+                        <div class="pricing-card__feature">Terrain Padel 1h30</div>
+                        <div class="pricing-card__feature">Terrain Five 1h</div>
+                        <div class="pricing-card__feature">Vestiaires & douches inclus</div>
+                        <div class="pricing-card__feature">Location matériel disponible</div>
+                    </div>
+                    <a href="reserver.html" class="btn btn--primary" style="width:100%;">Réserver</a>
+                </div>
+
+                <div class="pricing-card" data-animate data-delay="3">
+                    <h3 class="pricing-card__title">Privatisation</h3>
+                    <p class="pricing-card__subtitle">Entreprises & Groupes</p>
+                    <div class="pricing-card__price">Sur devis</div>
+                    <div class="pricing-card__features">
+                        <div class="pricing-card__feature">Tout le complexe privatisé</div>
+                        <div class="pricing-card__feature">Organisation sur-mesure</div>
+                        <div class="pricing-card__feature">Formules repas incluses</div>
+                        <div class="pricing-card__feature">Animation team building</div>
+                    </div>
+                    <a href="groupes.html" class="btn btn--secondary" style="width:100%;">Demander un devis</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Infos Pratiques Section -->
+    <section class="section bg-primary" id="infos">
+        <div class="container">
+            <div class="section-header" data-animate>
+                <span class="section-header__label" style="color:var(--accent);">Infos pratiques</span>
+                <h2 class="section-header__title" style="color:var(--light);">Facile d'<span style="color:var(--accent);">accès</span></h2>
+            </div>
+
+            <div class="contact-grid">
+                <div class="contact-info" style="background:var(--light);" data-animate data-delay="1">
+                    <h3 class="contact-info__title">Coordonnées</h3>
+
+                    <div class="contact-info__item">
+                        <div class="contact-info__icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                        <div>
+                            <div class="contact-info__label">Adresse</div>
+                            <div class="contact-info__value">403 rue de l'Europe<br>60400 Noyon</div>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <div class="contact-info__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.32 1.61.59 2.39a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.78.27 1.58.46 2.39.59A2 2 0 0 1 22 16.92z"/></svg></div>
+                        <div>
+                            <div class="contact-info__label">Téléphone</div>
+                            <div class="contact-info__value"><a href="tel:+33344000000">03 44 00 00 00</a></div>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <div class="contact-info__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+                        <div>
+                            <div class="contact-info__label">Email</div>
+                            <div class="contact-info__value"><a href="mailto:contact@le-rebond.fr">contact@le-rebond.fr</a></div>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item" style="border-bottom:none;">
+                        <div class="contact-info__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                        <div>
+                            <div class="contact-info__label">Horaires</div>
+                            <div class="contact-info__value">
+                                <strong>Terrains :</strong> Lun-Dim 09h - 00h<br>
+                                <strong>Cuisine :</strong> 11h-14h / 19h-23h
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="map-container" data-animate data-delay="2">
+                    <iframe
+                        src="https://maps.google.com/maps?q=403+rue+de+l%27Europe,+60400+Noyon,+France&output=embed&z=15"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="section bg-primary" id="faq">
+        <div class="container">
+            <div class="section-header" data-animate>
+                <span class="section-header__label">Questions fréquentes</span>
+                <h2 class="section-header__title">Besoin d'<span class="text-primary">aide</span> ?</h2>
+            </div>
+
+            <div class="faq" data-animate>
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Faut-il une licence pour jouer au padel ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Non, aucune licence n'est requise pour jouer au padel ou au five en loisir. Seuls les tournois homologués FFT peuvent exiger une licence.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Du matériel est-il disponible en location ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Oui ! Nous proposons la location de raquettes de padel (3€), l'achat de boîtes de balles (5€) et la location de chaussures pour le five (3€). Le matériel est disponible à l'accueil.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Comment annuler ou modifier ma réservation ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Vous pouvez annuler ou modifier votre réservation jusqu'à 24h avant le créneau via votre espace client ou en nous appelant. Au-delà, la réservation reste due.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Y a-t-il des vestiaires et des douches ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Les vestiaires et douches sont actuellement en cours de construction et seront bientôt disponibles. Nous vous tiendrons informés dès leur ouverture !
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Puis-je venir avec des enfants ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Absolument ! Le padel et le five sont des sports accessibles dès 6-7 ans. Nous proposons également des créneaux spéciaux pour les jeunes le mercredi après-midi.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item" style="display:none;">
+                    <button class="faq__question">
+                        Proposez-vous des cours de padel ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Oui, nous avons des coachs diplômés qui proposent des cours particuliers et collectifs. Contactez-nous pour connaître les disponibilités et tarifs.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Le bar est-il accessible sans jouer ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Bien sûr ! Notre bar-restaurant est ouvert à tous. Venez regarder un match, prendre un verre ou manger un morceau, même sans réservation de terrain.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Comment privatiser le complexe ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            Pour une privatisation (entreprise, anniversaire, EVG/EVJF...), contactez-nous via le formulaire de la page Groupes ou par téléphone. Nous établirons un devis personnalisé selon vos besoins.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq__item">
+                    <button class="faq__question">
+                        Quand le complexe sera-t-il entièrement opérationnel ?
+                        <span class="faq__icon"></span>
+                    </button>
+                    <div class="faq__answer">
+                        <div class="faq__answer-inner">
+                            L'ouverture complète du complexe, incluant le bar-restaurant et l'ensemble des installations, est prévue pour fin avril – début mai. D'ici là, les terrains sont déjà accessibles. Suivez-nous sur nos réseaux pour ne rien manquer !
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="section bg-primary">
+        <div class="container text-center">
+            <h2 style="color:var(--light);font-family:var(--font-display);font-size:clamp(2rem,5vw,3.5rem);margin-bottom:1rem;" data-animate>Prêt à jouer ?</h2>
+            <p style="color:var(--light);opacity:0.8;margin-bottom:2rem;" data-animate data-delay="1">Réservez votre terrain en quelques clics et rejoignez la communauté Le Rebond.</p>
+            <div data-animate data-delay="2" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+                <a href="reserver.html" class="btn btn--large" style="background:var(--accent);color:#f4f0e6;">Réserver un terrain</a>
+                <a href="reserver-restaurant.html" class="btn btn--large" style="background:var(--light);color:#1a1a1a;">Réserver une table</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marquee Banner -->
+    <div class="marquee-v2" style="background:var(--primary);">
+        <div class="marquee-v2__track">
+            <span class="marquee-v2__item">PADEL</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">FIVE</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LE REBOND</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">NOYON</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">BAR & RESTAURANT</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">ÉVÉNEMENTS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">TOURNOIS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LIGUES</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">PADEL</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">FIVE</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LE REBOND</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">NOYON</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">BAR & RESTAURANT</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">ÉVÉNEMENTS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">TOURNOIS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LIGUES</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">PADEL</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">FIVE</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LE REBOND</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">NOYON</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">BAR & RESTAURANT</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">ÉVÉNEMENTS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">TOURNOIS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LIGUES</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">PADEL</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">FIVE</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LE REBOND</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">NOYON</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">BAR & RESTAURANT</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">ÉVÉNEMENTS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">TOURNOIS</span>
+            <span class="marquee-v2__separator">•</span>
+            <span class="marquee-v2__item">LIGUES</span>
+            <span class="marquee-v2__separator">•</span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__grid">
+                <div class="footer__brand">
+                    <img src="img/logo-bordeaux.svg" alt="Le Rebond" class="footer__logo-img">
+                    <p class="footer__tagline">A Place in Motion</p>
+                    <p class="footer__tagline">Le premier complexe Padel & Five de Noyon. Sport, convivialité et bonne humeur garantis !</p>
+                    <div class="footer__social">
+                        <a href="https://www.facebook.com/people/Le-Rebond-Noyon/61587678149654/" target="_blank" rel="noopener" class="footer__social-link" aria-label="Facebook">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        </a>
+                        <a href="https://www.instagram.com/lerebond_noyon/" target="_blank" rel="noopener" class="footer__social-link" aria-label="Instagram">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        </a>
+                        <a href="https://www.linkedin.com/company/le-rebond-noyon" target="_blank" rel="noopener" class="footer__social-link" aria-label="LinkedIn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="footer__title">Navigation</h4>
+                    <div class="footer__links">
+                        <a href="index.html" class="footer__link">Accueil</a>
+                        <a href="reserver.html" class="footer__link">Réserver un terrain</a>
+                        <a href="reserver-restaurant.html" class="footer__link">Réserver une table</a>
+                        <a href="evenements.html" class="footer__link">Événements</a>
+                        <a href="bar-restaurant.html" class="footer__link">Bar & Restaurant</a>
+                        <a href="tarifs.html" class="footer__link">Tarifs</a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="footer__title">Infos</h4>
+                    <div class="footer__links">
+                        <a href="groupes.html" class="footer__link">Entreprises & Groupes</a>
+                        <a href="contact.html" class="footer__link">Contact</a>
+                        <a href="#faq" class="footer__link">FAQ</a>
+                        <a href="mentions-legales.html" class="footer__link">Mentions légales</a>
+                        <a href="politique-confidentialite.html" class="footer__link">Confidentialité</a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="footer__title">Contact & Horaires</h4>
+                    <div class="footer__contact-item">
+                        <span class="footer__contact-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                        <span>403 rue de l'Europe, 60400 Noyon</span>
+                    </div>
+                    <div class="footer__contact-item">
+                        <span class="footer__contact-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+                        <span><a href="tel:+33344000000">03 44 00 00 00</a></span>
+                    </div>
+                    <div class="footer__contact-item">
+                        <span class="footer__contact-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
+                        <span><a href="mailto:contact@le-rebond.fr">contact@le-rebond.fr</a></span>
+                    </div>
+                    <div class="footer__contact-item" style="margin-top:1rem;">
+                        <span class="footer__contact-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                        <span>
+                            <strong>Terrains :</strong> 09h - 00h<br>
+                            <strong>Cuisine :</strong> 11h-14h / 19h-23h
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer__bottom">
+                <p class="footer__copyright">© 2026 Le Rebond. Tous droits réservés.</p>
+                <div class="footer__legal">
+                    <a href="mentions-legales.html">Mentions légales</a>
+                    <a href="politique-confidentialite.html">Politique de confidentialité</a>
+                </div>
+            </div>
+
+            <div class="footer__w4s">
+                <p class="footer__w4s-text">Site réalisé avec <span style="color:#ea1a15;">♥</span> par <a href="https://w4s.fr" class="footer__w4s-link" target="_blank">W4S</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+</body>
+</html>
