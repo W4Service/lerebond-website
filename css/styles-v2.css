@@ -1576,6 +1576,31 @@ body.v2 {
     100% { transform: translateX(-25%); }
 }
 
+@media (max-width: 768px) {
+    .marquee-v2 {
+        padding: 0.5rem 0;
+    }
+    .marquee-v2__track {
+        gap: 1.25rem;
+    }
+    .marquee-v2__item {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .marquee-v2 {
+        padding: 0.4rem 0;
+    }
+    .marquee-v2__track {
+        gap: 1rem;
+    }
+    .marquee-v2__item {
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+    }
+}
+
 /* ============================================
    FOOTER V2 (Style React fusionné)
    ============================================ */

@@ -704,6 +704,48 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     animation: scrollLine 2s ease infinite;
 }
 
+/* Hero Responsive */
+@media (max-width: 768px) {
+    .hero {
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+    .hero__content {
+        padding: 0 1rem;
+    }
+    .hero__tagline {
+        margin-bottom: var(--space-md);
+    }
+    .hero__cta {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .hero__cta .btn {
+        width: 100%;
+        max-width: 280px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero__content {
+        padding: 0 0.75rem;
+    }
+    .hero__badge {
+        padding: 0.35rem 0.75rem;
+    }
+    .hero__badge-text {
+        font-size: 0.65rem;
+    }
+    .hero__subtitle {
+        font-size: 1rem;
+    }
+    .hero__cta .btn {
+        padding: 0.85rem 1.5rem;
+        font-size: 0.8rem;
+    }
+}
+
 /* ============================================
    CARDS
    ============================================ */
@@ -3198,17 +3240,71 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     margin-top: 0;
 }
 
+@media (max-width: 900px) {
+    .countdown-hero .countdown-unit__value {
+        font-size: 1.75rem;
+    }
+    .countdown-hero__timer {
+        gap: 0.5rem;
+    }
+}
+
 @media (max-width: 768px) {
+    .countdown-hero {
+        margin-bottom: 1rem;
+    }
+    .countdown-hero__label {
+        font-size: 0.75rem;
+    }
     .countdown-hero .countdown-unit__value {
         font-size: 1.5rem;
     }
     .countdown-hero .countdown-unit {
         min-width: 48px;
     }
+    .countdown-hero .countdown-separator {
+        font-size: 1.2rem;
+    }
     .countdown-floating {
         bottom: 1rem;
         right: 1rem;
         padding: 0.5rem 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .countdown-hero .countdown-unit__value {
+        font-size: 1.2rem;
+    }
+    .countdown-hero .countdown-unit {
+        min-width: 38px;
+    }
+    .countdown-hero .countdown-unit__label {
+        font-size: 0.55rem;
+    }
+    .countdown-hero .countdown-separator {
+        font-size: 1rem;
+    }
+    .countdown-hero__timer {
+        gap: 0.3rem;
+    }
+    .countdown-floating {
+        bottom: 0.75rem;
+        right: 0.75rem;
+        padding: 0.4rem 0.6rem;
+        border-radius: 0.5rem;
+    }
+    .countdown-floating .countdown-unit__value {
+        font-size: 0.9rem;
+    }
+    .countdown-floating .countdown-unit__label {
+        font-size: 0.45rem;
+    }
+    .countdown-floating .countdown-separator {
+        font-size: 0.8rem;
+    }
+    .countdown-floating__label {
+        font-size: 0.55rem;
     }
 }
 
@@ -3239,5 +3335,232 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 .toast-global.show {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
+}
+
+/* ============================================
+   GLOBAL MOBILE RESPONSIVE
+   ============================================ */
+
+/* --- Event Banner --- */
+@media (max-width: 768px) {
+    .event-banner__inner {
+        flex-direction: column;
+        gap: 0.25rem;
+        text-align: center;
+    }
+    .event-banner__text {
+        font-size: 0.7rem;
+    }
+    .event-banner__link {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .event-banner {
+        padding: 0.35rem 0;
+    }
+    .event-banner__text {
+        font-size: 0.6rem;
+    }
+    .event-banner__text svg {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+/* --- Stats --- */
+@media (max-width: 480px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-xs);
+    }
+    .stat {
+        padding: var(--space-xs) 0;
+    }
+    .stat__number {
+        font-size: 1.1rem;
+    }
+    .stat__label {
+        font-size: 0.55rem;
+    }
+}
+
+/* --- Event Cards --- */
+@media (max-width: 768px) {
+    .card--event .card__date {
+        width: 60px;
+        height: 60px;
+    }
+    .card--event .card__date-day {
+        font-size: 0.85rem;
+    }
+    .card__content {
+        padding: 1rem;
+    }
+    .card__title {
+        font-size: 1.1rem;
+    }
+    .card__text {
+        font-size: 0.85rem;
+    }
+    .card__meta-item {
+        font-size: 0.75rem;
+    }
+}
+
+/* --- Terrain Cards --- */
+@media (max-width: 768px) {
+    .card--terrain {
+        height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card--terrain {
+        height: 200px;
+    }
+    .card--terrain .card__title {
+        font-size: 1rem;
+    }
+    .card--terrain .card__text {
+        font-size: 0.8rem;
+    }
+}
+
+/* --- Section Headers --- */
+@media (max-width: 480px) {
+    .section-header__label {
+        font-size: 0.7rem;
+    }
+    .section-header__text {
+        font-size: 0.85rem;
+    }
+}
+
+/* --- Restaurant Features (Après le match) --- */
+@media (max-width: 480px) {
+    .restaurant-content__features {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .restaurant-feature {
+        font-size: 0.85rem;
+    }
+}
+
+/* --- Pricing Cards --- */
+@media (max-width: 480px) {
+    .pricing-card {
+        padding: 1.25rem;
+    }
+    .pricing-card__title {
+        font-size: 1.1rem;
+    }
+    .pricing-card__price {
+        font-size: 2rem;
+    }
+    .pricing-card__feature {
+        font-size: 0.85rem;
+    }
+}
+
+/* --- Ligues & Tournois (tarifs grid v3) --- */
+@media (max-width: 480px) {
+    .tarif-item-v2__name {
+        font-size: 0.85rem;
+    }
+    .tarif-item-v2__desc {
+        font-size: 0.7rem;
+    }
+    .tarif-item-v2__price {
+        font-size: 0.85rem;
+    }
+    .tarif-tile-v3 {
+        padding: 1rem;
+    }
+    .tarif-tile-v3__label {
+        font-size: 0.7rem;
+    }
+    .tarif-tile-v3__value {
+        font-size: 1.25rem;
+    }
+}
+
+/* --- Contact / Infos Pratiques --- */
+@media (max-width: 480px) {
+    .contact-info {
+        padding: 1.25rem;
+    }
+    .contact-info__label {
+        font-size: 0.7rem;
+    }
+    .contact-info__value {
+        font-size: 0.85rem;
+    }
+    .map-container iframe {
+        height: 250px;
+    }
+}
+
+/* --- FAQ --- */
+@media (max-width: 480px) {
+    .faq__question,
+    .faq-question {
+        font-size: 0.9rem;
+        padding: 1rem;
+    }
+    .faq__answer,
+    .faq-answer {
+        font-size: 0.85rem;
+        padding: 0 1rem 1rem;
+    }
+}
+
+/* --- Section V2 titles --- */
+@media (max-width: 480px) {
+    .section-v2__title-light,
+    .section-v2__title-accent {
+        font-size: 1.5rem;
+    }
+}
+
+/* --- Toast on mobile --- */
+@media (max-width: 480px) {
+    .toast-global {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.85rem;
+        bottom: 1rem;
+    }
+}
+
+/* --- Buttons mobile --- */
+@media (max-width: 480px) {
+    .btn {
+        padding: 0.85rem 1.5rem;
+        font-size: 0.8rem;
+    }
+    .btn--large {
+        padding: 1rem 1.75rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* --- Sections padding mobile --- */
+@media (max-width: 768px) {
+    .section,
+    .section-v2 {
+        padding: 3rem 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .section,
+    .section-v2 {
+        padding: 2rem 0;
+    }
+    .container {
+        padding: 0 1rem;
+    }
 }
 
