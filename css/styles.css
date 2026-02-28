@@ -893,6 +893,32 @@ body.has-event-banner .hero__content {
     animation: scrollLine 2s ease infinite;
 }
 
+/* Hero short screens (laptops ~768-900px height) */
+@media (max-height: 900px) and (min-width: 769px) {
+    .hero__content {
+        padding-top: var(--space-md);
+        padding-bottom: var(--space-md);
+    }
+    body.has-event-banner .hero__content {
+        padding-top: var(--space-sm);
+    }
+    .hero__tagline {
+        margin-bottom: var(--space-md);
+    }
+    .hero__subtitle {
+        margin-bottom: var(--space-sm);
+    }
+    .hero__badge {
+        margin-bottom: var(--space-sm);
+    }
+    .countdown-hero {
+        margin-bottom: 1rem;
+    }
+    .countdown-hero .countdown-unit__value {
+        font-size: 1.75rem;
+    }
+}
+
 /* Hero Responsive */
 @media (max-width: 768px) {
     .hero {
