@@ -45,7 +45,7 @@
     --header-height: 80px;
 
     /* Event banner */
-    --event-banner-height: 40px;
+    --event-banner-height: 32px;
     --header-offset: var(--header-height);
 }
 
@@ -1922,7 +1922,10 @@ body.has-event-banner .hero__content {
    ============================================ */
 .event-banner {
     background: var(--primary);
-    padding: var(--space-sm) 0;
+    height: var(--event-banner-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
 }
 
@@ -1954,7 +1957,7 @@ body.has-event-banner .header {
     font-family: var(--font-display);
     font-weight: 700;
     color: var(--dark);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
 }
