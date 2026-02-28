@@ -895,27 +895,65 @@ body.has-event-banner .hero__content {
 
 /* Hero short screens (laptops ~768-900px height) */
 @media (max-height: 900px) and (min-width: 769px) {
+    .hero {
+        min-height: auto;
+        height: 100vh;
+        overflow: hidden;
+    }
     .hero__content {
-        padding-top: var(--space-md);
-        padding-bottom: var(--space-md);
+        padding-top: var(--space-sm);
+        padding-bottom: var(--space-sm);
     }
     body.has-event-banner .hero__content {
-        padding-top: var(--space-sm);
+        padding-top: var(--space-xs);
     }
     .hero__tagline {
-        margin-bottom: var(--space-md);
+        font-size: clamp(1.2rem, 3vw, 2rem);
+        margin-bottom: var(--space-sm);
     }
     .hero__subtitle {
+        font-size: clamp(1rem, 1.5vw, 1.25rem);
         margin-bottom: var(--space-sm);
     }
     .hero__badge {
         margin-bottom: var(--space-sm);
+        padding: 0.35rem 1rem;
+    }
+    .hero__title {
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        margin-bottom: var(--space-xs);
     }
     .countdown-hero {
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
     }
     .countdown-hero .countdown-unit__value {
         font-size: 1.75rem;
+    }
+    .hero__scroll {
+        bottom: var(--space-sm);
+    }
+}
+
+/* Hero very short screens (small laptops < 750px height) */
+@media (max-height: 750px) and (min-width: 769px) {
+    .hero__tagline {
+        display: none;
+    }
+    .hero__subtitle {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .countdown-hero__label {
+        font-size: 0.75rem;
+    }
+    .countdown-hero .countdown-unit__value {
+        font-size: 1.5rem;
+    }
+    .countdown-hero {
+        margin-bottom: 0.5rem;
+    }
+    .hero__scroll {
+        display: none;
     }
 }
 
@@ -1365,7 +1403,7 @@ body.has-event-banner .hero__content {
 }
 
 .testimonial {
-    background: white;
+    background: #f4f0e6;
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     position: relative;
@@ -1455,7 +1493,7 @@ body.has-event-banner .hero__content {
 }
 
 .pricing-card {
-    background: white;
+    background: #f4f0e6;
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
     text-align: center;
@@ -1569,7 +1607,7 @@ body.has-event-banner .hero__content {
     border-radius: var(--radius-md);
     font-size: 1rem;
     transition: border-color var(--transition-fast);
-    background: white;
+    background: #f4f0e6;
 }
 
 .form-input:focus,
@@ -1956,7 +1994,7 @@ body.has-event-banner .header {
 .event-banner__text {
     font-family: var(--font-display);
     font-weight: 700;
-    color: var(--dark);
+    color: #f4f0e6;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1965,7 +2003,7 @@ body.has-event-banner .header {
 .event-banner__link {
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--dark);
+    color: #f4f0e6;
     text-decoration: underline;
     text-underline-offset: 3px;
 }
@@ -1987,7 +2025,7 @@ body.has-event-banner .header {
 }
 
 .booking-choice__item {
-    background: white;
+    background: #f4f0e6;
     padding: var(--space-xl);
     border-radius: var(--radius-lg);
     text-align: center;
@@ -2157,7 +2195,7 @@ body.has-event-banner .header {
 }
 
 .contact-form {
-    background: white;
+    background: #f4f0e6;
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
@@ -2180,7 +2218,7 @@ body.has-event-banner .header {
 
 .filter-btn {
     padding: 0.75rem 1.5rem;
-    background: white;
+    background: #f4f0e6;
     border: 2px solid var(--grey);
     border-radius: 100px;
     font-family: var(--font-body);
@@ -2265,7 +2303,7 @@ body.has-event-banner .header {
 
 /* Menu Card */
 .menu-card {
-    background: white;
+    background: #f4f0e6;
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
     box-shadow: var(--shadow-md);
@@ -2390,7 +2428,7 @@ body.has-event-banner .header {
    LEGAL PAGES
    ============================================ */
 .legal-content {
-    background: white;
+    background: #f4f0e6;
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -2587,7 +2625,7 @@ body.has-event-banner .header {
 }
 
 .contact-card {
-    background: white;
+    background: #f4f0e6;
     padding: 1rem 1.25rem;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -2791,7 +2829,7 @@ body.has-event-banner .header {
 }
 
 .contact-form-wrapper {
-    background: white;
+    background: #f4f0e6;
     padding: 1.25rem 1.5rem;
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-md);
@@ -2895,7 +2933,7 @@ body.has-event-banner .header {
     font-family: var(--font-body);
     font-size: 1rem;
     color: var(--dark);
-    background: white;
+    background: #f4f0e6;
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -2979,7 +3017,7 @@ body.has-event-banner .header {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-lg);
-    color: white;
+    color: #f4f0e6;
     text-align: center;
     transition: all var(--transition-fast);
 }
@@ -3018,7 +3056,7 @@ body.has-event-banner .header {
 }
 
 .legal-content {
-    background: white;
+    background: #f4f0e6;
     padding: var(--space-lg);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-sm);
@@ -3121,7 +3159,7 @@ body.has-event-banner .header {
 }
 
 .legal-table td {
-    background: white;
+    background: #f4f0e6;
 }
 
 .legal-update {
@@ -3327,7 +3365,7 @@ body.has-event-banner .header {
 
 .event-banner__text,
 .event-banner__link {
-    color: var(--btn-primary-text);
+    color: #f4f0e6;
 }
 
 .footer__link:hover {
@@ -6309,7 +6347,7 @@ body.v2 {
     left: 50%;
     transform: translateX(-50%);
     background: var(--prehistoric-meteor, #ea1a15);
-    color: white;
+    color: #f4f0e6;
     padding: 4px 16px;
     font-size: 12px;
     font-weight: bold;
