@@ -213,7 +213,7 @@
 
     function bindButtons() {
         // All links pointing to reserver-restaurant
-        document.querySelectorAll('a[href^="/reserver-restaurant/"]').forEach(link => {
+        document.querySelectorAll('a[href^="reserver-restaurant/"], a[href^="/reserver-restaurant/"]').forEach(link => {
             // Skip if we're already ON the reserver-restaurant page
             if (window.location.pathname.includes('reserver-restaurant')) return;
 
@@ -297,7 +297,7 @@
 
     window.rpExpand = function() {
         rpClose();
-        window.location.href = '/reserver-restaurant/';
+        window.location.href = new URL('reserver-restaurant/', document.baseURI).href;
     };
 
     // ============================================================

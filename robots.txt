@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://le-rebond.fr/sitemap.xml
+Sitemap: https://w4service.github.io/lerebond-website/sitemap.xml
