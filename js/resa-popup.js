@@ -1,0 +1,655 @@
+/* ============================================================
+   RESERVATION POPUP — LE REBOND
+   Widget popup en bas à droite, déclenché par les boutons
+   "Table" / "Réserver une table"
+   ============================================================ */
+(function() {
+    'use strict';
+
+    // Config
+    const RP_CONFIG = Object.assign({
+        SUPABASE_URL: 'https://XXXXX.supabase.co',
+        SUPABASE_ANON_KEY: 'eyXXXXX',
+        N8N_WEBHOOK_URL: 'https://n8n.ton-domaine.com/webhook/reservation',
+        MAX_PERSONNES: 10,
+        JOURS_AVANCE: 30,
+        MIN_LEAD_MINUTES: 120,
+    }, window.REBOND_CONFIG || {});
+
+    // State
+    let rp = {
+        personnes: null,
+        date: null,
+        heure: null,
+        service: null,
+        currentMonth: new Date(),
+        slots: [],
+        isOpen: false,
+    };
+    let rpLastFocus = null;
+    let rpTrapHandler = null;
+
+    const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const JOURS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+    // ============================================================
+    // BUILD HTML
+    // ============================================================
+    function buildPopupHTML() {
+        return `
+        <div class="resa-popup-overlay" id="rpOverlay" aria-hidden="true"></div>
+        <div class="resa-popup" id="rpPopup" role="dialog" aria-modal="true" aria-labelledby="rpTitle" aria-hidden="true" tabindex="-1">
+            <div class="rp-loading" id="rpLoading"><div class="rp-spinner"></div></div>
+
+            <div class="resa-popup__header">
+                <div class="resa-popup__header-left">
+                    <div class="resa-popup__header-icon">🍽</div>
+                    <div class="resa-popup__header-text">
+                        <h3 id="rpTitle">Réserver une table</h3>
+                        <p>Le Rebond · Noyon</p>
+                    </div>
+                </div>
+                <div class="resa-popup__actions">
+                    <button class="resa-popup__btn-expand" onclick="rpExpand()" title="Ouvrir en pleine page">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                    </button>
+                    <button class="resa-popup__btn-close" onclick="rpClose()" title="Fermer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="resa-popup__body">
+                <div class="rp-steps">
+                    <div class="rp-step-dot active" id="rpDot0"></div>
+                    <div class="rp-step-dot" id="rpDot1"></div>
+                    <div class="rp-step-dot" id="rpDot2"></div>
+                    <div class="rp-step-dot" id="rpDot3"></div>
+                </div>
+
+                <div class="rp-content">
+                    <div id="rpError" class="rp-error" role="alert" aria-live="assertive"></div>
+
+                    <!-- STEP 0 -->
+                    <div class="rp-step active" id="rpStep0">
+                        <label class="rp-label">Combien de convives ?</label>
+                        <div class="rp-persons" id="rpPersons"></div>
+                        <div class="rp-nav">
+                            <button class="rp-btn rp-btn-primary" id="rpNext0" disabled onclick="rpGo(1)">Choisir la date →</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 1 -->
+                    <div class="rp-step" id="rpStep1">
+                        <label class="rp-label">Quelle date ?</label>
+                        <div class="rp-month-nav">
+                            <button onclick="rpChangeMonth(-1)" id="rpPrevMonth">‹</button>
+                            <span id="rpMonthLabel"></span>
+                            <button onclick="rpChangeMonth(1)">›</button>
+                        </div>
+                        <div class="rp-day-header" id="rpDayNames"></div>
+                        <div class="rp-date-grid" id="rpDateGrid"></div>
+                        <div id="rpSlotsCont" style="display:none;">
+                            <label class="rp-label" style="margin-top:16px;">Quelle heure ?</label>
+                            <div id="rpSlotsContent"></div>
+                        </div>
+                        <div class="rp-nav">
+                            <button class="rp-btn rp-btn-secondary" onclick="rpGo(0)">← Retour</button>
+                            <button class="rp-btn rp-btn-primary" id="rpNext1" disabled onclick="rpGo(2)">Coordonnées →</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2 -->
+                    <div class="rp-step" id="rpStep2">
+                        <label class="rp-label">Vos informations</label>
+                        <div class="rp-form-row">
+                            <div class="rp-form-group"><label>Prénom *</label><input type="text" id="rpPrenom" placeholder="Jean"></div>
+                            <div class="rp-form-group"><label>Nom *</label><input type="text" id="rpNom" placeholder="Dupont"></div>
+                        </div>
+                        <div class="rp-form-row">
+                            <div class="rp-form-group"><label>Email *</label><input type="email" id="rpEmail" placeholder="jean@email.com"></div>
+                            <div class="rp-form-group"><label>Téléphone *</label><input type="tel" id="rpTel" placeholder="06 12 34 56 78"></div>
+                        </div>
+                        <div class="rp-form-group">
+                            <label>Occasion</label>
+                            <select id="rpOccasion">
+                                <option value="">— Aucune —</option>
+                                <option value="anniversaire">Anniversaire</option>
+                                <option value="affaires">Repas d'affaires</option>
+                                <option value="amis">Entre amis</option>
+                                <option value="couple">En couple</option>
+                                <option value="famille">En famille</option>
+                                <option value="sport">Après le sport</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="rp-form-group">
+                            <label>Commentaire / Allergies</label>
+                            <textarea id="rpComment" placeholder="Allergies, demandes spéciales..."></textarea>
+                        </div>
+                        <div class="rp-nav">
+                            <button class="rp-btn rp-btn-secondary" onclick="rpGo(1)">← Retour</button>
+                            <button class="rp-btn rp-btn-primary" onclick="rpGo(3)">Confirmer →</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3 -->
+                    <div class="rp-step" id="rpStep3">
+                        <div id="rpRecapView">
+                            <label class="rp-label">Récapitulatif</label>
+                            <div class="rp-recap-card">
+                                <div class="rp-recap-row"><span class="rp-recap-label">Convives</span><span class="rp-recap-value" id="rpRecPersonnes"></span></div>
+                                <div class="rp-recap-row"><span class="rp-recap-label">Date</span><span class="rp-recap-value" id="rpRecDate"></span></div>
+                                <div class="rp-recap-row"><span class="rp-recap-label">Heure</span><span class="rp-recap-value" id="rpRecHeure"></span></div>
+                                <div class="rp-recap-row"><span class="rp-recap-label">Nom</span><span class="rp-recap-value" id="rpRecNom"></span></div>
+                                <div class="rp-recap-row"><span class="rp-recap-label">Email</span><span class="rp-recap-value" id="rpRecEmail"></span></div>
+                                <div class="rp-recap-row"><span class="rp-recap-label">Téléphone</span><span class="rp-recap-value" id="rpRecTel"></span></div>
+                            </div>
+                            <div class="rp-nav">
+                                <button class="rp-btn rp-btn-secondary" onclick="rpGo(2)">← Modifier</button>
+                                <button class="rp-btn rp-btn-primary" id="rpBtnConfirm" onclick="rpSubmit()">Confirmer</button>
+                            </div>
+                        </div>
+                        <div id="rpConfirmView" style="display:none;">
+                            <div class="rp-confirmation">
+                                <div class="rp-confirmation-icon">✓</div>
+                                <h3>Réservation confirmée !</h3>
+                                <p>Un email de confirmation a été envoyé à<br><strong id="rpConfirmEmail"></strong></p>
+                                <p style="margin-top:12px;font-size:11px;color:rgba(26,26,26,0.4);">Vous recevrez un rappel la veille.<br>Pour annuler, utilisez le lien dans l'email.</p>
+                            </div>
+                            <div class="rp-nav" style="justify-content:center;">
+                                <button class="rp-btn rp-btn-secondary" onclick="rpReset()" style="flex:none;padding:10px 28px;">Nouvelle réservation</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // ============================================================
+    // INJECT + INIT
+    // ============================================================
+    let rpInitialized = false;
+
+    function init() {
+        if (rpInitialized) return;
+        rpInitialized = true;
+
+        // Inject popup HTML
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = buildPopupHTML();
+        while (wrapper.firstChild) {
+            document.body.appendChild(wrapper.firstChild);
+        }
+
+        // Init person selector
+        const cont = document.getElementById('rpPersons');
+        for (let i = 1; i <= RP_CONFIG.MAX_PERSONNES; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'rp-person-btn';
+            btn.textContent = i;
+            btn.onclick = () => rpSelectPerson(i);
+            cont.appendChild(btn);
+        }
+
+        // Init calendar
+        const hdr = document.getElementById('rpDayNames');
+        hdr.innerHTML = JOURS.map(j => `<span class="rp-day-name">${j}</span>`).join('');
+        rpRenderMonth();
+
+        // Bind overlay close
+        document.getElementById('rpOverlay').addEventListener('click', rpClose);
+
+        // Intercept "Table" and "Réserver une table" links
+        bindButtons();
+    }
+
+    function rpGetFocusable(container) {
+        return Array.from(container.querySelectorAll(
+            'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        )).filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+    }
+
+    function bindButtons() {
+        // All links pointing to reserver-restaurant
+        document.querySelectorAll('a[href^="/reserver-restaurant/"]').forEach(link => {
+            // Skip if we're already ON the reserver-restaurant page
+            if (window.location.pathname.includes('reserver-restaurant')) return;
+
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                rpOpen();
+            });
+        });
+    }
+
+    // ============================================================
+    // OPEN / CLOSE / EXPAND
+    // ============================================================
+    window.rpOpen = function() {
+        if (!document.getElementById('rpPopup') || !document.getElementById('rpOverlay')) {
+            rpInitialized = false;
+            init();
+        }
+
+        rp.isOpen = true;
+        const popup = document.getElementById('rpPopup');
+        const overlay = document.getElementById('rpOverlay');
+        if (!popup || !overlay) {
+            console.error('Reservation popup: elements not found in DOM.');
+            return;
+        }
+        rpLastFocus = document.activeElement;
+        popup.setAttribute('aria-hidden', 'false');
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.classList.add('visible');
+        popup.style.display = 'flex';
+        // Force reflow for animation
+        popup.offsetHeight;
+        popup.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+
+        const focusables = rpGetFocusable(popup);
+        if (focusables.length) {
+            focusables[0].focus();
+        } else {
+            popup.focus();
+        }
+
+        rpTrapHandler = function(e) {
+            if (!rp.isOpen || e.key !== 'Tab') return;
+            const items = rpGetFocusable(popup);
+            if (!items.length) return;
+            const first = items[0];
+            const last = items[items.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', rpTrapHandler);
+    };
+
+    window.rpClose = function() {
+        rp.isOpen = false;
+        const popup = document.getElementById('rpPopup');
+        const overlay = document.getElementById('rpOverlay');
+        if (rpTrapHandler) {
+            document.removeEventListener('keydown', rpTrapHandler);
+            rpTrapHandler = null;
+        }
+        popup.classList.remove('visible');
+        overlay.classList.remove('visible');
+        popup.setAttribute('aria-hidden', 'true');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        setTimeout(() => {
+            if (!rp.isOpen) popup.style.display = 'none';
+        }, 300);
+        if (rpLastFocus && typeof rpLastFocus.focus === 'function') {
+            rpLastFocus.focus();
+        }
+    };
+
+    window.rpExpand = function() {
+        rpClose();
+        window.location.href = '/reserver-restaurant/';
+    };
+
+    // ============================================================
+    // SUPABASE
+    // ============================================================
+    async function rpRPC(fn, params) {
+        if (!RP_CONFIG.SUPABASE_URL || RP_CONFIG.SUPABASE_URL.includes('XXXXX') ||
+            !RP_CONFIG.SUPABASE_ANON_KEY || RP_CONFIG.SUPABASE_ANON_KEY.includes('XXXXX')) {
+            throw new Error('Config Supabase manquante. Vérifie js/resa-config.js');
+        }
+        const res = await fetch(`${RP_CONFIG.SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': RP_CONFIG.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${RP_CONFIG.SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify(params || {}),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || `Erreur ${res.status}`);
+        }
+        return res.json();
+    }
+
+    // ============================================================
+    // PERSON SELECTOR
+    // ============================================================
+    function rpSelectPerson(n) {
+        rp.personnes = n;
+        document.querySelectorAll('.rp-person-btn').forEach((b, i) => {
+            b.classList.toggle('selected', i + 1 === n);
+        });
+        document.getElementById('rpNext0').disabled = false;
+    }
+
+    // ============================================================
+    // CALENDAR
+    // ============================================================
+    window.rpChangeMonth = function(delta) {
+        rp.currentMonth = new Date(rp.currentMonth.getFullYear(), rp.currentMonth.getMonth() + delta, 1);
+        rpRenderMonth();
+    };
+
+    function rpRenderMonth() {
+        const year = rp.currentMonth.getFullYear();
+        const month = rp.currentMonth.getMonth();
+        const today = new Date(); today.setHours(0,0,0,0);
+        const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + RP_CONFIG.JOURS_AVANCE);
+
+        document.getElementById('rpMonthLabel').textContent = `${MOIS[month]} ${year}`;
+        document.getElementById('rpPrevMonth').style.visibility =
+            (year === today.getFullYear() && month === today.getMonth()) ? 'hidden' : 'visible';
+
+        const grid = document.getElementById('rpDateGrid');
+        grid.innerHTML = '';
+
+        const firstDay = new Date(year, month, 1);
+        let startDay = firstDay.getDay();
+        startDay = startDay === 0 ? 6 : startDay - 1;
+
+        for (let i = 0; i < startDay; i++) {
+            grid.innerHTML += '<div class="rp-date-btn empty"></div>';
+        }
+
+        const days = new Date(year, month + 1, 0).getDate();
+        for (let d = 1; d <= days; d++) {
+            const date = new Date(year, month, d);
+            const ds = fmtDate(date);
+            const isToday = date.getTime() === today.getTime();
+            const disabled = date < today || date > maxDate;
+            const selected = rp.date === ds;
+
+            let cls = 'rp-date-btn';
+            if (isToday) cls += ' today';
+            if (disabled) cls += ' disabled';
+            if (selected) cls += ' selected';
+
+            const btn = document.createElement('button');
+            btn.className = cls;
+            btn.textContent = d;
+            if (!disabled) btn.onclick = () => rpSelectDate(ds);
+            grid.appendChild(btn);
+        }
+    }
+
+    function fmtDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+    function fmtDateFR(ds) {
+        const d = new Date(ds + 'T00:00:00');
+        return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function rpSlotTimeInfo(dateStr, timeStr) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const slot = new Date(y, m - 1, d, hh, mm, 0, 0);
+        const now = new Date();
+        const diffMs = slot.getTime() - now.getTime();
+        const minLeadMs = RP_CONFIG.MIN_LEAD_MINUTES * 60 * 1000;
+        return {
+            isPast: diffMs < 0,
+            isTooSoon: diffMs < minLeadMs,
+        };
+    }
+
+    async function rpSelectDate(ds) {
+        rp.date = ds;
+        rp.heure = null;
+        rp.service = null;
+        document.getElementById('rpNext1').disabled = true;
+        rpRenderMonth();
+        // Highlight selected
+        document.querySelectorAll('#rpDateGrid .rp-date-btn:not(.empty)').forEach(b => {
+            if (b.textContent == new Date(ds + 'T00:00:00').getDate()) {
+                const bM = rp.currentMonth.getMonth();
+                const sM = new Date(ds + 'T00:00:00').getMonth();
+                if (bM === sM) b.classList.add('selected');
+            }
+        });
+        await rpLoadSlots(ds);
+    }
+
+    async function rpLoadSlots(ds) {
+        const cont = document.getElementById('rpSlotsCont');
+        const content = document.getElementById('rpSlotsContent');
+        cont.style.display = 'block';
+        content.innerHTML = '<div class="rp-no-slots">Chargement...</div>';
+
+        try {
+            const slots = await rpRPC('get_disponibilite', { p_date: ds });
+            rp.slots = slots;
+
+            if (!slots || slots.length === 0) {
+                content.innerHTML = '<div class="rp-no-slots"><div style="font-size:28px;margin-bottom:6px;">😔</div>Aucun créneau disponible.<br><span style="font-size:11px;">Essayez une autre date.</span></div>';
+                return;
+            }
+
+            const midi = slots.filter(s => s.service === 'midi');
+            const soir = slots.filter(s => s.service === 'soir');
+            let html = '';
+
+            if (midi.length) {
+                html += '<div class="rp-service-label">Midi</div><div class="rp-time-grid">';
+                midi.forEach(s => {
+                    const h = s.heure.substring(0, 5);
+                    const p = s.places_restantes;
+                    const ok = p >= rp.personnes;
+                    const t = rpSlotTimeInfo(ds, h);
+                    const canBook = ok && !t.isTooSoon;
+                    const low = p <= 6 && ok && !t.isTooSoon;
+                    const leadLabel = RP_CONFIG.MIN_LEAD_MINUTES % 60 === 0
+                        ? `+${RP_CONFIG.MIN_LEAD_MINUTES / 60}h min`
+                        : `+${RP_CONFIG.MIN_LEAD_MINUTES} min`;
+                    const label = !ok ? 'Complet' : (t.isPast ? 'Passé' : (t.isTooSoon ? leadLabel : `${p} places`));
+                    html += `<button class="rp-time-btn ${!ok?'full':''} ${t.isTooSoon?'past':''} ${low?'low':''}" ${canBook?`onclick="rpSelectTime('${h}','midi')"`:''} ${!canBook?'disabled':''}>${h}<div class="rp-places">${label}</div></button>`;
+                });
+                html += '</div>';
+            }
+            if (soir.length) {
+                html += '<div class="rp-service-label">Soir</div><div class="rp-time-grid">';
+                soir.forEach(s => {
+                    const h = s.heure.substring(0, 5);
+                    const p = s.places_restantes;
+                    const ok = p >= rp.personnes;
+                    const t = rpSlotTimeInfo(ds, h);
+                    const canBook = ok && !t.isTooSoon;
+                    const low = p <= 6 && ok && !t.isTooSoon;
+                    const leadLabel = RP_CONFIG.MIN_LEAD_MINUTES % 60 === 0
+                        ? `+${RP_CONFIG.MIN_LEAD_MINUTES / 60}h min`
+                        : `+${RP_CONFIG.MIN_LEAD_MINUTES} min`;
+                    const label = !ok ? 'Complet' : (t.isPast ? 'Passé' : (t.isTooSoon ? leadLabel : `${p} places`));
+                    html += `<button class="rp-time-btn ${!ok?'full':''} ${t.isTooSoon?'past':''} ${low?'low':''}" ${canBook?`onclick="rpSelectTime('${h}','soir')"`:''} ${!canBook?'disabled':''}>${h}<div class="rp-places">${label}</div></button>`;
+                });
+                html += '</div>';
+            }
+            content.innerHTML = html;
+        } catch (err) {
+            const msg = err && err.message ? err.message : 'Erreur de chargement.';
+            content.innerHTML = `<div class="rp-no-slots">${msg}</div>`;
+            console.error('Erreur slots:', err);
+        }
+    }
+
+    window.rpSelectTime = function(h, svc) {
+        rp.heure = h;
+        rp.service = svc;
+        document.querySelectorAll('.rp-time-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('.rp-time-btn').forEach(b => {
+            if (b.textContent.includes(h) && !b.classList.contains('full') && !b.classList.contains('past')) {
+                const parent = b.closest('.rp-time-grid');
+                const label = parent.previousElementSibling;
+                if (label && ((svc === 'midi' && label.textContent.includes('Midi')) ||
+                              (svc === 'soir' && label.textContent.includes('Soir')))) {
+                    b.classList.add('selected');
+                }
+            }
+        });
+        document.getElementById('rpNext1').disabled = false;
+    };
+
+    // ============================================================
+    // NAVIGATION
+    // ============================================================
+    window.rpGo = function(n) {
+        if (n === 1 && !rp.personnes) return;
+        if (n === 2 && (!rp.date || !rp.heure)) return;
+        if (n === 3) {
+            if (!rpValidate()) return;
+            rpFillRecap();
+        }
+
+        document.querySelectorAll('.rp-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(`rpStep${n}`).classList.add('active');
+
+        for (let i = 0; i < 4; i++) {
+            const dot = document.getElementById(`rpDot${i}`);
+            dot.className = 'rp-step-dot';
+            if (i < n) dot.classList.add('done');
+            if (i === n) dot.classList.add('active');
+        }
+        rpHideError();
+
+        // Scroll popup body to top
+        const body = document.querySelector('.resa-popup__body');
+        if (body) body.scrollTop = 0;
+    };
+
+    function rpValidate() {
+        const p = document.getElementById('rpPrenom').value.trim();
+        const n = document.getElementById('rpNom').value.trim();
+        const e = document.getElementById('rpEmail').value.trim();
+        const t = document.getElementById('rpTel').value.trim();
+        if (!p || !n || !e || !t) { rpShowError('Veuillez remplir tous les champs obligatoires.'); return false; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { rpShowError('Adresse email invalide.'); return false; }
+        if (!/^[\d\s\+\-\.]{8,}$/.test(t)) { rpShowError('Numéro de téléphone invalide.'); return false; }
+        return true;
+    }
+
+    function rpFillRecap() {
+        document.getElementById('rpRecPersonnes').textContent = `${rp.personnes} personne${rp.personnes > 1 ? 's' : ''}`;
+        document.getElementById('rpRecDate').textContent = fmtDateFR(rp.date);
+        document.getElementById('rpRecHeure').textContent = `${rp.heure} (${rp.service})`;
+        document.getElementById('rpRecNom').textContent = `${document.getElementById('rpPrenom').value} ${document.getElementById('rpNom').value}`;
+        document.getElementById('rpRecEmail').textContent = document.getElementById('rpEmail').value;
+        document.getElementById('rpRecTel').textContent = document.getElementById('rpTel').value;
+    }
+
+    // ============================================================
+    // SUBMIT
+    // ============================================================
+    window.rpSubmit = async function() {
+        const btn = document.getElementById('rpBtnConfirm');
+        btn.disabled = true;
+        btn.textContent = 'Envoi...';
+        rpSetLoading(true);
+        rpHideError();
+
+        const data = {
+            p_date: rp.date,
+            p_heure: rp.heure + ':00',
+            p_service: rp.service,
+            p_nombre: rp.personnes,
+            p_nom: document.getElementById('rpNom').value.trim(),
+            p_prenom: document.getElementById('rpPrenom').value.trim(),
+            p_email: document.getElementById('rpEmail').value.trim(),
+            p_telephone: document.getElementById('rpTel').value.trim(),
+            p_commentaire: document.getElementById('rpComment').value.trim(),
+            p_allergies: '',
+            p_occasion: document.getElementById('rpOccasion').value,
+        };
+
+        try {
+            const result = await rpRPC('creer_reservation', data);
+            if (result && result.success) {
+                rpNotifyN8N({ ...data, reservation_id: result.reservation_id, token_annulation: result.token_annulation }).catch(() => {});
+                document.getElementById('rpRecapView').style.display = 'none';
+                document.getElementById('rpConfirmView').style.display = 'block';
+                document.getElementById('rpConfirmEmail').textContent = data.p_email;
+                for (let i = 0; i < 4; i++) document.getElementById(`rpDot${i}`).className = 'rp-step-dot done';
+            } else {
+                rpShowError(result?.error || 'Erreur lors de la réservation.');
+                btn.disabled = false;
+                btn.textContent = 'Confirmer';
+            }
+        } catch (err) {
+            rpShowError('Erreur de connexion.');
+            console.error(err);
+            btn.disabled = false;
+            btn.textContent = 'Confirmer';
+        }
+        rpSetLoading(false);
+    };
+
+    async function rpNotifyN8N(data) {
+        if (!RP_CONFIG.N8N_WEBHOOK_URL || RP_CONFIG.N8N_WEBHOOK_URL.includes('ton-domaine')) return;
+        await fetch(RP_CONFIG.N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event: 'nouvelle_reservation',
+                reservation: {
+                    id: data.reservation_id, date: data.p_date, heure: data.p_heure,
+                    service: data.p_service, personnes: data.p_nombre, nom: data.p_nom,
+                    prenom: data.p_prenom, email: data.p_email, telephone: data.p_telephone,
+                    commentaire: data.p_commentaire, occasion: data.p_occasion,
+                    token_annulation: data.token_annulation,
+                },
+                timestamp: new Date().toISOString(),
+            }),
+        });
+    }
+
+    // ============================================================
+    // UTILS
+    // ============================================================
+    function rpShowError(msg) { const el = document.getElementById('rpError'); el.textContent = msg; el.classList.add('visible'); }
+    function rpHideError() { document.getElementById('rpError').classList.remove('visible'); }
+    function rpSetLoading(on) { document.getElementById('rpLoading').classList.toggle('visible', on); }
+
+    window.rpReset = function() {
+        rp = { personnes: null, date: null, heure: null, service: null, currentMonth: new Date(), slots: [], isOpen: true };
+        document.querySelectorAll('.rp-person-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('rpNext0').disabled = true;
+        document.getElementById('rpNext1').disabled = true;
+        document.getElementById('rpSlotsCont').style.display = 'none';
+        document.getElementById('rpRecapView').style.display = 'block';
+        document.getElementById('rpConfirmView').style.display = 'none';
+        document.getElementById('rpBtnConfirm').disabled = false;
+        document.getElementById('rpBtnConfirm').textContent = 'Confirmer';
+        ['rpPrenom','rpNom','rpEmail','rpTel','rpComment'].forEach(id => { document.getElementById(id).value = ''; });
+        document.getElementById('rpOccasion').value = '';
+        rpRenderMonth();
+        rpGo(0);
+    };
+
+    // Escape key closes popup
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && rp.isOpen) rpClose();
+    });
+
+    // ============================================================
+    // INIT ON DOM READY
+    // ============================================================
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();

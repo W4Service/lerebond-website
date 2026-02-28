@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html data-theme="bordeaux" lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Annulation restaurant — Le Rebond</title>
+<link href="https://le-rebond.fr/annulation/" rel="canonical"/>
+<meta content="Le Rebond" property="og:site_name"/>
+<meta content="website" property="og:type"/>
+<meta content="Annulation restaurant — Le Rebond" property="og:title"/>
+<meta content="" property="og:description"/>
+<meta content="https://le-rebond.fr/annulation/" property="og:url"/>
+<meta content="https://le-rebond.fr/img/og-cover.png" property="og:image"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="Annulation restaurant — Le Rebond" name="twitter:title"/>
+<meta content="" name="twitter:description"/>
+<meta content="https://le-rebond.fr/img/og-cover.png" name="twitter:image"/>
+<link href="/img/logomark-9.webp" rel="icon" type="image/webp"/>
+<link href="/css/fonts.css" rel="stylesheet"/>
+<link href="/css/themes.css" rel="stylesheet"/>
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: var(--light);
+            color: var(--secondary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .annul-logo {
+            margin-bottom: 32px;
+        }
+        .annul-logo img {
+            height: 48px;
+        }
+        .annul-card {
+            max-width: 440px;
+            width: 100%;
+            background: #fff;
+            border: 1px solid rgba(26,26,26,0.08);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(26,26,26,0.08);
+        }
+        .annul-card h2 {
+            font-family: 'Turret Road', 'Kanit', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+        .annul-card p {
+            color: rgba(26,26,26,0.6);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .annul-btn {
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-family: 'Kanit', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            margin: 4px;
+            transition: all 0.2s ease;
+        }
+        .annul-btn-danger {
+            background: var(--primary);
+            color: var(--text-on-primary);
+        }
+        .annul-btn-danger:hover {
+            background: var(--primary-light);
+        }
+        .annul-btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid rgba(104,9,32,0.2);
+        }
+        .annul-btn-secondary:hover {
+            border-color: var(--primary);
+            background: rgba(104,9,32,0.05);
+        }
+        .annul-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .annul-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(104,9,32,0.1);
+            font-size: 14px;
+        }
+        .annul-info-row:last-child { border: none; }
+        .annul-info-label { color: rgba(26,26,26,0.5); }
+        .annul-info-box {
+            text-align: left;
+            background: var(--light);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        #result { display: none; }
+        .annul-success-icon {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: rgba(104,9,32,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+            color: var(--primary);
+        }
+    </style>
+<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+<link rel="preconnect" href="https://formsubmit.co" crossorigin>
+<link rel="dns-prefetch" href="https://formsubmit.co">
+<link rel="preconnect" href="https://www.google.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.google.com">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SportsActivityLocation","name":"Le Rebond","url":"https://le-rebond.fr/","image":"https://le-rebond.fr/img/og-cover.png","logo":"https://le-rebond.fr/img/logo-8.webp","priceRange":"€","telephone":"+33344000000","address":{"@type":"PostalAddress","streetAddress":"403 Rue de l'Europe","postalCode":"60400","addressLocality":"Noyon","addressCountry":"FR"},"geo":{"@type":"GeoCoordinates","latitude":49.57385,"longitude":3.02572}}</script>
+</head>
+<body class="">
+<div class="annul-logo">
+<a href="/"><img alt="Le Rebond" decoding="async" loading="lazy" src="/img/logo-bordeaux.svg"/></a>
+</div>
+<div class="annul-card">
+<div id="cancelForm">
+<div class="annul-icon">🗓️</div>
+<h2>Annuler ma réservation restaurant</h2>
+<p>Êtes-vous sûr de vouloir annuler votre réservation restaurant au Rebond ?</p>
+<div class="annul-info-box" id="resaInfo">
+<p style="color: rgba(26,26,26,0.5); text-align: center; margin: 0">Chargement...</p>
+</div>
+<button class="annul-btn annul-btn-danger" onclick="cancelReservation()">Annuler ma réservation</button>
+<br/>
+<button class="annul-btn annul-btn-secondary" onclick="window.close()">Garder ma réservation</button>
+</div>
+<div id="result">
+<div class="annul-success-icon" id="resultIcon"></div>
+<h2 id="resultTitle"></h2>
+<p id="resultMsg"></p>
+</div>
+</div>
+<script src="/js/resa-config.js"></script>
+<script>
+// ← Mêmes valeurs que le widget principal
+const ANNUL_CONFIG = Object.assign({
+    SUPABASE_URL: 'https://XXXXX.supabase.co',
+    SUPABASE_ANON_KEY: 'eyXXXXX',
+}, window.REBOND_CONFIG || {});
+
+const SUPABASE_URL = ANNUL_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = ANNUL_CONFIG.SUPABASE_ANON_KEY;
+
+// Récupérer le token depuis l'URL : /annulation/?token=XXXXX
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
+if (!token) {
+    document.getElementById('cancelForm').innerHTML = `
+        <div class="annul-icon">⚠️</div>
+        <h2>Lien invalide</h2>
+        <p>Ce lien d'annulation est invalide ou a expiré.</p>`;
+}
+
+if (!SUPABASE_URL || SUPABASE_URL.includes('XXXXX') || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes('XXXXX')) {
+    document.getElementById('cancelForm').innerHTML = `
+        <div class="annul-icon">⚠️</div>
+        <h2>Configuration manquante</h2>
+        <p>La configuration Supabase est absente. Vérifiez js/resa-config.js.</p>`;
+}
+
+async function cancelReservation() {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/annuler_reservation`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ p_token: token }),
+        });
+        const data = await res.json();
+
+        document.getElementById('cancelForm').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+
+        if (data.success) {
+            document.getElementById('resultIcon').textContent = '✓';
+            document.getElementById('resultTitle').textContent = 'Réservation annulée';
+            document.getElementById('resultMsg').textContent = 'Votre réservation a bien été annulée. Vous recevrez un email de confirmation.';
+        } else {
+            document.getElementById('resultIcon').textContent = '⚠️';
+            document.getElementById('resultTitle').textContent = 'Impossible d\'annuler';
+            document.getElementById('resultMsg').textContent = data.error || 'Une erreur est survenue.';
+        }
+    } catch (err) {
+        document.getElementById('cancelForm').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('resultIcon').textContent = '❌';
+        document.getElementById('resultTitle').textContent = 'Erreur';
+        document.getElementById('resultMsg').textContent = 'Erreur de connexion. Réessayez.';
+    }
+}
+</script>
+</body>
+</html>

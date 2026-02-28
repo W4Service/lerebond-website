@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSmoothScroll();
     initCountdown();
     initReservationPopup();
+    initFormSubmit();
 });
 
 /* ============================================
@@ -50,10 +51,22 @@ function initMobileNav() {
 
     if (!toggle || !nav) return;
 
+    if (!nav.id) {
+        nav.id = 'site-nav';
+    }
+    toggle.setAttribute('aria-controls', nav.id);
+    toggle.setAttribute('aria-expanded', 'false');
+
+    function setExpanded(isOpen) {
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
     toggle.addEventListener('click', () => {
         toggle.classList.toggle('active');
         nav.classList.toggle('active');
-        document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
+        const isOpen = nav.classList.contains('active');
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        setExpanded(isOpen);
     });
 
     // Close menu when clicking a link
@@ -62,6 +75,7 @@ function initMobileNav() {
             toggle.classList.remove('active');
             nav.classList.remove('active');
             document.body.style.overflow = '';
+            setExpanded(false);
         });
     });
 
@@ -71,6 +85,7 @@ function initMobileNav() {
             toggle.classList.remove('active');
             nav.classList.remove('active');
             document.body.style.overflow = '';
+            setExpanded(false);
         }
     });
 }
@@ -580,19 +595,89 @@ function initReservationPopup() {
     }
 
     function showReservationToast(message) {
-        toast.textContent = message;
+        toast.innerHTML = message;
         toast.classList.add('show');
         setTimeout(function() {
             toast.classList.remove('show');
         }, 5000);
     }
 
-    // Intercept clicks on all reservation links and buttons
+    window.showToast = function(message) {
+        showReservationToast(message);
+    };
+
+    // Optional toast hook (only if explicitly opted-in)
     document.addEventListener('click', function(e) {
-        var link = e.target.closest('a[href="reserver.html"], a[href="reserver-restaurant.html"]');
+        var link = e.target.closest('a[data-reservation-toast="true"]');
         if (link) {
             e.preventDefault();
             showReservationToast('Réservation disponible bientôt !');
         }
+    });
+
+    // Event banner CTA toast
+    document.addEventListener('click', function(e) {
+        var bannerLink = e.target.closest('.event-banner__link');
+        if (!bannerLink) return;
+        e.preventDefault();
+
+        showReservationToast('La date de la semaine de gratuité arrive prochainement. <span class="icon-inline">Restez connecté 🤫</span>');
+    });
+}
+
+/* ============================================
+   FORM SUBMIT (Formsubmit.co)
+   ============================================ */
+function initFormSubmit() {
+    const forms = document.querySelectorAll('form[data-formsubmit="true"]');
+    if (!forms.length) return;
+
+    forms.forEach(form => {
+        const feedback = form.querySelector('.form-feedback');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const successMsg = form.getAttribute('data-success-message') ||
+            'Merci, votre demande sera traitée sous 24h.';
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.setAttribute('aria-busy', 'true');
+            }
+
+            if (feedback) {
+                feedback.textContent = '';
+                feedback.classList.remove('visible', 'is-error');
+            }
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'Accept': 'application/json' },
+                });
+
+                if (!res.ok) {
+                    throw new Error('Formsubmit error');
+                }
+
+                if (feedback) {
+                    feedback.textContent = successMsg;
+                    feedback.classList.add('visible');
+                }
+                form.reset();
+            } catch (err) {
+                if (feedback) {
+                    feedback.textContent = "Une erreur est survenue. Réessayez.";
+                    feedback.classList.add('visible', 'is-error');
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.removeAttribute('aria-busy');
+                }
+            }
+        });
     });
 }

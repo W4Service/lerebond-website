@@ -953,6 +953,10 @@
     flex-shrink: 0;
 }
 
+.event-detail--nowrap {
+    white-space: nowrap;
+}
+
 .event-status {
     display: flex;
     align-items: center;
@@ -1871,6 +1875,13 @@
     padding: var(--space-md);
 }
 
+.format-card-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
 .format-card-content .format-icon {
     display: inline-flex;
     align-items: center;
@@ -1880,7 +1891,8 @@
     background: rgba(104, 9, 32, 0.1);
     border-radius: 50%;
     color: #680920;
-    margin-bottom: var(--space-sm);
+    margin-bottom: 0;
+    flex: 0 0 auto;
 }
 
 .format-card-content .format-icon svg {
@@ -1893,7 +1905,7 @@
     font-size: 1.25rem;
     font-weight: 800;
     color: #680920;
-    margin-bottom: var(--space-xs);
+    margin-bottom: 0;
 }
 
 .format-card-content p {
@@ -2422,4 +2434,56 @@
 .contact-form .btn--primary,
 .split-text .btn--primary {
     color: #f4f0e6;
+}
+
+/* ============================================
+   EVENT SHARE BUTTONS
+   ============================================ */
+.event-share {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+.event-share__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #999;
+}
+
+.event-share__buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.event-share__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.12);
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.event-share__btn:hover {
+    border-color: #680920;
+    color: #680920;
+    background: rgba(104, 9, 32, 0.06);
+    transform: translateY(-1px);
+}
+
+.event-share__btn:focus-visible {
+    outline: 2px solid #efa707;
+    outline-offset: 2px;
 }
