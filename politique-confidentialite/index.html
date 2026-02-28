@@ -60,7 +60,7 @@
 <li><a class="nav__link" href="contact/">Contact</a></li>
 </ul>
 <div style="display: flex; gap: 0.5rem">
-<a class="btn btn--primary nav__cta text-light" href="#" onclick="openComingSoon(event)">Terrain</a>
+<a class="btn btn--primary nav__cta text-light" href="#" onclick="showReservationToast()">Terrain</a>
 <a class="btn btn--outline-dark nav__cta" href="reserver-restaurant/">Table</a>
 </div>
 </nav>
@@ -285,7 +285,7 @@
 <h4 class="footer__title">Navigation</h4>
 <div class="footer__links">
 <a class="footer__link" href="./">Accueil</a>
-<a class="footer__link" href="#" onclick="openComingSoon(event)">Réserver un terrain</a>
+<a class="footer__link" href="#" onclick="showReservationToast()">Réserver un terrain</a>
 <a class="footer__link" href="reserver-restaurant/">Réserver une table</a>
 <a class="footer__link" href="evenements/">Événements</a>
 <a class="footer__link" href="bar-restaurant/">Bar &amp; Restaurant</a>
@@ -341,15 +341,17 @@
 <script src="js/main.min.js"></script>
 <script src="js/resa-config.min.js"></script>
 <script src="js/resa-popup.min.js"></script>
-<!-- Coming Soon Popup - Réservation Terrain -->
-<div class="coming-soon-overlay" id="comingSoonOverlay" onclick="if(event.target===this)closeComingSoon()">
-<div class="coming-soon-modal">
-<button class="coming-soon-modal__close" onclick="closeComingSoon()" aria-label="Fermer">✕</button>
-<span class="coming-soon-modal__icon">⏳</span>
-<h2 class="coming-soon-modal__title">Bientôt disponible</h2>
-<p class="coming-soon-modal__text">La réservation en ligne de terrains sera disponible prochainement. Restez connectés !</p>
-</div>
-</div>
-<script>var _csTimer;function openComingSoon(e){if(e)e.preventDefault();var o=document.getElementById("comingSoonOverlay");o.classList.add("visible");document.body.style.overflow="hidden";clearTimeout(_csTimer);_csTimer=setTimeout(closeComingSoon,5000);}function closeComingSoon(){document.getElementById("comingSoonOverlay").classList.remove("visible");document.body.style.overflow="";clearTimeout(_csTimer);}document.addEventListener("keydown",function(e){if(e.key==="Escape")closeComingSoon();});</script>
+<div class="toast-global" id="toast-global"></div>
+<script>
+(function() {
+    var toast = document.getElementById('toast-global');
+    window.showReservationToast = function() {
+        toast.textContent = '⏳ Réservation terrain disponible bientôt !';
+        toast.classList.add('show');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(function() { toast.classList.remove('show'); }, 5000);
+    };
+})();
+</script>
 </body>
 </html>
