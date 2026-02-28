@@ -502,7 +502,7 @@
 (function() {
     var toast = document.getElementById('toast-global');
     window.showReservationToast = function() {
-        toast.textContent = '⏳ Réservation terrain disponible bientôt !';
+        toast.textContent = 'Réservation terrain disponible bientôt ! ⏳';
         toast.classList.add('show');
         clearTimeout(toast._t);
         toast._t = setTimeout(function() { toast.classList.remove('show'); }, 5000);
