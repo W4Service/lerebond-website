@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initCountdown();
     initReservationPopup();
     initFormSubmit();
+    initLazyEmbeds();
+    initMobileCta();
 });
 
 /* ============================================
@@ -680,4 +682,66 @@ function initFormSubmit() {
             }
         });
     });
+}
+
+/* ============================================
+   LAZY EMBEDS (Maps)
+   ============================================ */
+function initLazyEmbeds() {
+    const embeds = document.querySelectorAll('.lazy-embed');
+    if (!embeds.length) return;
+
+    embeds.forEach(embed => {
+        const btn = embed.querySelector('.lazy-embed__btn');
+        const src = embed.getAttribute('data-src');
+        if (!src) return;
+
+        const title = embed.getAttribute('data-title') || '';
+
+        const loadEmbed = () => {
+            if (embed.querySelector('iframe')) return;
+            const iframe = document.createElement('iframe');
+            iframe.src = src;
+            iframe.loading = 'lazy';
+            iframe.referrerPolicy = 'no-referrer-when-downgrade';
+            if (title) iframe.title = title;
+            iframe.allowFullscreen = true;
+            embed.appendChild(iframe);
+            if (btn) btn.remove();
+        };
+
+        if (btn) {
+            btn.addEventListener('click', loadEmbed);
+        }
+    });
+}
+
+/* ============================================
+   MOBILE CTA (Contextual)
+   ============================================ */
+function initMobileCta() {
+    const cta = document.querySelector('.mobile-cta');
+    if (!cta) return;
+
+    const actions = cta.querySelector('.mobile-cta__actions');
+    if (!actions) return;
+
+    const buttons = Array.from(actions.querySelectorAll('.mobile-cta__btn'));
+    if (buttons.length < 2) return;
+
+    const tableBtn = buttons.find(btn => (btn.getAttribute('href') || '').includes('reserver-restaurant'));
+    const terrainBtn = buttons.find(btn => (btn.getAttribute('href') || '').includes('reserver/'));
+    if (!tableBtn || !terrainBtn) return;
+
+    const path = window.location.pathname;
+    const preferTable = path.includes('reserver-restaurant') || path.includes('bar-restaurant');
+
+    if (preferTable) {
+        tableBtn.classList.add('btn--primary', 'text-light');
+        tableBtn.classList.remove('btn--light');
+        terrainBtn.classList.add('btn--light');
+        terrainBtn.classList.remove('btn--primary', 'text-light');
+        actions.innerHTML = '';
+        actions.append(tableBtn, terrainBtn);
+    }
 }

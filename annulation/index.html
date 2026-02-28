@@ -18,8 +18,8 @@
 <meta content="" name="twitter:description"/>
 <meta content="https://w4service.github.io/lerebond-website/img/og-cover.png" name="twitter:image"/>
 <link href="img/logomark-9.webp" rel="icon" type="image/webp"/>
-<link href="css/fonts.css" rel="stylesheet"/>
-<link href="css/themes.css" rel="stylesheet"/>
+<link href="css/fonts.min.css" rel="stylesheet"/>
+<link href="css/themes.min.css" rel="stylesheet"/>
 <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -128,7 +128,7 @@
 <link rel="dns-prefetch" href="https://formsubmit.co">
 <link rel="preconnect" href="https://www.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://www.google.com">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SportsActivityLocation","name":"Le Rebond","url":"https://w4service.github.io/lerebond-website/","image":"https://w4service.github.io/lerebond-website/img/og-cover.png","logo":"https://w4service.github.io/lerebond-website/img/logo-8.webp","priceRange":"€","telephone":"+33344000000","address":{"@type":"PostalAddress","streetAddress":"403 Rue de l'Europe","postalCode":"60400","addressLocality":"Noyon","addressCountry":"FR"},"geo":{"@type":"GeoCoordinates","latitude":49.57385,"longitude":3.02572}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":["SportsActivityLocation","LocalBusiness"],"name":"Le Rebond","url":"https://w4service.github.io/lerebond-website/","image":"https://w4service.github.io/lerebond-website/img/og-cover.png","logo":"https://w4service.github.io/lerebond-website/img/logo-8.webp","priceRange":"€","telephone":"+33344000000","address":{"@type":"PostalAddress","streetAddress":"403 Rue de l'Europe","postalCode":"60400","addressLocality":"Noyon","addressRegion":"Hauts-de-France","addressCountry":"FR"},"geo":{"@type":"GeoCoordinates","latitude":49.57385,"longitude":3.02572},"areaServed":["Noyon","Oise","Hauts-de-France"],"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],"opens":"09:00","closes":"00:00"}],"sameAs":["https://www.facebook.com/people/Le-Rebond-Noyon/61587678149654/","https://www.instagram.com/lerebond_noyon/","https://www.linkedin.com/company/le-rebond-noyon"],"hasMap":"https://www.google.com/maps?q=403+rue+de+l'Europe,+60400+Noyon,+France"}</script>
 </head>
 <body class="">
 <div class="annul-logo">
@@ -152,7 +152,7 @@
 <p id="resultMsg"></p>
 </div>
 </div>
-<script src="js/resa-config.js"></script>
+<script src="js/resa-config.min.js"></script>
 <script>
 // ← Mêmes valeurs que le widget principal
 const ANNUL_CONFIG = Object.assign({
@@ -178,7 +178,7 @@ if (!SUPABASE_URL || SUPABASE_URL.includes('XXXXX') || !SUPABASE_ANON_KEY || SUP
     document.getElementById('cancelForm').innerHTML = `
         <div class="annul-icon">⚠️</div>
         <h2>Configuration manquante</h2>
-        <p>La configuration Supabase est absente. Vérifiez js/resa-config.js.</p>`;
+        <p>La configuration Supabase est absente. Vérifiez js/resa-config.min.js.</p>`;
 }
 
 async function cancelReservation() {
