@@ -706,13 +706,13 @@ function initLazyEmbeds() {
             iframe.referrerPolicy = 'no-referrer-when-downgrade';
             if (title) iframe.title = title;
             iframe.allowFullscreen = true;
+            iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0';
             embed.appendChild(iframe);
             if (btn) btn.remove();
         };
 
-        if (btn) {
-            btn.addEventListener('click', loadEmbed);
-        }
+        // Auto-load immediately
+        loadEmbed();
     });
 }
 
