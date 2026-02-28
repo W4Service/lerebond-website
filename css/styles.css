@@ -647,13 +647,6 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     color: var(--light);
 }
 
-.btn-text-accent {
-    color: var(--accent);
-}
-
-.btn-text-accent:hover {
-    color: var(--accent);
-}
 
 .btn--accent {
     background: var(--accent);
@@ -1014,6 +1007,33 @@ body.has-event-banner .hero__content {
     gap: var(--space-sm);
     font-size: 0.875rem;
     color: #1a1a1a;
+}
+
+.card--event {
+    display: flex;
+    flex-direction: column;
+}
+
+.card--event .card__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.card--event .card__meta {
+    margin-top: auto;
+}
+
+.card__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    line-height: 1;
+}
+
+.card__meta-item svg {
+    display: block;
+    flex-shrink: 0;
 }
 
 #events .card__meta,
