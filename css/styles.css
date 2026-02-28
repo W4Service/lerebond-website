@@ -1024,6 +1024,10 @@ body.has-event-banner .hero__content {
     margin-top: auto;
 }
 
+#events .card--event {
+    height: 100%;
+}
+
 .card__meta-item {
     display: inline-flex;
     align-items: center;
