@@ -957,6 +957,18 @@
     white-space: nowrap;
 }
 
+.page-evenements .event-details {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .page-evenements .event-details {
+        flex-wrap: wrap;
+        white-space: normal;
+    }
+}
+
 .event-status {
     display: flex;
     align-items: center;
