@@ -215,7 +215,6 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 }
 
 .header.scrolled {
-    height: 60px;
     box-shadow: var(--shadow-md);
 }
 
@@ -432,7 +431,7 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     }
 
     .header.scrolled {
-        height: 56px;
+        height: var(--header-height);
     }
 
     .header__inner,
@@ -533,7 +532,7 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     }
 
     .header.scrolled {
-        height: 50px;
+        height: var(--header-height);
     }
 
     .header__logo-img {
@@ -646,6 +645,14 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 .btn--light:hover {
     background: var(--dark);
     color: var(--light);
+}
+
+.btn-text-accent {
+    color: var(--accent);
+}
+
+.btn-text-accent:hover {
+    color: var(--accent);
 }
 
 .btn--accent {
@@ -1007,6 +1014,15 @@ body.has-event-banner .hero__content {
     gap: var(--space-sm);
     font-size: 0.875rem;
     color: #1a1a1a;
+}
+
+#events .card__meta,
+#events .card__meta-item {
+    white-space: nowrap;
+}
+
+#events .card__meta {
+    flex-wrap: nowrap;
 }
 
 /* Event Card */
