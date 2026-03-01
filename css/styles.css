@@ -1848,8 +1848,9 @@ body.has-event-banner .hero__content {
 }
 
 .page-hero--compact {
-    min-height: 220px;
-    padding: calc(var(--header-offset) + var(--space-lg)) 0 var(--space-md);
+    min-height: 300px;
+    padding: calc(var(--header-offset) + var(--space-md)) 0 var(--space-md);
+    align-items: flex-end;
 }
 
 .section--compact-top {
