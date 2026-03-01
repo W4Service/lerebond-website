@@ -1236,8 +1236,9 @@ body.has-event-banner .hero__content {
 }
 
 .section-header__label {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-xs);
     font-family: var(--font-body);
     font-size: 0.75rem;
@@ -1491,8 +1492,8 @@ body.has-event-banner .hero__content {
     .pricing-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    /* 3rd card alone on a row: center it and cap its width */
-    .pricing-grid > .pricing-card:last-child:nth-child(3n+1) {
+    /* 3rd card alone on a row: span full width and center */
+    .pricing-grid > .pricing-card:last-child:nth-child(odd) {
         grid-column: 1 / -1;
         max-width: 420px;
         margin-inline: auto;
@@ -1503,7 +1504,7 @@ body.has-event-banner .hero__content {
     .pricing-grid {
         grid-template-columns: 1fr;
     }
-    .pricing-grid > .pricing-card:last-child:nth-child(3n+1) {
+    .pricing-grid > .pricing-card:last-child:nth-child(odd) {
         max-width: none;
         margin-inline: 0;
     }
@@ -2272,12 +2273,14 @@ body.has-event-banner .header {
         grid-template-columns: 1fr;
         max-width: 680px;
         margin-inline: auto;
+        text-align: center;
     }
     .restaurant-content__features {
         grid-template-columns: repeat(2, 1fr);
+        text-align: left;
     }
-    .section-header__label--left {
-        justify-content: flex-start;
+    .restaurant-actions {
+        justify-content: center;
     }
 }
 

@@ -2094,7 +2094,7 @@
         grid-template-columns: repeat(2, 1fr);
     }
     /* 3rd item alone on a row: span full width and center */
-    .grid-3 > *:last-child:nth-child(3n+1) {
+    .grid-3 > *:last-child:nth-child(odd) {
         grid-column: 1 / -1;
         max-width: 480px;
         margin-inline: auto;
@@ -2105,7 +2105,7 @@
 }
 
 @media (max-width: 768px) {
-    .grid-3 > *:last-child:nth-child(3n+1) {
+    .grid-3 > *:last-child:nth-child(odd) {
         max-width: none;
         margin-inline: 0;
     }
@@ -2624,10 +2624,12 @@
     border-color: #f4f0e6;
 }
 
-/* Section Bar & Restaurant — label gauche */
-.section-header__label--left {
-    justify-content: flex-start;
-    margin-bottom: 1rem;
+/* Section Bar & Restaurant — label gauche sur grand écran seulement */
+@media (min-width: 1025px) {
+    .section-header__label--left {
+        justify-content: flex-start;
+        margin-bottom: 1rem;
+    }
 }
 .restaurant-actions {
     display: flex;
