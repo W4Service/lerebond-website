@@ -4160,6 +4160,9 @@ body.has-event-banner .header {
     .faq__answer,
     .faq-answer {
         font-size: 0.85rem;
+    }
+    .faq__answer-inner,
+    .faq-answer p {
         padding: 0 1rem 1rem;
     }
 }
