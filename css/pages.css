@@ -1466,11 +1466,20 @@
     .offers-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    .offers-grid > *:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        max-width: 480px;
+        margin-inline: auto;
+    }
 }
 
 @media (max-width: 768px) {
     .offers-grid {
         grid-template-columns: 1fr;
+    }
+    .offers-grid > *:last-child:nth-child(odd) {
+        max-width: none;
+        margin-inline: 0;
     }
 }
 
@@ -2271,6 +2280,8 @@
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
     align-items: center;
+    max-width: 860px;
+    margin-inline: auto;
 }
 
 @media (max-width: 768px) {
