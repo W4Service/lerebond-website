@@ -163,6 +163,16 @@ function initEventFilters() {
     let activeCategory = 'all';
     let activeType = 'all';
 
+    function fixOrphan(cards) {
+        const cols = window.innerWidth > 1024 ? 3 : window.innerWidth > 768 ? 2 : 1;
+        cards.forEach((card, i) => {
+            const isOrphan = (i === cards.length - 1) && (cards.length % cols !== 0);
+            card.style.gridColumn = isOrphan ? '1 / -1' : '';
+            card.style.maxWidth = isOrphan ? '480px' : '';
+            card.style.marginInline = isOrphan ? 'auto' : '';
+        });
+    }
+
     function applyFilters() {
         const visibleCards = [];
 
@@ -172,6 +182,11 @@ function initEventFilters() {
 
             const matchCategory = activeCategory === 'all' || category === activeCategory;
             const matchType = activeType === 'all' || type === activeType;
+
+            // Reset orphan styles before recalculating
+            card.style.gridColumn = '';
+            card.style.maxWidth = '';
+            card.style.marginInline = '';
 
             if (matchCategory && matchType) {
                 visibleCards.push(card);
@@ -192,17 +207,12 @@ function initEventFilters() {
             }
         });
 
-        // After hide animation, fix orphan card on last row
-        setTimeout(() => {
-            const cols = window.innerWidth > 1024 ? 3 : window.innerWidth > 768 ? 2 : 1;
-            visibleCards.forEach((card, i) => {
-                const isLastOnRow = (i === visibleCards.length - 1) && (visibleCards.length % cols !== 0);
-                card.style.gridColumn = isLastOnRow ? '1 / -1' : '';
-                card.style.maxWidth = isLastOnRow ? '480px' : '';
-                card.style.marginInline = isLastOnRow ? 'auto' : '';
-            });
-        }, 450);
+        // Apply orphan fix after hide animation completes
+        setTimeout(() => fixOrphan(visibleCards), 450);
     }
+
+    // Apply orphan fix on initial load too
+    fixOrphan(Array.from(eventCards));
 
     // Category filter buttons (data-filter)
     document.querySelectorAll('[data-filter]').forEach(btn => {
