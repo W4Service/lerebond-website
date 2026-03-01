@@ -3443,10 +3443,10 @@ body.has-event-banner .header {
     color: var(--btn-primary-text);
 }
 
-/* Cards côté : fond bordeaux, texte noir, gris pour le secondaire */
+/* Cards côté : fond bordeaux, texte crème, gris pour le secondaire */
 .pricing-card {
     background: #680920;
-    color: #1a1a1a;
+    color: #f4f0e6;
     border: 2px solid #cec3b6;
 }
 
