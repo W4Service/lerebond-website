@@ -3529,7 +3529,7 @@ body.has-event-banner .header {
 }
 
 .pricing-card--featured .btn--primary:hover {
-    color: #680920;
+    color: #680920 !important;
 }
 
 /* Cards glassmorphism sur fond dark (section bg-primary) */
