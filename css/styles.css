@@ -3486,9 +3486,10 @@ body.has-event-banner .header {
 
 /* Card milieu : fond bordeaux, texte crème, orange seulement pour respiration */
 .pricing-card--featured {
-    background: #680920;
+    background: rgba(255,255,255,0.12);
     color: #f4f0e6;
     border-color: #efa707;
+    box-shadow: 0 0 0 2px #efa707, 0 8px 32px rgba(239,167,7,0.25);
 }
 
 .pricing-card--featured .pricing-card__badge {
