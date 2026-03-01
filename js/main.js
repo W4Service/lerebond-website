@@ -178,7 +178,6 @@ function initEventFilters() {
                 card.style.display = '';
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(20px)';
-
                 setTimeout(() => {
                     card.style.transition = 'all 0.4s ease';
                     card.style.opacity = '1';
@@ -187,20 +186,20 @@ function initEventFilters() {
             } else {
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(20px)';
-                card.style.gridColumn = '';
-
                 setTimeout(() => {
                     card.style.display = 'none';
                 }, 400);
             }
         });
 
-        // If odd number of visible cards, center the last one
+        // After hide animation, fix orphan card on last row
         setTimeout(() => {
+            const cols = window.innerWidth > 1024 ? 3 : window.innerWidth > 768 ? 2 : 1;
             visibleCards.forEach((card, i) => {
-                card.style.gridColumn = (visibleCards.length % 2 !== 0 && i === visibleCards.length - 1)
-                    ? '1 / -1'
-                    : '';
+                const isLastOnRow = (i === visibleCards.length - 1) && (visibleCards.length % cols !== 0);
+                card.style.gridColumn = isLastOnRow ? '1 / -1' : '';
+                card.style.maxWidth = isLastOnRow ? '480px' : '';
+                card.style.marginInline = isLastOnRow ? 'auto' : '';
             });
         }, 450);
     }
