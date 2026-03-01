@@ -2329,7 +2329,8 @@
     }
 }
 
-.corporate-content .section-header__label {
+.corporate-content .section-header__label,
+.section-alt > .container > .section-header__label {
     background: rgba(239, 167, 7, 0.15);
     color: #efa707;
     border-color: rgba(239, 167, 7, 0.3);
