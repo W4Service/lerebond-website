@@ -1457,6 +1457,10 @@
     font-weight: 700;
     border-radius: 100px;
     z-index: 1;
+    opacity: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .offer-header {
