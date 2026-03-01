@@ -24,7 +24,12 @@
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-XXXXXXX');</script>
 <!-- End Google Tag Manager -->
-<link href="img/logomark-9.webp" rel="icon" type="image/webp"/>
+<!-- Performance hints -->
+<meta content="#680920" name="theme-color"/>
+<link href="img/logomark-9.svg" rel="icon" type="image/svg+xml"/>
+<link href="img/logomark-9.webp" rel="apple-touch-icon"/>
+<link rel="manifest" href="manifest.json"/>
+<link as="image" href="img/logo-8.avif" rel="preload" type="image/avif"/>
 <link href="css/fonts.min.css" rel="stylesheet"/>
 <link href="css/themes.min.css" rel="stylesheet"/>
 <link href="css/styles.min.css" rel="stylesheet"/>
@@ -37,6 +42,7 @@
 <link rel="preconnect" href="https://www.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://www.google.com">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":["SportsActivityLocation","LocalBusiness"],"name":"Le Rebond","url":"https://w4service.github.io/lerebond-website/","image":"https://w4service.github.io/lerebond-website/img/og-cover.png","logo":"https://w4service.github.io/lerebond-website/img/logo-8.webp","priceRange":"€","telephone":"+33344000000","address":{"@type":"PostalAddress","streetAddress":"403 Rue de l'Europe","postalCode":"60400","addressLocality":"Noyon","addressRegion":"Hauts-de-France","addressCountry":"FR"},"geo":{"@type":"GeoCoordinates","latitude":49.57385,"longitude":3.02572},"areaServed":["Noyon","Oise","Hauts-de-France"],"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],"opens":"09:00","closes":"00:00"}],"sameAs":["https://www.facebook.com/people/Le-Rebond-Noyon/61587678149654/","https://www.instagram.com/lerebond_noyon/","https://www.linkedin.com/company/le-rebond-noyon"],"hasMap":"https://www.google.com/maps?q=403+rue+de+l'Europe,+60400+Noyon,+France"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://w4service.github.io/lerebond-website/"},{"@type":"ListItem","position":2,"name":"Tarifs","item":"https://w4service.github.io/lerebond-website/tarifs/"}]}</script>
 </head>
 <body class="has-event-banner has-mobile-cta">
 <!-- Google Tag Manager (noscript) -->
@@ -54,7 +60,7 @@
 <header class="header">
 <div class="header__inner">
 <a class="header__logo" href="./">
-<picture><source type="image/avif" srcset="img/logo-8.avif"/><source type="image/webp" srcset="img/logo-8.webp"/><img alt="Le Rebond" class="header__logo-img" decoding="async" height="188" id="site-logo" src="img/logo-8.webp" width="1312"/></picture>
+<picture><source type="image/avif" srcset="img/logo-8.avif"/><source type="image/webp" srcset="img/logo-8.webp"/><img alt="Le Rebond" class="header__logo-img" fetchpriority="high" decoding="async" height="188" id="site-logo" src="img/logo-8.webp" width="1312"/></picture>
 </a>
 <nav class="nav">
 <ul class="nav__list">

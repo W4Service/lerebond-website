@@ -39,7 +39,7 @@ function initHeader() {
         }
 
         lastScroll = currentScroll;
-    });
+    }, { passive: true });
 }
 
 /* ============================================
@@ -131,6 +131,8 @@ function initFAQ() {
 
         if (!question || !answer) return;
 
+        question.setAttribute('aria-expanded', 'false');
+
         question.addEventListener('click', () => {
             const isActive = item.classList.contains('active');
 
@@ -138,11 +140,14 @@ function initFAQ() {
             faqItems.forEach(otherItem => {
                 if (otherItem !== item) {
                     otherItem.classList.remove('active');
+                    const otherQ = otherItem.querySelector('.faq__question, .faq-question');
+                    if (otherQ) otherQ.setAttribute('aria-expanded', 'false');
                 }
             });
 
             // Toggle current item
             item.classList.toggle('active');
+            question.setAttribute('aria-expanded', item.classList.contains('active') ? 'true' : 'false');
         });
     });
 }
@@ -578,7 +583,7 @@ function initCountdown() {
         }
     }
 
-    window.addEventListener('scroll', throttle(handleFloatingVisibility, 100));
+    window.addEventListener('scroll', throttle(handleFloatingVisibility, 100), { passive: true });
     // Initial check
     handleFloatingVisibility();
 }
