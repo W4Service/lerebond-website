@@ -3527,6 +3527,17 @@ body.has-event-banner .header {
     color: #f4f0e6;
 }
 
+/* Cards glassmorphism sur fond dark (section bg-primary) */
+.pricing-card--glass {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(244,240,230,0.15);
+}
+
+.pricing-card--glass:hover {
+    border-color: #efa707;
+    background: rgba(255,255,255,0.12);
+}
+
 .contact-info__icon {
     background: rgba(244,201,65, 0.1);
     color: var(--primary);
