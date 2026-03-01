@@ -764,7 +764,18 @@
         display: none;
     }
     .filters-bar {
-        gap: var(--space-sm);
+        flex-direction: column;
+        gap: 0.625rem;
+        border-radius: 1rem;
+        padding: 0.75rem 1rem;
+    }
+    .filter-group {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .filter-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }
 
@@ -1387,6 +1398,7 @@
     font-size: 0.9375rem;
     font-weight: 700;
     color: #680920;
+    white-space: nowrap;
 }
 
 .hours-row--highlight {
@@ -1404,6 +1416,15 @@
 @media (max-width: 768px) {
     .opening-card {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 380px) {
+    .hours-row__time {
+        font-size: 0.8rem;
+    }
+    .hours-row__day {
+        font-size: 0.85rem;
     }
 }
 

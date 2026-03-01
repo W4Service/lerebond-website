@@ -569,6 +569,12 @@ function initCountdown() {
 
     // Show/hide floating countdown based on scroll
     function handleFloatingVisibility() {
+        // Hide near bottom of page to avoid footer overlap
+        const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 150);
+        if (nearBottom) {
+            floating.classList.remove('visible');
+            return;
+        }
         if (heroContainer) {
             // On index page: show floating when hero countdown is out of view
             const rect = heroContainer.getBoundingClientRect();
