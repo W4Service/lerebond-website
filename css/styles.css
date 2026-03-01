@@ -194,10 +194,20 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 @media (max-width: 1024px) {
     .grid--4 { grid-template-columns: repeat(2, 1fr); }
     .grid--3 { grid-template-columns: repeat(2, 1fr); }
+    /* Orphan: last item alone on its row → spans full width, centered */
+    .grid--3 > *:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        max-width: 480px;
+        margin-inline: auto;
+    }
 }
 
 @media (max-width: 768px) {
     .grid--4, .grid--3, .grid--2 { grid-template-columns: 1fr; }
+    .grid--3 > *:last-child:nth-child(odd) {
+        max-width: none;
+        margin-inline: 0;
+    }
 }
 
 /* ============================================

@@ -255,11 +255,20 @@
     .pricing-cards-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    .pricing-cards-grid > *:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        max-width: 420px;
+        margin-inline: auto;
+    }
 }
 
 @media (max-width: 768px) {
     .pricing-cards-grid {
         grid-template-columns: 1fr;
+    }
+    .pricing-cards-grid > *:last-child:nth-child(odd) {
+        max-width: none;
+        margin-inline: 0;
     }
 }
 
@@ -339,8 +348,14 @@
 /* Equipment Pricing Grid */
 .equipment-pricing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-md);
+}
+
+@media (max-width: 480px) {
+    .equipment-pricing-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .equipment-pricing-item {
@@ -789,11 +804,21 @@
     .events-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    /* Orphan card alone on a row: span full width and center */
+    .events-grid > *:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        max-width: 480px;
+        margin-inline: auto;
+    }
 }
 
 @media (max-width: 768px) {
     .events-grid {
         grid-template-columns: 1fr;
+    }
+    .events-grid > *:last-child:nth-child(odd) {
+        max-width: none;
+        margin-inline: 0;
     }
 }
 
