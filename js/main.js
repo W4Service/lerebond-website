@@ -164,6 +164,8 @@ function initEventFilters() {
     let activeType = 'all';
 
     function applyFilters() {
+        const visibleCards = [];
+
         eventCards.forEach(card => {
             const category = card.dataset.category;
             const type = card.dataset.type;
@@ -172,6 +174,7 @@ function initEventFilters() {
             const matchType = activeType === 'all' || type === activeType;
 
             if (matchCategory && matchType) {
+                visibleCards.push(card);
                 card.style.display = '';
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(20px)';
@@ -184,12 +187,22 @@ function initEventFilters() {
             } else {
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(20px)';
+                card.style.gridColumn = '';
 
                 setTimeout(() => {
                     card.style.display = 'none';
                 }, 400);
             }
         });
+
+        // If odd number of visible cards, center the last one
+        setTimeout(() => {
+            visibleCards.forEach((card, i) => {
+                card.style.gridColumn = (visibleCards.length % 2 !== 0 && i === visibleCards.length - 1)
+                    ? '1 / -1'
+                    : '';
+            });
+        }, 450);
     }
 
     // Category filter buttons (data-filter)

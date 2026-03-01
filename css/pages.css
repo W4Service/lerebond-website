@@ -1233,6 +1233,15 @@
     .bar-concept {
         grid-template-columns: 1fr;
     }
+    .bar-concept__text {
+        text-align: center;
+    }
+    .bar-concept__text .section-header__title {
+        text-align: center;
+    }
+    .bar-concept__text .section-header__label {
+        margin-inline: auto;
+    }
     .bar-features {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -2094,6 +2103,38 @@
     color: #cec3b6;
 }
 
+/* Split content layout (groupes privatisation, etc.) */
+.split-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: center;
+}
+
+.split-content.reverse {
+    direction: rtl;
+}
+
+.split-content.reverse > * {
+    direction: ltr;
+}
+
+@media (max-width: 1024px) {
+    .split-content {
+        grid-template-columns: 1fr;
+        direction: ltr;
+    }
+    .split-text {
+        text-align: center;
+    }
+    .split-text .section-header__label {
+        margin-inline: auto;
+    }
+    .split-text .section-header__title {
+        text-align: center;
+    }
+}
+
 /* Split content image (bar-restaurant, groupes) */
 .split-content-img {
     border-radius: var(--radius-lg);
@@ -2287,6 +2328,10 @@
 @media (max-width: 768px) {
     .corporate-pricing-box {
         grid-template-columns: 1fr;
+        text-align: center;
+    }
+    .corporate-content .section-header__label {
+        margin-inline: auto;
     }
 }
 
