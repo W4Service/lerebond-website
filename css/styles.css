@@ -1182,6 +1182,11 @@ body.has-event-banner .hero__content {
     font-weight: 800;
     line-height: 1;
 }
+.card--event .card__date-day.card__date-day--sm {
+    font-size: 1rem;
+    font-weight: 400;
+    font-family: var(--font-body);
+}
 
 .card--event .card__date-month {
     font-size: 0.75rem;
@@ -2601,6 +2606,54 @@ body.has-event-banner .header {
 
 .hidden { display: none; }
 
+/* Séparateur dégradé horizontal */
+.gradient-divider {
+    height: 2px;
+    background: linear-gradient(to right, transparent, rgba(206,195,182,0.3), transparent);
+}
+
+/* Icône circulaire accent */
+.icon-circle-accent {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: rgba(239,167,7,0.15);
+}
+
+/* Footer : item avec marge supérieure */
+.footer__contact-item--top {
+    margin-top: 1rem;
+}
+
+/* Cœur rouge (footer W4S) */
+.text-heart {
+    color: #ea1a15;
+}
+
+/* Horaires : forcer style normal (annule italic éventuel) */
+.hours-row__time--normal {
+    font-style: normal;
+}
+
+/* Bouton avec border couleur light */
+.btn--outline-light {
+    border-color: var(--light);
+}
+
+/* Bouton avec border couleur accent */
+.btn--outline-accent {
+    border-color: var(--accent);
+}
+
+/* Nav groupe CTA (header) */
+.nav__cta-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
 @media (max-width: 768px) {
     .hide-mobile { display: none; }
 }
@@ -3905,6 +3958,9 @@ body.has-event-banner .header {
     }
     .card--event .card__date-day {
         font-size: 0.85rem;
+    }
+    .card--event .card__date-day.card__date-day--sm {
+        font-size: 1rem;
     }
     .card__content {
         padding: 1rem;

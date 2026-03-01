@@ -1,0 +1,139 @@
+<!--
+  ============================================================
+  EMAIL DE CONFIRMATION CLIENT — Le Rebond
+  ============================================================
+  À coller dans le champ "HTML" du node "Email Confirmation Client"
+  dans n8n. Les {{ }} sont des expressions n8n.
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Turret+Road:wght@700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0; padding:0; background-color:#f0ece3; font-family:'Kanit', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0ece3; padding:24px 16px;">
+    <tr>
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px; width:100%;">
+
+          <!-- HEADER -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #4a0614 0%, #680920 50%, #8b1230 100%); border-radius:16px 16px 0 0; padding:32px 28px; text-align:center;">
+              <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:13px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(244,240,230,0.6); margin-bottom:10px;">Le Rebond</div>
+              <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:26px; font-weight:800; color:#f4f0e6; line-height:1.2;">Réservation confirmée ✓</div>
+              <div style="font-size:13px; color:rgba(244,240,230,0.55); margin-top:8px;">Bar-Restaurant · Complexe sportif · Noyon</div>
+            </td>
+          </tr>
+
+          <!-- BODY -->
+          <tr>
+            <td style="background-color:#ffffff; padding:28px; border-left:1px solid rgba(104,9,32,0.12); border-right:1px solid rgba(104,9,32,0.12);">
+
+              <!-- Salutation -->
+              <div style="font-size:16px; color:#1a1a1a; margin-bottom:20px;">
+                Bonjour <strong style="color:#680920;">{{ $json.prenom }}</strong>,
+              </div>
+              <div style="font-size:14px; color:rgba(26,26,26,0.65); margin-bottom:24px; line-height:1.6;">
+                Votre table est réservée au Rebond. Voici le récapitulatif :
+              </div>
+
+              <!-- Carte récap -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#faf8f4; border:1px solid rgba(104,9,32,0.12); border-radius:12px; overflow:hidden;">
+                <!-- Date -->
+                <tr>
+                  <td style="padding:14px 18px; border-bottom:1px solid rgba(104,9,32,0.08); width:40%;">
+                    <div style="font-size:12px; color:rgba(26,26,26,0.45); text-transform:uppercase; letter-spacing:1px;">📅 Date</div>
+                  </td>
+                  <td style="padding:14px 18px; border-bottom:1px solid rgba(104,9,32,0.08); text-align:right;">
+                    <div style="font-size:15px; color:#1a1a1a; font-weight:600;">{{ $json.date_fr }}</div>
+                  </td>
+                </tr>
+                <!-- Heure -->
+                <tr>
+                  <td style="padding:14px 18px; border-bottom:1px solid rgba(104,9,32,0.08);">
+                    <div style="font-size:12px; color:rgba(26,26,26,0.45); text-transform:uppercase; letter-spacing:1px;">🕐 Heure</div>
+                  </td>
+                  <td style="padding:14px 18px; border-bottom:1px solid rgba(104,9,32,0.08); text-align:right;">
+                    <div style="font-size:15px; color:#1a1a1a; font-weight:600;">{{ $json.heure_courte }} — Service {{ $json.service }}</div>
+                  </td>
+                </tr>
+                <!-- Personnes -->
+                <tr>
+                  <td style="padding:14px 18px; border-bottom:1px solid rgba(104,9,32,0.08);">
+                    <div style="font-size:12px; color:rgba(26,26,26,0.45); text-transform:uppercase; letter-spacing:1px;">👥 Convives</div>
+                  </td>
+                  <td style="padding:14px 18px; border-bottom:1px solid rgba(104,9,32,0.08); text-align:right;">
+                    <div style="font-size:15px; color:#1a1a1a; font-weight:600;">{{ $json.personnes }} personne{{ $json.personnes > 1 ? 's' : '' }}</div>
+                  </td>
+                </tr>
+                <!-- Nom -->
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <div style="font-size:12px; color:rgba(26,26,26,0.45); text-transform:uppercase; letter-spacing:1px;">👤 Nom</div>
+                  </td>
+                  <td style="padding:14px 18px; text-align:right;">
+                    <div style="font-size:15px; color:#1a1a1a; font-weight:600;">{{ $json.prenom }} {{ $json.nom }}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Infos complémentaires -->
+              <div style="margin-top:24px; padding:16px 18px; background-color:#faf8f4; border:1px solid rgba(104,9,32,0.12); border-radius:12px;">
+                <div style="font-size:13px; color:rgba(26,26,26,0.65); line-height:1.9;">
+                  📍 <strong style="color:#680920;">Le Rebond</strong> — Complexe sportif, Noyon<br>
+                  📞 <span style="color:#1a1a1a;">XX XX XX XX XX</span><br>
+                  🅿️ Parking gratuit sur place
+                </div>
+              </div>
+
+              <!-- Rappel -->
+              <div style="margin-top:20px; font-size:13px; color:rgba(26,26,26,0.45); line-height:1.6; text-align:center;">
+                Vous recevrez un rappel la veille de votre réservation.
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- BOUTON ANNULATION -->
+          <tr>
+            <td style="background-color:#ffffff; padding:0 28px 28px; border-left:1px solid rgba(104,9,32,0.12); border-right:1px solid rgba(104,9,32,0.12);">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-top:1px solid rgba(104,9,32,0.1); padding-top:20px; text-align:center;">
+                    <div style="font-size:12px; color:rgba(26,26,26,0.4); margin-bottom:12px;">Besoin de modifier ou d'annuler ?</div>
+                    <!--
+                      ⚠️ REMPLACER l'URL ci-dessous par ton URL réelle :
+                      https://ton-site.github.io/annulation?token=...
+                    -->
+                    <a href="https://ton-site.github.io/annulation.html?token={{ $json.token_annulation }}"
+                       style="display:inline-block; padding:10px 24px; background-color:#ffffff; border:1px solid rgba(104,9,32,0.3); border-radius:8px; color:#680920; font-size:13px; text-decoration:none; font-weight:500;">
+                      Annuler ma réservation
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background-color:#680920; border-radius:0 0 16px 16px; padding:20px 28px; text-align:center;">
+              <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:13px; font-weight:700; color:#efa707; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;">Le Rebond</div>
+              <div style="font-size:12px; color:rgba(244,240,230,0.6); line-height:1.7;">
+                Bar-Restaurant &amp; Complexe sportif · Noyon, Oise<br>
+                Padel · Five · Restaurant<br>
+                <br>
+                Cet email a été envoyé automatiquement suite à votre réservation en ligne.
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -109,6 +109,11 @@
             padding: 16px;
             margin-bottom: 24px;
         }
+        .annul-loading {
+            color: rgba(26,26,26,0.5);
+            text-align: center;
+            margin: 0;
+        }
         #result { display: none; }
         .annul-success-icon {
             width: 72px; height: 72px;
@@ -140,7 +145,7 @@
 <h2>Annuler ma réservation restaurant</h2>
 <p>Êtes-vous sûr de vouloir annuler votre réservation restaurant au Rebond ?</p>
 <div class="annul-info-box" id="resaInfo">
-<p style="color: rgba(26,26,26,0.5); text-align: center; margin: 0">Chargement...</p>
+<p class="annul-loading">Chargement...</p>
 </div>
 <button class="annul-btn annul-btn-danger" onclick="cancelReservation()">Annuler ma réservation</button>
 <br/>

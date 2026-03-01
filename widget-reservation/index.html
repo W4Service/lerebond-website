@@ -57,6 +57,7 @@
 
         /* Container principal */
         .resa-widget {
+            position: relative;
             width: 100%;
             max-width: 480px;
             background: var(--dark-card);
@@ -392,6 +393,21 @@
             gap: 12px;
             margin-top: 24px;
         }
+        .resa-nav--center {
+            justify-content: center;
+        }
+        .field-label--top {
+            margin-top: 20px;
+        }
+        .confirm-note {
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .btn--reset {
+            flex: none;
+            padding: 12px 32px;
+        }
         .btn {
             flex: 1;
             padding: 14px 20px;
@@ -534,7 +550,7 @@
 </head>
 <body class="">
 
-<div class="resa-widget" style="position: relative">
+<div class="resa-widget">
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
     </div>
@@ -578,7 +594,7 @@
             <div class="date-grid" id="dateGrid"></div>
 
             <div id="slotsContainer" style="display: none">
-                <label class="field-label" style="margin-top: 20px">Quelle heure ?</label>
+                <label class="field-label field-label--top">Quelle heure ?</label>
                 <div id="slotsContent"></div>
             </div>
 
@@ -675,13 +691,13 @@
                     <div class="confirmation-icon">✓</div>
                     <h3>Réservation confirmée !</h3>
                     <p>Un email de confirmation a été envoyé à<br><strong id="confirmEmail"></strong></p>
-                    <p style="margin-top: 16px; font-size: 12px; color: var(--text-dim)">
+                    <p class="confirm-note">
                         Vous recevrez un rappel la veille.<br>
                         Pour annuler, utilisez le lien dans l'email.
                     </p>
                 </div>
-                <div class="resa-nav" style="justify-content: center">
-                    <button class="btn btn-secondary" onclick="resetWidget()" style="flex: none; padding: 12px 32px">Nouvelle réservation</button>
+                <div class="resa-nav resa-nav--center">
+                    <button class="btn btn-secondary btn--reset" onclick="resetWidget()">Nouvelle réservation</button>
                 </div>
             </div>
         </div>

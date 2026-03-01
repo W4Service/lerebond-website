@@ -33,6 +33,7 @@
 <!-- CSS -->
 <link href="css/themes.min.css" rel="stylesheet"/>
 <link href="css/styles.min.css" rel="stylesheet"/>
+<link href="css/pages.min.css" rel="stylesheet"/>
 <link href="css/resa-popup.min.css" rel="stylesheet"/>
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
@@ -69,7 +70,7 @@
 <li><a class="nav__link" href="groupes/">Groupes</a></li>
 <li><a class="nav__link" href="contact/">Contact</a></li>
 </ul>
-<div style="display: flex; gap: 0.5rem">
+<div class="nav__cta-group">
 <a class="btn btn--primary nav__cta text-light" href="#" onclick="showReservationToast()">Terrain</a>
 <a class="btn btn--outline-dark nav__cta" href="reserver-restaurant/">Table</a>
 </div>
@@ -196,20 +197,20 @@
 <p class="section-header__text text-muted">Tous nos terrains sont équipés pour une expérience unique</p>
 </div>
 <div class="grid grid--3" data-animate="" data-delay="1">
-<div style="background: rgba(255,255,255,0.08); border-radius: 1rem; padding: 2rem; text-align: center">
-<span class="text-accent" style="display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 50%; background: rgba(239,167,7,0.15); margin-bottom: 1rem"><svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="m22 8-6 4 6 4V8Z"></path><rect height="12" rx="2" width="14" x="2" y="6"></rect></svg></span>
-<h4 class="text-light" style="margin-bottom: 0.5rem; font-size: 1.1rem">Terrains filmés</h4>
-<p class="text-muted" style="font-size: 0.95rem; line-height: 1.6">Chaque terrain est filmé en continu. Revivez vos matchs et partagez vos plus beaux points.</p>
+<div class="tech-feature-card">
+<span class="text-accent icon-circle-accent"><svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="m22 8-6 4 6 4V8Z"></path><rect height="12" rx="2" width="14" x="2" y="6"></rect></svg></span>
+<h4 class="text-light tech-feature-card__title">Terrains filmés</h4>
+<p class="text-muted tech-feature-card__text">Chaque terrain est filmé en continu. Revivez vos matchs et partagez vos plus beaux points.</p>
 </div>
-<div style="background: rgba(255,255,255,0.08); border-radius: 1rem; padding: 2rem; text-align: center">
-<span class="text-accent" style="display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 50%; background: rgba(239,167,7,0.15); margin-bottom: 1rem"><svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="14" rx="2" width="20" x="2" y="3"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg></span>
-<h4 class="text-light" style="margin-bottom: 0.5rem; font-size: 1.1rem">Diffusion en direct</h4>
-<p class="text-muted" style="font-size: 0.95rem; line-height: 1.6">Retransmission en direct de tous les matchs dans notre espace bar &amp; restaurant ainsi que sur notre application mobile.</p>
+<div class="tech-feature-card">
+<span class="text-accent icon-circle-accent"><svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="14" rx="2" width="20" x="2" y="3"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg></span>
+<h4 class="text-light tech-feature-card__title">Diffusion en direct</h4>
+<p class="text-muted tech-feature-card__text">Retransmission en direct de tous les matchs dans notre espace bar &amp; restaurant ainsi que sur notre application mobile.</p>
 </div>
-<div style="background: rgba(255,255,255,0.08); border-radius: 1rem; padding: 2rem; text-align: center">
-<span class="text-accent" style="display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 50%; background: rgba(239,167,7,0.15); margin-bottom: 1rem"><svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="20" rx="2" width="16" x="4" y="2"></rect><line x1="12" x2="12.01" y1="18" y2="18"></line></svg></span>
-<h4 class="text-light" style="margin-bottom: 0.5rem; font-size: 1.1rem">Suivi du score</h4>
-<p class="text-muted" style="font-size: 0.95rem; line-height: 1.6">Une tablette sur chaque terrain pour suivre le score en temps réel pendant vos matchs.</p>
+<div class="tech-feature-card">
+<span class="text-accent icon-circle-accent"><svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="20" rx="2" width="16" x="4" y="2"></rect><line x1="12" x2="12.01" y1="18" y2="18"></line></svg></span>
+<h4 class="text-light tech-feature-card__title">Suivi du score</h4>
+<p class="text-muted tech-feature-card__text">Une tablette sur chaque terrain pour suivre le score en temps réel pendant vos matchs.</p>
 </div>
 </div>
 </div>
@@ -225,13 +226,13 @@
 <div class="grid grid--3">
 <div class="card card--event" data-animate="" data-delay="1">
 <div class="card__image">
-<div class="text-light" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg,#680920,#8b1a3a)"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
+<div class="text-light event-placeholder"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
 <div class="card__date">
-<span class="card__date-day" style="font-size: 1rem">Bientôt</span>
+<span class="card__date-day card__date-day--sm">Bientôt</span>
 </div>
 </div>
 <div class="card__content">
-<span class="card__badge" style="position: static; margin-bottom: 0.5rem; display: inline-block">Tournois</span>
+<span class="card__badge card__badge--static">Tournois</span>
 <h3 class="card__title">Tournois Padel &amp; Five</h3>
 <p class="card__text">De P25 à P250 ouvert à tous les niveaux (licencié FFT) mais aussi des tournois de Five. Format mixte, ambiance conviviale garantie.</p>
 <div class="card__meta">
@@ -242,13 +243,13 @@
 </div>
 <div class="card card--event" data-animate="" data-delay="2">
 <div class="card__image">
-<div class="text-light" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg,#680920,#8b1a3a)"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line></svg></div>
+<div class="text-light event-placeholder"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line></svg></div>
 <div class="card__date">
-<span class="card__date-day" style="font-size: 1rem">Bientôt</span>
+<span class="card__date-day card__date-day--sm">Bientôt</span>
 </div>
 </div>
 <div class="card__content">
-<span class="card__badge" style="position: static; margin-bottom: 0.5rem; display: inline-block">Ligue</span>
+<span class="card__badge card__badge--static">Ligue</span>
 <h3 class="card__title">Ligue Hebdo Padel</h3>
 <p class="card__text">Inscrivez votre équipe pour la ligue du jeudi soir. 8 équipes, 10 semaines de compétition.</p>
 <div class="card__meta">
@@ -259,13 +260,13 @@
 </div>
 <div class="card card--event" data-animate="" data-delay="3">
 <div class="card__image">
-<div class="text-light" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg,#680920,#8b1a3a)"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg></div>
+<div class="text-light event-placeholder"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg></div>
 <div class="card__date">
-<span class="card__date-day" style="font-size: 1rem">Bientôt</span>
+<span class="card__date-day card__date-day--sm">Bientôt</span>
 </div>
 </div>
 <div class="card__content">
-<span class="card__badge" style="position: static; margin-bottom: 0.5rem; display: inline-block">Animation</span>
+<span class="card__badge card__badge--static">Animation</span>
 <h3 class="card__title">Montante/Descendante</h3>
 <p class="card__text">Venez seul ou en duo, on forme les équipes sur place. Idéal pour rencontrer de nouveaux partenaires.</p>
 <div class="card__meta">
@@ -275,9 +276,9 @@
 </div>
 </div>
 </div>
-<p class="text-muted" style="font-size: 0.8rem; margin-top: 1rem">* Horaires susceptibles de changer suivant les tournois.</p>
+<p class="text-muted events-note">* Horaires susceptibles de changer suivant les tournois.</p>
 <div class="text-center mt-4">
-<a class="btn btn--secondary text-brand" href="evenements/" style="background: #f4f0e6; border-color: #f4f0e6">Voir tous les événements</a>
+<a class="btn btn--secondary text-brand btn--cream" href="evenements/">Voir tous les événements</a>
 </div>
 </div>
 </section>
@@ -289,7 +290,7 @@
 <picture><source type="image/avif" srcset="img/bar-tabourets-verre.avif"/><source type="image/webp" srcset="img/bar-tabourets-verre.webp"/><img alt="Bar et restaurant du complexe sportif Le Rebond à Noyon" decoding="async" height="1920" loading="lazy" src="img/bar-tabourets-verre.webp" title="Bar &amp; Restaurant - Le Rebond Noyon" width="1280"/></picture>
 </div>
 <div class="restaurant-content" data-animate="fade-left" data-delay="2">
-<span class="section-header__label" style="justify-content: flex-start; margin-bottom: 1rem">Après le match</span>
+<span class="section-header__label section-header__label--left">Après le match</span>
 <h2 class="restaurant-content__title">Bar &amp; <span class="text-primary">Restaurant</span></h2>
 <p class="restaurant-content__text">
                         Une ambiance sport &amp; convivialité. Retrouvez-nous pour un déjeuner (11h-14h),
@@ -313,7 +314,7 @@
 <span>Écrans géants</span>
 </div>
 </div>
-<div style="display: flex; gap: 1rem; flex-wrap: wrap">
+<div class="restaurant-actions">
 <a class="btn btn--primary text-light" href="bar-restaurant/">Découvrir la carte</a>
 <a class="btn btn--outline-dark" href="reserver-restaurant/">Réserver une table</a>
 </div>
@@ -329,14 +330,14 @@
 <h2 class="section-header__title">Des plats <span class="text-primary">généreux</span></h2>
 <p class="section-header__text">Des plats savoureux pour tous les appétits</p>
 </div>
-<div class="text-center" data-animate="" data-delay="100" style="padding: 3rem 1rem">
-<p class="text-muted" style="font-size: 1.2rem; font-weight: 500"><span class="icon-inline">Carte en cours d'élaboration <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span></p>
-<p style="margin-top: 0.75rem; opacity: 0.7">Notre carte sera bientôt disponible. Restez connectés !</p>
+<div class="text-center carte-placeholder" data-animate="" data-delay="100">
+<p class="text-muted carte-placeholder__title"><span class="icon-inline">Carte en cours d'élaboration <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span></p>
+<p class="carte-placeholder__sub">Notre carte sera bientôt disponible. Restez connectés !</p>
 </div>
 </div>
 </section>
 <!-- Séparateur -->
-<div style="height: 2px; background: linear-gradient(to right,transparent,rgba(206,195,182,0.3),transparent)"></div>
+<div class="gradient-divider"></div>
 <!-- Ligues & Tournois Section -->
 <section class="section-v2 section-v2--dark" id="ligues">
 <div class="container-v2">
@@ -353,14 +354,14 @@
 <span class="tarif-item-v2__name">Inscription ligue</span>
 <span class="tarif-item-v2__desc">Par session (hebdomadaire)</span>
 </div>
-<span class="tarif-item-v2__price text-muted" style="font-size: 0.85rem">En cours d'élaboration</span>
+<span class="tarif-item-v2__price text-muted tarif-item-v2__price--sm">En cours d'élaboration</span>
 </div>
 <div class="tarif-item-v2">
 <div class="tarif-item-v2__info">
 <span class="tarif-item-v2__name">Pass ligue mensuel</span>
 <span class="tarif-item-v2__desc">4 sessions incluses</span>
 </div>
-<span class="tarif-item-v2__price text-muted" style="font-size: 0.85rem">En cours d'élaboration</span>
+<span class="tarif-item-v2__price text-muted tarif-item-v2__price--sm">En cours d'élaboration</span>
 </div>
 <div class="tarif-item-v2">
 <div class="tarif-item-v2__info">
@@ -381,7 +382,7 @@
 <span class="tarif-item-v2__name">Montante/Descendante</span>
 <span class="tarif-item-v2__desc">Par personne</span>
 </div>
-<span class="tarif-item-v2__price text-muted" style="font-size: 0.85rem">En cours d'élaboration</span>
+<span class="tarif-item-v2__price text-muted tarif-item-v2__price--sm">En cours d'élaboration</span>
 </div>
 </div>
 <div class="tarifs-side-v3">
@@ -397,18 +398,18 @@
 </div>
 <div class="tarif-tile-v3">
 <span class="tarif-tile-v3__label">Ligues &amp; Montantes</span>
-<span class="tarif-tile-v3__value" style="font-size: 0.9rem">En cours d'élaboration</span>
+<span class="tarif-tile-v3__value tarif-tile-v3__value--sm">En cours d'élaboration</span>
 <p class="tarif-tile-v3__text">Tarifs bientôt disponibles.</p>
 </div>
 </div>
 </div>
 <div class="text-center mt-4">
-<a class="btn btn--outline text-light" href="tarifs/" style="border-color: var(--light)">Voir tous les tarifs</a>
+<a class="btn btn--outline text-light btn--outline-light" href="tarifs/">Voir tous les tarifs</a>
 </div>
 </div>
 </section>
 <!-- Séparateur -->
-<div style="height: 2px; background: linear-gradient(to right,transparent,rgba(206,195,182,0.3),transparent)"></div>
+<div class="gradient-divider"></div>
 <!-- Offres & Tarifs Section -->
 <section class="section" id="offres">
 <div class="container">
@@ -421,7 +422,7 @@
 <div class="pricing-card" data-animate="fade-up" data-delay="1">
 <h3 class="pricing-card__title">Montante / Descendante</h3>
 <p class="pricing-card__subtitle">Format fun et compétitif</p>
-<div class="pricing-card__price text-muted" style="font-size: 1.2rem">En cours d'élaboration</div>
+<div class="pricing-card__price text-muted pricing-card__price--sm">En cours d'élaboration</div>
 <div class="pricing-card__features">
 <div class="pricing-card__feature">Changez de partenaire à chaque match</div>
 <div class="pricing-card__feature">Venez seul ou en duo</div>
@@ -467,40 +468,40 @@
 <p class="section-header__text text-muted">Un lieu unique pour vos moments professionnels et festifs</p>
 </div>
 <div class="grid grid--2" data-animate="" data-delay="1">
-<div style="background: rgba(255,255,255,0.08); border-radius: 1rem; padding: 2.5rem 2rem; border: 1px solid rgba(244,240,230,0.12)">
-<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem">
-<span class="text-accent" style="display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 50%; background: rgba(239,167,7,0.15)">
+<div class="seminar-card">
+<div class="seminar-card__header">
+<span class="text-accent icon-circle-accent">
 <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path></svg>
 </span>
-<h3 class="text-light" style="font-size: 1.25rem; margin: 0">Salle de séminaire</h3>
+<h3 class="text-light seminar-card__title">Salle de séminaire</h3>
 </div>
-<p class="text-muted" style="line-height: 1.7; margin-bottom: 1.25rem">Organisez vos réunions, séminaires et journées de team building dans notre salle dédiée. Équipée pour vos présentations, elle combine cadre professionnel et activités sportives pour des événements mémorables.</p>
-<ul class="arrow-list text-muted" style="line-height: 2; margin-bottom: 1.5rem">
+<p class="text-muted seminar-card__text">Organisez vos réunions, séminaires et journées de team building dans notre salle dédiée. Équipée pour vos présentations, elle combine cadre professionnel et activités sportives pour des événements mémorables.</p>
+<ul class="arrow-list text-muted seminar-card__list">
 <li>Salle équipée (vidéoprojecteur, Wi-Fi)</li>
 <li>Formules repas &amp; pauses café</li>
 <li>Activités padel &amp; five en complément</li>
 <li>Devis personnalisé</li>
 </ul>
-<div style="text-align: center">
-<a class="btn btn--outline text-accent" href="groupes/" style="border-color: var(--accent)">Demander un devis</a>
+<div class="seminar-card__footer">
+<a class="btn btn--outline text-accent btn--outline-accent" href="groupes/">Demander un devis</a>
 </div>
 </div>
-<div style="background: rgba(255,255,255,0.08); border-radius: 1rem; padding: 2.5rem 2rem; border: 1px solid rgba(244,240,230,0.12)">
-<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem">
-<span class="text-accent" style="display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 50%; background: rgba(239,167,7,0.15)">
+<div class="seminar-card">
+<div class="seminar-card__header">
+<span class="text-accent icon-circle-accent">
 <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M5.8 11.3 2 22l10.7-3.79"></path><path d="M4 3h.01"></path><path d="M22 8h.01"></path><path d="M15 2h.01"></path><path d="M22 20h.01"></path><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"></path><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.7-.72 1.22-1.43 1.22H17"></path><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98v0C9.52 4.9 9 5.52 9 6.23V7"></path><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"></path></svg>
 </span>
-<h3 class="text-light" style="font-size: 1.25rem; margin: 0">Anniversaires &amp; Groupes</h3>
+<h3 class="text-light seminar-card__title">Anniversaires &amp; Groupes</h3>
 </div>
-<p class="text-muted" style="line-height: 1.7; margin-bottom: 1.25rem">Fêtez vos anniversaires dans un cadre sportif et festif ! Nous accueillons les groupes pour des moments de partage inoubliables : matchs entre amis, repas convivial et ambiance garantie.</p>
-<ul class="arrow-list text-muted" style="line-height: 2; margin-bottom: 1.5rem">
+<p class="text-muted seminar-card__text">Fêtez vos anniversaires dans un cadre sportif et festif ! Nous accueillons les groupes pour des moments de partage inoubliables : matchs entre amis, repas convivial et ambiance garantie.</p>
+<ul class="arrow-list text-muted seminar-card__list">
 <li>Espace privatisable</li>
 <li>Formules anniversaire (enfants &amp; adultes)</li>
 <li>Terrains de padel &amp; five réservés</li>
 <li>Restauration sur place</li>
 </ul>
-<div style="text-align: center">
-<a class="btn btn--outline text-accent" href="groupes/" style="border-color: var(--accent)">Organiser mon événement</a>
+<div class="seminar-card__footer">
+<a class="btn btn--outline text-accent btn--outline-accent" href="groupes/">Organiser mon événement</a>
 </div>
 </div>
 </div>
@@ -514,7 +515,7 @@
 <h2 class="section-header__title text-light">Facile d'<span class="text-accent">accès</span></h2>
 </div>
 <div class="contact-grid">
-<div class="contact-info" data-animate="fade-right" data-delay="1" style="background: var(--light)">
+<div class="contact-info bg-light" data-animate="fade-right" data-delay="1">
 <h3 class="contact-info__title">Coordonnées</h3>
 <div class="contact-info__item">
 <div class="contact-info__icon"><svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
@@ -537,7 +538,7 @@
 <div class="contact-info__value"><a href="mailto:contact@le-rebond.fr">contact@le-rebond.fr</a></div>
 </div>
 </div>
-<div class="contact-info__item" style="border-bottom: none">
+<div class="contact-info__item contact-info__item--last">
 <div class="contact-info__icon"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
 <div>
 <div class="contact-info__label">Horaires</div>
@@ -696,16 +697,16 @@
 <!-- CTA Section -->
 <section class="section bg-primary">
 <div class="container text-center">
-<h2 class="text-light" data-animate="" style="font-family: var(--font-display); font-size: clamp(2rem,5vw,3.5rem); margin-bottom: 1rem">Prêt à jouer ?</h2>
-<p class="text-light" data-animate="" data-delay="1" style="opacity: 0.8; margin-bottom: 2rem">Réservez votre terrain en quelques clics et rejoignez la communauté Le Rebond.</p>
-<div data-animate="" data-delay="2" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap">
-<a class="btn btn--large text-light" href="#" onclick="showReservationToast()" style="background: var(--accent)">Réserver un terrain</a>
+<h2 class="text-light cta-title" data-animate="">Prêt à jouer ?</h2>
+<p class="text-light cta-subtitle" data-animate="" data-delay="1">Réservez votre terrain en quelques clics et rejoignez la communauté Le Rebond.</p>
+<div class="cta-actions" data-animate="" data-delay="2">
+<a class="btn btn--large text-light btn--accent-bg" href="#" onclick="showReservationToast()">Réserver un terrain</a>
 <a class="btn btn--large btn--light text-dark" href="reserver-restaurant/">Réserver une table</a>
 </div>
 </div>
 </section>
 <!-- Marquee Banner -->
-<div class="marquee-v2" style="background: var(--primary)">
+<div class="marquee-v2 bg-primary">
 <div class="marquee-v2__track">
 <span class="marquee-v2__item">PADEL</span>
 <span class="marquee-v2__separator">•</span>
@@ -828,7 +829,7 @@
 <span class="footer__contact-icon"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2" width="20" x="2" y="4"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg></span>
 <span><a href="mailto:contact@le-rebond.fr">contact@le-rebond.fr</a></span>
 </div>
-<div class="footer__contact-item" style="margin-top: 1rem">
+<div class="footer__contact-item footer__contact-item--top">
 <span class="footer__contact-icon"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
 <span>
 <strong>Terrains :</strong> 09h - 00h<br/>
@@ -846,7 +847,7 @@
 </div>
 </div>
 <div class="footer__w4s">
-<p class="footer__w4s-text">Site réalisé avec <span style="color: #ea1a15">♥</span> par <a class="footer__w4s-link" href="https://w4s.fr" target="_blank">W4S</a></p>
+<p class="footer__w4s-text">Site réalisé avec <span class="text-heart">♥</span> par <a class="footer__w4s-link" href="https://w4s.fr" target="_blank">W4S</a></p>
 </div>
 </div>
 </footer>

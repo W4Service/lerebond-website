@@ -2,8 +2,7 @@
 
 <html data-theme="bordeaux" lang="fr">
 <head>
-<base href="https://w4service.github.io/lerebond-website/">
-<meta charset="utf-8"/>
+<base href="https://w4service.github.io/lerebond-website/"><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Événements - Le Rebond | Padel &amp; Five à Noyon (60)</title>
 <meta content="Tournois de padel, soirées thématiques, animations sportives. Découvrez tous les événements du Rebond à Noyon dans l'Oise (60)." name="description"/>
@@ -31,6 +30,7 @@
 <link href="css/styles.min.css" rel="stylesheet"/>
 <link href="css/pages.min.css" rel="stylesheet"/>
 <link href="css/resa-popup.min.css" rel="stylesheet"/>
+<link href="css/coming-soon-popup.min.css" rel="stylesheet"/>
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 <link rel="preconnect" href="https://formsubmit.co" crossorigin>
@@ -66,7 +66,7 @@
 <li><a class="nav__link" href="groupes/">Groupes</a></li>
 <li><a class="nav__link" href="contact/">Contact</a></li>
 </ul>
-<div style="display: flex; gap: 0.5rem">
+<div class="nav__cta-group">
 <a class="btn btn--primary nav__cta text-light" href="#" onclick="showReservationToast()">Terrain</a>
 <a class="btn btn--outline-dark nav__cta" href="reserver-restaurant/">Table</a>
 </div>
@@ -134,7 +134,7 @@
 <picture><source type="image/avif" srcset="img/padel-mains-vitre.avif"/><source type="image/webp" srcset="img/padel-mains-vitre.webp"/><img alt="Tournoi Découverte Padel" class="event-card-img" decoding="async" height="1920" loading="lazy" src="img/padel-mains-vitre.webp" width="1280"/></picture>
 <span class="event-featured-badge"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> À la une</span>
 <div class="event-date-badge">
-<span class="day icon-inline" style="font-size: 0.7rem">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
+<span class="day icon-inline day--sm">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
 </div>
 </div>
 <div class="event-card-content">
@@ -151,7 +151,7 @@
 </div>
 <div class="event-status">
 <span class="spots-left icon-inline">Arrive prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
-<a class="btn btn--primary" href="#">S'inscrire</a>
+<a class="btn btn--primary" href="#" onclick="event.preventDefault();csOpen()">S'inscrire</a>
 </div>
 <div class="event-share">
 <span class="event-share__label">Partager</span>
@@ -168,7 +168,7 @@
 <div class="event-card-image">
 <picture><source type="image/avif" srcset="img/five-joueurs-discussion.avif"/><source type="image/webp" srcset="img/five-joueurs-discussion.webp"/><img alt="Ligue Hebdo Padel" class="event-card-img" decoding="async" height="853" loading="lazy" src="img/five-joueurs-discussion.webp" width="1280"/></picture>
 <div class="event-date-badge">
-<span class="day icon-inline" style="font-size: 0.7rem">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
+<span class="day icon-inline day--sm">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
 </div>
 </div>
 <div class="event-card-content">
@@ -185,7 +185,7 @@
 </div>
 <div class="event-status">
 <span class="spots-left icon-inline">Arrive prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
-<a class="btn btn--primary" href="#">S'inscrire</a>
+<a class="btn btn--primary" href="#" onclick="event.preventDefault();csOpen()">S'inscrire</a>
 </div>
 <div class="event-share">
 <span class="event-share__label">Partager</span>
@@ -202,7 +202,7 @@
 <div class="event-card-image">
 <picture><source type="image/avif" srcset="img/five-joueur-jongle.avif"/><source type="image/webp" srcset="img/five-joueur-jongle.webp"/><img alt="Montante Descendante" class="event-card-img" decoding="async" height="1920" loading="lazy" src="img/five-joueur-jongle.webp" width="1280"/></picture>
 <div class="event-date-badge">
-<span class="day icon-inline" style="font-size: 0.7rem">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
+<span class="day icon-inline day--sm">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
 </div>
 </div>
 <div class="event-card-content">
@@ -219,7 +219,7 @@
 </div>
 <div class="event-status">
 <span class="spots-left icon-inline">Arrive prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
-<a class="btn btn--primary" href="#">S'inscrire</a>
+<a class="btn btn--primary" href="#" onclick="event.preventDefault();csOpen()">S'inscrire</a>
 </div>
 <div class="event-share">
 <span class="event-share__label">Partager</span>
@@ -236,7 +236,7 @@
 <div class="event-card-image">
 <picture><source type="image/avif" srcset="img/five-equipe-terrain.avif"/><source type="image/webp" srcset="img/five-equipe-terrain.webp"/><img alt="Tournoi Five Inter-Entreprises" class="event-card-img" decoding="async" height="853" loading="lazy" src="img/five-equipe-terrain.webp" width="1280"/></picture>
 <div class="event-date-badge">
-<span class="day icon-inline" style="font-size: 0.7rem">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
+<span class="day icon-inline day--sm">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
 </div>
 </div>
 <div class="event-card-content">
@@ -253,7 +253,7 @@
 </div>
 <div class="event-status">
 <span class="spots-left icon-inline">Arrive prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
-<a class="btn btn--primary" href="#">S'inscrire</a>
+<a class="btn btn--primary" href="#" onclick="event.preventDefault();csOpen()">S'inscrire</a>
 </div>
 <div class="event-share">
 <span class="event-share__label">Partager</span>
@@ -270,7 +270,7 @@
 <div class="event-card-image">
 <picture><source type="image/avif" srcset="img/five-joueur-trophees.avif"/><source type="image/webp" srcset="img/five-joueur-trophees.webp"/><img alt="Tournoi P250" class="event-card-img" decoding="async" height="1920" loading="lazy" src="img/five-joueur-trophees.webp" width="1280"/></picture>
 <div class="event-date-badge">
-<span class="day icon-inline" style="font-size: 0.7rem">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
+<span class="day icon-inline day--sm">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
 </div>
 </div>
 <div class="event-card-content">
@@ -287,7 +287,7 @@
 </div>
 <div class="event-status">
 <span class="spots-left icon-inline">Arrive prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
-<a class="btn btn--primary" href="#">S'inscrire</a>
+<a class="btn btn--primary" href="#" onclick="event.preventDefault();csOpen()">S'inscrire</a>
 </div>
 <div class="event-share">
 <span class="event-share__label">Partager</span>
@@ -304,7 +304,7 @@
 <div class="event-card-image">
 <picture><source type="image/avif" srcset="img/five-ballon-but.avif"/><source type="image/webp" srcset="img/five-ballon-but.webp"/><img alt="Ligue Five du Dimanche" class="event-card-img" decoding="async" height="1920" loading="lazy" src="img/five-ballon-but.webp" width="1280"/></picture>
 <div class="event-date-badge">
-<span class="day icon-inline" style="font-size: 0.7rem">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
+<span class="day icon-inline day--sm">Prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
 </div>
 </div>
 <div class="event-card-content">
@@ -321,7 +321,7 @@
 </div>
 <div class="event-status">
 <span class="spots-left icon-inline">Arrive prochainement <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6 2h12"></path><path d="M6 2c0 6 6 6 6 10s-6 4-6 10"></path><path d="M18 2c0 6-6 6-6 10s6 4 6 10"></path><path d="M6 22h12"></path></svg></span>
-<a class="btn btn--primary" href="#">S'inscrire</a>
+<a class="btn btn--primary" href="#" onclick="event.preventDefault();csOpen()">S'inscrire</a>
 </div>
 <div class="event-share">
 <span class="event-share__label">Partager</span>
@@ -465,7 +465,7 @@
 <span class="footer__contact-icon"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2" width="20" x="2" y="4"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg></span>
 <span><a href="mailto:contact@le-rebond.fr">contact@le-rebond.fr</a></span>
 </div>
-<div class="footer__contact-item" style="margin-top: 1rem">
+<div class="footer__contact-item footer__contact-item--top">
 <span class="footer__contact-icon"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
 <span>
 <strong>Terrains :</strong> 09h - 00h<br/>
@@ -483,7 +483,7 @@
 </div>
 </div>
 <div class="footer__w4s">
-<p class="footer__w4s-text">Site réalisé avec <span style="color: #ea1a15">♥</span> par <a class="footer__w4s-link" href="https://w4s.fr" target="_blank">W4S</a></p>
+<p class="footer__w4s-text">Site réalisé avec <span class="text-heart">♥</span> par <a class="footer__w4s-link" href="https://w4s.fr" target="_blank">W4S</a></p>
 </div>
 </div>
 </footer>
@@ -491,6 +491,7 @@
 <script src="js/main.min.js"></script>
 <script src="js/resa-config.min.js"></script>
 <script src="js/resa-popup.min.js"></script>
+<script src="js/coming-soon-popup.min.js"></script>
 <div class="mobile-cta" role="region" aria-label="Réservation rapide">
 <div class="mobile-cta__actions">
 <a class="btn btn--primary mobile-cta__btn text-light" href="#" onclick="showReservationToast()">Terrain</a>
