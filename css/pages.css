@@ -1276,6 +1276,17 @@
 }
 
 
+.sports-event-content--soon {
+    text-align: center;
+    padding: var(--space-sm) 0;
+}
+
+.sports-soon-icon {
+    display: block;
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+}
+
 .sports-channels {
     text-align: center;
 }
