@@ -2093,12 +2093,22 @@
     .grid-3 {
         grid-template-columns: repeat(2, 1fr);
     }
+    /* 3rd item alone on a row: span full width and center */
+    .grid-3 > *:last-child:nth-child(3n+1) {
+        grid-column: 1 / -1;
+        max-width: 480px;
+        margin-inline: auto;
+    }
     .grid-4 {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (max-width: 768px) {
+    .grid-3 > *:last-child:nth-child(3n+1) {
+        max-width: none;
+        margin-inline: 0;
+    }
     .grid-3,
     .grid-4 {
         grid-template-columns: 1fr;

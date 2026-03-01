@@ -1491,11 +1491,21 @@ body.has-event-banner .hero__content {
     .pricing-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    /* 3rd card alone on a row: center it and cap its width */
+    .pricing-grid > .pricing-card:last-child:nth-child(3n+1) {
+        grid-column: 1 / -1;
+        max-width: 420px;
+        margin-inline: auto;
+    }
 }
 
 @media (max-width: 768px) {
     .pricing-grid {
         grid-template-columns: 1fr;
+    }
+    .pricing-grid > .pricing-card:last-child:nth-child(3n+1) {
+        max-width: none;
+        margin-inline: 0;
     }
 }
 
@@ -2260,6 +2270,14 @@ body.has-event-banner .header {
 @media (max-width: 1024px) {
     .restaurant-grid {
         grid-template-columns: 1fr;
+        max-width: 680px;
+        margin-inline: auto;
+    }
+    .restaurant-content__features {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .section-header__label--left {
+        justify-content: flex-start;
     }
 }
 
@@ -4046,7 +4064,16 @@ body.has-event-banner .header {
 }
 
 /* --- Restaurant Features (Après le match) --- */
+@media (max-width: 1024px) {
+    .restaurant-image {
+        height: 280px;
+    }
+}
+
 @media (max-width: 480px) {
+    .restaurant-image {
+        height: 220px;
+    }
     .restaurant-content__features {
         grid-template-columns: 1fr;
         gap: 0.5rem;
