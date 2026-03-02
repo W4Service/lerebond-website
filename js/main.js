@@ -563,14 +563,85 @@ function initCountdown() {
             '<div class="countdown-unit"><span class="countdown-unit__value">' + String(seconds).padStart(2, '0') + '</span><span class="countdown-unit__label">Sec</span></div>';
     }
 
+    // --- Fireworks ---
+    function launchFireworks(durationMs) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'fireworks-canvas';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+        document.body.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize, { passive: true });
+
+        const particles = [];
+        const colors = ['#ff4757','#ffa502','#2ed573','#1e90ff','#ff6b81','#eccc68','#ffffff','#a29bfe'];
+
+        function spawnBurst() {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height * 0.6;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 80; i++) {
+                const angle = (Math.PI * 2 * i) / 80;
+                const speed = 2 + Math.random() * 5;
+                particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, alpha: 1, color, radius: 2 + Math.random() * 2 });
+            }
+        }
+
+        let burstInterval = setInterval(spawnBurst, 400);
+        spawnBurst();
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.alpha -= 0.018;
+                if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            if (particles.length > 0 || burstInterval) requestAnimationFrame(draw);
+        }
+        draw();
+
+        setTimeout(function() {
+            clearInterval(burstInterval);
+            burstInterval = null;
+            // Let remaining particles finish, then remove canvas
+            setTimeout(function() { canvas.remove(); }, 3000);
+        }, durationMs);
+    }
+
+    function onCountdownFinished() {
+        // Hide floating widget
+        floating.style.display = 'none';
+        // Hide hero countdown section
+        if (heroContainer) heroContainer.style.display = 'none';
+        // Hide reservation toast popup if present
+        var toast = document.getElementById('resa-popup-toast');
+        if (toast) toast.style.display = 'none';
+        // Launch fireworks for 5s
+        launchFireworks(5000);
+    }
+
+    var countdownDone = false;
+    var countdownInterval;
+
     function updateCountdown() {
         const now = new Date();
         const diff = targetDate - now;
 
         if (diff <= 0) {
-            // Countdown finished
-            if (heroTimer) heroTimer.innerHTML = '<span style="font-family:var(--font-display);font-size:1.5rem;color:var(--accent);font-weight:700;">C\'est parti !</span>';
-            if (floatingTimer) floatingTimer.innerHTML = '<span style="font-family:var(--font-display);font-size:1rem;color:var(--accent);font-weight:700;">C\'est parti !</span>';
+            if (!countdownDone) {
+                countdownDone = true;
+                clearInterval(countdownInterval);
+                onCountdownFinished();
+            }
             return;
         }
 
@@ -587,7 +658,14 @@ function initCountdown() {
 
     // Update every second
     updateCountdown();
-    setInterval(updateCountdown, 1000);
+    countdownInterval = setInterval(updateCountdown, 1000);
+
+    // If page loads within 24h after opening: show fireworks for 5s then stop
+    var now = new Date();
+    var endOf24h = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
+    if (now >= targetDate && now < endOf24h) {
+        launchFireworks(5000);
+    }
 
     // Show/hide floating countdown based on scroll
     function handleFloatingVisibility() {
