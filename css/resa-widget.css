@@ -1,0 +1,501 @@
+/* ============================================
+   RESERVATION WIDGET — LE REBOND DA
+   ============================================ */
+.resa-widget {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid rgba(26,26,26,0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(26,26,26,0.1);
+    position: relative;
+}
+
+/* Header */
+.resa-header {
+    background: linear-gradient(135deg, #4a0614 0%, #680920 50%, #8b1230 100%);
+    padding: 28px 24px 24px;
+    position: relative;
+    overflow: hidden;
+}
+.resa-header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    background: rgba(239,167,7,0.1);
+    border-radius: 50%;
+}
+.resa-header::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: 30%;
+    width: 80px; height: 80px;
+    background: rgba(239,167,7,0.06);
+    border-radius: 50%;
+}
+.resa-header h1 {
+    font-family: 'Turret Road', 'Kanit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(239,167,7,0.85);
+    margin-bottom: 6px;
+}
+.resa-header h2 {
+    font-family: 'Turret Road', 'Kanit', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #f4f0e6;
+    line-height: 1.2;
+}
+.resa-header p {
+    margin-top: 8px;
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    color: rgba(244,240,230,0.7);
+    font-weight: 300;
+}
+
+/* Stepper */
+.resa-steps {
+    display: flex;
+    gap: 4px;
+    padding: 16px 24px;
+    background: #f4f0e6;
+}
+.resa-step-dot {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(104,9,32,0.15);
+    transition: background 0.4s ease;
+}
+.resa-step-dot.active { background: #680920; }
+.resa-step-dot.done { background: #efa707; }
+
+/* Body */
+.resa-body {
+    padding: 24px;
+    font-family: 'Kanit', sans-serif;
+}
+
+/* Steps */
+.resa-step {
+    display: none;
+    animation: resaFadeIn 0.3s ease;
+}
+.resa-step.active { display: block; }
+
+@keyframes resaFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Labels */
+.resa-field-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #680920;
+    margin-bottom: 10px;
+    display: block;
+    font-family: 'Kanit', sans-serif;
+}
+
+/* Person selector */
+.resa-person-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+.resa-person-btn {
+    width: 52px; height: 52px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.resa-person-btn:hover {
+    border-color: #680920;
+    background: rgba(104,9,32,0.05);
+}
+.resa-person-btn.selected {
+    border-color: #680920;
+    background: #680920;
+    color: #f4f0e6;
+    box-shadow: 0 0 20px rgba(104,9,32,0.2);
+}
+
+/* Calendar */
+.resa-date-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 24px;
+}
+.resa-date-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+}
+.resa-day-name {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(26,26,26,0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Kanit', sans-serif;
+}
+.resa-date-btn {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    border: 1.5px solid transparent;
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.resa-date-btn:hover:not(.disabled):not(.empty) {
+    border-color: #680920;
+    background: rgba(104,9,32,0.05);
+}
+.resa-date-btn.selected {
+    border-color: #680920;
+    background: #680920;
+    color: #f4f0e6;
+}
+.resa-date-btn.today {
+    border-color: #efa707;
+    color: #efa707;
+    font-weight: 700;
+}
+.resa-date-btn.today.selected {
+    background: #680920;
+    border-color: #680920;
+    color: #f4f0e6;
+}
+.resa-date-btn.disabled {
+    color: rgba(26,26,26,0.25);
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.resa-date-btn.empty {
+    background: transparent;
+    cursor: default;
+}
+
+.resa-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.resa-month-nav span {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+}
+.resa-month-nav button {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #680920;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.resa-month-nav button:hover {
+    border-color: #680920;
+    background: rgba(104,9,32,0.05);
+}
+
+/* Time slots */
+.resa-service-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #680920;
+    margin: 16px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Kanit', sans-serif;
+}
+.resa-service-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(104,9,32,0.15);
+}
+
+.resa-time-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.resa-time-btn {
+    padding: 12px 8px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+.resa-time-btn:hover { border-color: #680920; }
+.resa-time-btn.selected {
+    border-color: #680920;
+    background: #680920;
+    color: #f4f0e6;
+}
+.resa-time-btn .resa-places {
+    font-size: 11px;
+    color: rgba(26,26,26,0.4);
+    margin-top: 2px;
+}
+.resa-time-btn.selected .resa-places { color: rgba(244,240,230,0.7); }
+.resa-time-btn.low .resa-places { color: #efa707; }
+.resa-time-btn.full {
+    opacity: 0.3;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.resa-time-btn.past {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Form */
+.resa-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.resa-form-group {
+    margin-bottom: 16px;
+}
+.resa-form-group.full { grid-column: 1 / -1; }
+.resa-form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #680920;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    font-family: 'Kanit', sans-serif;
+}
+.resa-form-group input,
+.resa-form-group textarea,
+.resa-form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+    outline: none;
+}
+.resa-form-group input:focus,
+.resa-form-group textarea:focus,
+.resa-form-group select:focus {
+    border-color: #680920;
+}
+.resa-form-group input::placeholder,
+.resa-form-group textarea::placeholder {
+    color: rgba(26,26,26,0.35);
+}
+.resa-form-group textarea {
+    resize: vertical;
+    min-height: 70px;
+}
+.resa-form-group select option {
+    background: #fff;
+}
+
+/* Navigation buttons */
+.resa-nav {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+.resa-btn {
+    flex: 1;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-family: 'Kanit', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-align: center;
+}
+.resa-btn-primary {
+    background: #680920;
+    color: #f4f0e6;
+}
+.resa-btn-primary:hover { background: #8b1230; }
+.resa-btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.resa-btn-secondary {
+    background: #f4f0e6;
+    color: #680920;
+    border: 1.5px solid rgba(104,9,32,0.2);
+}
+.resa-btn-secondary:hover {
+    border-color: #680920;
+    background: rgba(104,9,32,0.05);
+}
+
+/* Recap */
+.resa-recap-card {
+    background: #f4f0e6;
+    border: 1px solid rgba(104,9,32,0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.resa-recap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+.resa-recap-row:not(:last-child) {
+    border-bottom: 1px solid rgba(104,9,32,0.1);
+}
+.resa-recap-label {
+    font-size: 13px;
+    color: rgba(26,26,26,0.5);
+    font-family: 'Kanit', sans-serif;
+}
+.resa-recap-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+}
+
+/* Confirmation */
+.resa-confirmation {
+    text-align: center;
+    padding: 20px 0;
+}
+.resa-confirmation-icon {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(104,9,32,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 36px;
+    color: #680920;
+}
+.resa-confirmation h3 {
+    font-family: 'Turret Road', 'Kanit', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #680920;
+}
+.resa-confirmation p {
+    color: rgba(26,26,26,0.6);
+    font-size: 14px;
+    line-height: 1.5;
+    font-family: 'Kanit', sans-serif;
+}
+
+/* Error */
+.resa-error-msg {
+    background: rgba(248,81,73,0.08);
+    border: 1px solid rgba(248,81,73,0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #d32f2f;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+    font-family: 'Kanit', sans-serif;
+}
+.resa-error-msg.visible { display: block; }
+
+/* Loading */
+.resa-loading-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.85);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+}
+.resa-loading-overlay.visible { display: flex; }
+.resa-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(104,9,32,0.15);
+    border-top-color: #680920;
+    border-radius: 50%;
+    animation: resaSpin 0.8s linear infinite;
+}
+@keyframes resaSpin { to { transform: rotate(360deg); } }
+
+/* No slots */
+.resa-no-slots {
+    text-align: center;
+    padding: 24px;
+    color: rgba(26,26,26,0.5);
+    font-size: 14px;
+    font-family: 'Kanit', sans-serif;
+}
+.resa-no-slots__icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+.resa-no-slots__hint {
+    font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .resa-widget { border-radius: 0; border: none; box-shadow: none; }
+    .resa-time-grid { grid-template-columns: repeat(3, 1fr); }
+    .resa-form-row { grid-template-columns: 1fr; }
+}
