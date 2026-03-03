@@ -719,6 +719,15 @@ function initReservationPopup() {
         showReservationToast(message);
     };
 
+    // Terrain reservation: mobile → app deep link, desktop → web app
+    window.reserverTerrain = function() {
+        var isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        var url = isMobile
+            ? 'https://lerebond.mymobileapp.fr/installation?q=03032026095440'
+            : 'https://lerebond.mymobileapp.fr/';
+        window.open(url, '_blank', 'noopener');
+    };
+
     // Optional toast hook (only if explicitly opted-in)
     document.addEventListener('click', function(e) {
         var link = e.target.closest('a[data-reservation-toast="true"]');
