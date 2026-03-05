@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFormSubmit();
     initLazyEmbeds();
     initMobileCta();
+    initSemainePopup();
 });
 
 /* ============================================
@@ -737,14 +738,68 @@ function initReservationPopup() {
         }
     });
 
-    // Event banner CTA toast
-    document.addEventListener('click', function(e) {
-        var bannerLink = e.target.closest('.event-banner__link');
-        if (!bannerLink) return;
-        e.preventDefault();
+}
 
-        showReservationToast('La date de la semaine de gratuité arrive prochainement. <span class="icon-inline">Restez connecté 🤫</span>');
+/* ============================================
+   SEMAINE GRATUITE POPUP
+   ============================================ */
+function initSemainePopup() {
+    // Inject popup HTML into the page
+    var popupHTML = '' +
+        '<div class="semaine-overlay" id="semaine-overlay">' +
+        '  <div class="semaine-popup" role="dialog" aria-modal="true" aria-label="Semaine gratuite Le Rebond">' +
+        '    <button class="semaine-popup__close" id="semaine-close" aria-label="Fermer">&times;</button>' +
+        '    <div class="semaine-popup__badge"><span class="semaine-popup__dot"></span> Offre limitée · 1 semaine</div>' +
+        '    <h2 class="semaine-popup__title">Semaine<br>gratuite de jeu&nbsp;!</h2>' +
+        '    <p class="semaine-popup__sub">Découvrez nos terrains de Padel &amp; Foot 5 dernier cri.<br>Réservez, jouez, profitez.</p>' +
+        '    <div class="semaine-popup__offers">' +
+        '      <div class="semaine-popup__card">' +
+        '        <div class="semaine-popup__icon semaine-popup__icon--primary">&#127992;</div>' +
+        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 séance offerte</div><div class="semaine-popup__card-desc">Padel ou Foot 5 · Sur réservation via l\'app</div></div>' +
+        '        <div class="semaine-popup__tag">GRATUIT</div>' +
+        '      </div>' +
+        '      <div class="semaine-popup__card">' +
+        '        <div class="semaine-popup__icon semaine-popup__icon--accent">&#129380;</div>' +
+        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 boisson offerte</div><div class="semaine-popup__card-desc">À retirer au comptoir lors de ta 1ʳᵉ visite</div></div>' +
+        '        <div class="semaine-popup__tag semaine-popup__tag--accent">OFFERT</div>' +
+        '      </div>' +
+        '    </div>' +
+        '    <div class="semaine-popup__divider">réservation obligatoire via l\'app</div>' +
+        '    <button class="semaine-popup__cta" id="semaine-cta">Je réserve ma séance gratuite</button>' +
+        '    <p class="semaine-popup__footer">Valable du 16 au 22 mars 2026</p>' +
+        '  </div>' +
+        '</div>';
+
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+
+    var overlay = document.getElementById('semaine-overlay');
+    var closeBtn = document.getElementById('semaine-close');
+    var ctaBtn = document.getElementById('semaine-cta');
+
+    function closePopup() {
+        overlay.style.opacity = '0';
+        setTimeout(function() { overlay.style.display = 'none'; overlay.style.opacity = ''; }, 300);
+    }
+
+    closeBtn.addEventListener('click', closePopup);
+
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closePopup();
     });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.style.display === 'flex') closePopup();
+    });
+
+    ctaBtn.addEventListener('click', function() {
+        closePopup();
+        window.reserverTerrain();
+    });
+
+    // Expose globally for banner button
+    window.openSemainePopup = function() {
+        overlay.style.display = 'flex';
+    };
 }
 
 /* ============================================
