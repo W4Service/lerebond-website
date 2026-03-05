@@ -1,0 +1,106 @@
+<!--
+  ============================================================
+  EMAIL NOTIFICATION ANNULATION — RESTAURANT — Le Rebond
+  ============================================================
+  À coller dans le champ "HTML" du node "Notification Annulation Restaurant"
+  dans n8n. Les {{ }} sont des expressions n8n.
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Turret+Road:wght@700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0; padding:0; background-color:#f0ece3; font-family:'Kanit', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0ece3; padding:16px;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%;">
+
+          <!-- HEADER COMPACT -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #4a0614 0%, #680920 50%, #8b1230 100%); border-radius:12px 12px 0 0; padding:18px 22px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:16px; font-weight:700; color:#f4f0e6;">❌ Annulation réservation</div>
+                  </td>
+                  <td style="text-align:right;">
+                    <div style="font-size:12px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:rgba(244,240,230,0.55);">Le Rebond</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- BODY -->
+          <tr>
+            <td style="background-color:#ffffff; padding:22px; border:1px solid rgba(104,9,32,0.12); border-top:none;">
+
+              <!-- Bloc principal : Qui + Quand -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+                <tr>
+                  <!-- NOM + PERSONNES -->
+                  <td style="width:55%; vertical-align:top;">
+                    <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:20px; font-weight:700; color:#1a1a1a; line-height:1.3; text-decoration:line-through; opacity:0.6;">
+                      {{ $json.prenom }} {{ $json.nom }}
+                    </div>
+                    <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:28px; font-weight:800; color:#680920; margin-top:4px; text-decoration:line-through; opacity:0.6;">
+                      {{ $json.personnes }} pers.
+                    </div>
+                  </td>
+                  <!-- DATE + HEURE -->
+                  <td style="width:45%; vertical-align:top; text-align:right;">
+                    <div style="font-size:14px; color:rgba(26,26,26,0.5); margin-bottom:4px; text-decoration:line-through;">{{ $json.date_fr }}</div>
+                    <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:24px; font-weight:700; color:#efa707; text-decoration:line-through; opacity:0.6;">{{ $json.heure_courte }}</div>
+                    <div style="font-size:13px; color:rgba(26,26,26,0.45); margin-top:2px;">Service {{ $json.service }}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Badge annulé -->
+              <div style="text-align:center; margin:12px 0 16px;">
+                <span style="display:inline-block; padding:6px 16px; background-color:rgba(220,38,38,0.1); border:1px solid rgba(220,38,38,0.25); border-radius:6px; font-size:12px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:1px;">
+                  Annulée par le client
+                </span>
+              </div>
+
+              <!-- Séparateur -->
+              <div style="border-top:1px solid rgba(104,9,32,0.1); margin:12px 0;"></div>
+
+              <!-- Contact -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="font-size:13px; color:rgba(26,26,26,0.45);">📱 </span>
+                    <a href="tel:{{ $json.telephone }}" style="font-size:14px; color:#680920; text-decoration:none; font-weight:600;">{{ $json.telephone }}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="font-size:13px; color:rgba(26,26,26,0.45);">📧 </span>
+                    <a href="mailto:{{ $json.email }}" style="font-size:14px; color:#680920; text-decoration:none;">{{ $json.email }}</a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background-color:#680920; border-radius:0 0 12px 12px; padding:14px 22px; text-align:center;">
+              <div style="font-size:11px; color:rgba(244,240,230,0.5);">
+                Réservation #{{ $json.reservation_id ? $json.reservation_id.substring(0, 8) : 'N/A' }} · Annulée le {{ new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) }}
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bienvenue — Le Rebond</title>
+<meta name="robots" content="noindex, nofollow"/>
+<meta http-equiv="refresh" content="3;url=https://le-rebond.fr/"/>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','%%GTM_ID%%');</script>
+<!-- End Google Tag Manager -->
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #680920;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+  .splash {
+    text-align: center;
+    color: #f4f0e6;
+    padding: 2rem;
+    animation: fadeIn 0.6s ease forwards;
+  }
+  .splash__logo {
+    width: min(260px, 70vw);
+    height: auto;
+    margin-bottom: 2rem;
+    filter: brightness(0) invert(1);
+  }
+  .splash__title {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5rem;
+  }
+  .splash__sub {
+    font-size: 0.95rem;
+    opacity: 0.7;
+    margin-bottom: 2rem;
+  }
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(244,240,230,0.25);
+    border-top-color: #f4f0e6;
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe height="0" src="https://www.googletagmanager.com/ns.html?id=%%GTM_ID%%" style="display:none;visibility:hidden" width="0"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<div class="splash">
+  <picture>
+    <source type="image/avif" srcset="img/logo-8.avif"/>
+    <img alt="Le Rebond" class="splash__logo" src="img/logo-8.webp" width="1312" height="188" fetchpriority="high"/>
+  </picture>
+  <p class="splash__title">Bienvenue au Rebond&nbsp;!</p>
+  <p class="splash__sub">Redirection en cours…</p>
+  <div class="spinner"></div>
+</div>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  dataLayer.push({
+    event: 'qr_code_scan',
+    page_source: 'qr_code'
+  });
+  setTimeout(function() {
+    window.location.replace('https://le-rebond.fr/');
+  }, 2500);
+</script>
+</body>
+</html>

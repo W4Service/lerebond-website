@@ -1,0 +1,25 @@
+{
+  "name": "Le Rebond - Padel & Five Noyon",
+  "short_name": "Le Rebond",
+  "description": "Complexe sportif Padel & Five à Noyon (60) — Bar-Restaurant, terrains connectés, événements.",
+  "start_url": "/lerebond-website/",
+  "scope": "/lerebond-website/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#680920",
+  "theme_color": "#680920",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "img/logomark-9.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/logomark-9.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    }
+  ]
+}

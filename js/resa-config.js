@@ -1,0 +1,8 @@
+// Generated at build time by GitHub Actions — do not edit manually.
+window.REBOND_CONFIG = {
+    SUPABASE_URL: '%%SUPABASE_URL%%',
+    SUPABASE_ANON_KEY: '%%SUPABASE_ANON_KEY%%',
+    N8N_WEBHOOK_URL_RESERVATION: '%%N8N_WEBHOOK_URL_RESERVATION%%',
+    N8N_WEBHOOK_URL_ANNULATION: '%%N8N_WEBHOOK_URL_ANNULATION%%',
+    MIN_LEAD_MINUTES: 120,
+};

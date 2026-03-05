@@ -1,16 +1,15 @@
 # ============================================
 # LE REBOND - URL Rewriting
-# Masquer l'extension .html dans les URLs
+# URLs propres vers /page/ (index.html)
 # ============================================
 
+DirectoryIndex index.html
 RewriteEngine On
 
-# Rediriger les URLs avec .html vers sans .html (301)
-RewriteCond %{THE_REQUEST} /([^.]+)\.html [NC]
-RewriteRule ^ /%1 [NC,L,R=301]
+# Rediriger les anciennes URLs .html vers /page/ (301)
+RewriteCond %{THE_REQUEST} \\s/([^.]+)\\.html[\\s?] [NC]
+RewriteRule ^ /%1/ [R=301,L]
 
-# Servir le fichier .html quand l'URL n'a pas d'extension
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME}.html -f
-RewriteRule ^(.+)$ $1.html [L]
+# Forcer le slash final si dossier
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.+[^/])$ /$1/ [R=301,L]

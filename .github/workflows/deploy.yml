@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inject secrets into resa-config
+        run: |
+          sed \
+            -e "s|%%SUPABASE_URL%%|${{ secrets.SUPABASE_URL }}|g" \
+            -e "s|%%SUPABASE_ANON_KEY%%|${{ secrets.SUPABASE_ANON_KEY }}|g" \
+            -e "s|%%N8N_WEBHOOK_URL_RESERVATION%%|${{ secrets.N8N_WEBHOOK_URL_RESERVATION }}|g" \
+            -e "s|%%N8N_WEBHOOK_URL_ANNULATION%%|${{ secrets.N8N_WEBHOOK_URL_ANNULATION }}|g" \
+            js/resa-config.template.js > js/resa-config.js
+          cp js/resa-config.js js/resa-config.min.js
+
+      - name: Inject GTM ID into all HTML files
+        run: |
+          find . -name "*.html" -not -path "./.git/*" \
+            -exec sed -i "s|%%GTM_ID%%|${{ secrets.GTM_ID }}|g" {} +
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_branch: gh-pages
+          exclude_assets: '.github,js/resa-config.template.js,.gitignore,.env,.claude'

@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initSmoothScroll();
     initCountdown();
     initReservationPopup();
+    initFormSubmit();
+    initLazyEmbeds();
+    initMobileCta();
+    initSemainePopup();
 });
 
 /* ============================================
@@ -36,7 +40,7 @@ function initHeader() {
         }
 
         lastScroll = currentScroll;
-    });
+    }, { passive: true });
 }
 
 /* ============================================
@@ -50,10 +54,22 @@ function initMobileNav() {
 
     if (!toggle || !nav) return;
 
+    if (!nav.id) {
+        nav.id = 'site-nav';
+    }
+    toggle.setAttribute('aria-controls', nav.id);
+    toggle.setAttribute('aria-expanded', 'false');
+
+    function setExpanded(isOpen) {
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
     toggle.addEventListener('click', () => {
         toggle.classList.toggle('active');
         nav.classList.toggle('active');
-        document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
+        const isOpen = nav.classList.contains('active');
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        setExpanded(isOpen);
     });
 
     // Close menu when clicking a link
@@ -62,6 +78,7 @@ function initMobileNav() {
             toggle.classList.remove('active');
             nav.classList.remove('active');
             document.body.style.overflow = '';
+            setExpanded(false);
         });
     });
 
@@ -71,6 +88,7 @@ function initMobileNav() {
             toggle.classList.remove('active');
             nav.classList.remove('active');
             document.body.style.overflow = '';
+            setExpanded(false);
         }
     });
 }
@@ -114,6 +132,8 @@ function initFAQ() {
 
         if (!question || !answer) return;
 
+        question.setAttribute('aria-expanded', 'false');
+
         question.addEventListener('click', () => {
             const isActive = item.classList.contains('active');
 
@@ -121,11 +141,14 @@ function initFAQ() {
             faqItems.forEach(otherItem => {
                 if (otherItem !== item) {
                     otherItem.classList.remove('active');
+                    const otherQ = otherItem.querySelector('.faq__question, .faq-question');
+                    if (otherQ) otherQ.setAttribute('aria-expanded', 'false');
                 }
             });
 
             // Toggle current item
             item.classList.toggle('active');
+            question.setAttribute('aria-expanded', item.classList.contains('active') ? 'true' : 'false');
         });
     });
 }
@@ -141,7 +164,19 @@ function initEventFilters() {
     let activeCategory = 'all';
     let activeType = 'all';
 
+    function fixOrphan(cards) {
+        const cols = window.innerWidth > 1024 ? 3 : window.innerWidth > 768 ? 2 : 1;
+        cards.forEach((card, i) => {
+            const isOrphan = (i === cards.length - 1) && (cards.length % cols !== 0);
+            card.style.gridColumn = isOrphan ? '1 / -1' : '';
+            card.style.maxWidth = isOrphan ? '480px' : '';
+            card.style.marginInline = isOrphan ? 'auto' : '';
+        });
+    }
+
     function applyFilters() {
+        const visibleCards = [];
+
         eventCards.forEach(card => {
             const category = card.dataset.category;
             const type = card.dataset.type;
@@ -149,11 +184,16 @@ function initEventFilters() {
             const matchCategory = activeCategory === 'all' || category === activeCategory;
             const matchType = activeType === 'all' || type === activeType;
 
+            // Reset orphan styles before recalculating
+            card.style.gridColumn = '';
+            card.style.maxWidth = '';
+            card.style.marginInline = '';
+
             if (matchCategory && matchType) {
+                visibleCards.push(card);
                 card.style.display = '';
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(20px)';
-
                 setTimeout(() => {
                     card.style.transition = 'all 0.4s ease';
                     card.style.opacity = '1';
@@ -162,13 +202,18 @@ function initEventFilters() {
             } else {
                 card.style.opacity = '0';
                 card.style.transform = 'translateY(20px)';
-
                 setTimeout(() => {
                     card.style.display = 'none';
                 }, 400);
             }
         });
+
+        // Apply orphan fix after hide animation completes
+        setTimeout(() => fixOrphan(visibleCards), 450);
     }
+
+    // Apply orphan fix on initial load too
+    fixOrphan(Array.from(eventCards));
 
     // Category filter buttons (data-filter)
     document.querySelectorAll('[data-filter]').forEach(btn => {
@@ -519,14 +564,85 @@ function initCountdown() {
             '<div class="countdown-unit"><span class="countdown-unit__value">' + String(seconds).padStart(2, '0') + '</span><span class="countdown-unit__label">Sec</span></div>';
     }
 
+    // --- Fireworks ---
+    function launchFireworks(durationMs) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'fireworks-canvas';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+        document.body.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize, { passive: true });
+
+        const particles = [];
+        const colors = ['#ff4757','#ffa502','#2ed573','#1e90ff','#ff6b81','#eccc68','#ffffff','#a29bfe'];
+
+        function spawnBurst() {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height * 0.6;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 80; i++) {
+                const angle = (Math.PI * 2 * i) / 80;
+                const speed = 2 + Math.random() * 5;
+                particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, alpha: 1, color, radius: 2 + Math.random() * 2 });
+            }
+        }
+
+        let burstInterval = setInterval(spawnBurst, 400);
+        spawnBurst();
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.alpha -= 0.018;
+                if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            if (particles.length > 0 || burstInterval) requestAnimationFrame(draw);
+        }
+        draw();
+
+        setTimeout(function() {
+            clearInterval(burstInterval);
+            burstInterval = null;
+            // Let remaining particles finish, then remove canvas
+            setTimeout(function() { canvas.remove(); }, 3000);
+        }, durationMs);
+    }
+
+    function onCountdownFinished() {
+        // Hide floating widget
+        floating.style.display = 'none';
+        // Hide hero countdown section
+        if (heroContainer) heroContainer.style.display = 'none';
+        // Hide reservation toast popup if present
+        var toast = document.getElementById('resa-popup-toast');
+        if (toast) toast.style.display = 'none';
+        // Launch fireworks for 5s
+        launchFireworks(5000);
+    }
+
+    var countdownDone = false;
+    var countdownInterval;
+
     function updateCountdown() {
         const now = new Date();
         const diff = targetDate - now;
 
         if (diff <= 0) {
-            // Countdown finished
-            if (heroTimer) heroTimer.innerHTML = '<span style="font-family:var(--font-display);font-size:1.5rem;color:var(--accent);font-weight:700;">C\'est parti !</span>';
-            if (floatingTimer) floatingTimer.innerHTML = '<span style="font-family:var(--font-display);font-size:1rem;color:var(--accent);font-weight:700;">C\'est parti !</span>';
+            if (!countdownDone) {
+                countdownDone = true;
+                clearInterval(countdownInterval);
+                onCountdownFinished();
+            }
             return;
         }
 
@@ -543,10 +659,23 @@ function initCountdown() {
 
     // Update every second
     updateCountdown();
-    setInterval(updateCountdown, 1000);
+    countdownInterval = setInterval(updateCountdown, 1000);
+
+    // If page loads within 24h after opening: show fireworks for 5s then stop
+    var now = new Date();
+    var endOf24h = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
+    if (now >= targetDate && now < endOf24h) {
+        launchFireworks(5000);
+    }
 
     // Show/hide floating countdown based on scroll
     function handleFloatingVisibility() {
+        // Hide near bottom of page to avoid footer overlap
+        const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 150);
+        if (nearBottom) {
+            floating.classList.remove('visible');
+            return;
+        }
         if (heroContainer) {
             // On index page: show floating when hero countdown is out of view
             const rect = heroContainer.getBoundingClientRect();
@@ -561,7 +690,7 @@ function initCountdown() {
         }
     }
 
-    window.addEventListener('scroll', throttle(handleFloatingVisibility, 100));
+    window.addEventListener('scroll', throttle(handleFloatingVisibility, 100), { passive: true });
     // Initial check
     handleFloatingVisibility();
 }
@@ -580,19 +709,214 @@ function initReservationPopup() {
     }
 
     function showReservationToast(message) {
-        toast.textContent = message;
+        toast.innerHTML = message;
         toast.classList.add('show');
         setTimeout(function() {
             toast.classList.remove('show');
         }, 5000);
     }
 
-    // Intercept clicks on all reservation links and buttons
+    window.showToast = function(message) {
+        showReservationToast(message);
+    };
+
+    // Terrain reservation: mobile → app deep link, desktop → web app
+    window.reserverTerrain = function() {
+        var isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        var url = isMobile
+            ? 'https://lerebond.mymobileapp.fr/installation?q=03032026095440'
+            : 'https://lerebond.mymobileapp.fr/';
+        window.open(url, '_blank', 'noopener');
+    };
+
+    // Optional toast hook (only if explicitly opted-in)
     document.addEventListener('click', function(e) {
-        var link = e.target.closest('a[href="reserver.html"], a[href="reserver-restaurant.html"]');
+        var link = e.target.closest('a[data-reservation-toast="true"]');
         if (link) {
             e.preventDefault();
             showReservationToast('Réservation disponible bientôt !');
         }
     });
+
+}
+
+/* ============================================
+   SEMAINE GRATUITE POPUP
+   ============================================ */
+function initSemainePopup() {
+    // Inject popup HTML into the page
+    var popupHTML = '' +
+        '<div class="semaine-overlay" id="semaine-overlay">' +
+        '  <div class="semaine-popup" role="dialog" aria-modal="true" aria-label="Semaine gratuite Le Rebond">' +
+        '    <button class="semaine-popup__close" id="semaine-close" aria-label="Fermer">&times;</button>' +
+        '    <div class="semaine-popup__badge"><span class="semaine-popup__dot"></span> Offre limitée · 1 semaine</div>' +
+        '    <h2 class="semaine-popup__title">Semaine<br>gratuite de jeu&nbsp;!</h2>' +
+        '    <p class="semaine-popup__sub">Découvrez nos terrains de Padel &amp; Foot 5 dernier cri.<br>Réservez, jouez, profitez.</p>' +
+        '    <div class="semaine-popup__offers">' +
+        '      <div class="semaine-popup__card">' +
+        '        <div class="semaine-popup__icon semaine-popup__icon--primary">&#127934;</div>' +
+        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 séance offerte</div><div class="semaine-popup__card-desc">Padel ou Foot 5</div></div>' +
+        '        <div class="semaine-popup__tag">GRATUIT</div>' +
+        '      </div>' +
+        '      <div class="semaine-popup__card">' +
+        '        <div class="semaine-popup__icon semaine-popup__icon--accent">&#129380;</div>' +
+        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 boisson offerte</div><div class="semaine-popup__card-desc">À retirer au comptoir lors de ta 1ʳᵉ visite</div></div>' +
+        '        <div class="semaine-popup__tag semaine-popup__tag--accent">OFFERT</div>' +
+        '      </div>' +
+        '    </div>' +
+        '    <div class="semaine-popup__divider">réservation obligatoire via l\'app</div>' +
+        '    <button class="semaine-popup__cta" id="semaine-cta">Je réserve ma séance gratuite</button>' +
+        '    <p class="semaine-popup__footer">Valable du 16 au 22 mars 2026</p>' +
+        '  </div>' +
+        '</div>';
+
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+
+    var overlay = document.getElementById('semaine-overlay');
+    var closeBtn = document.getElementById('semaine-close');
+    var ctaBtn = document.getElementById('semaine-cta');
+
+    function closePopup() {
+        overlay.style.opacity = '0';
+        setTimeout(function() { overlay.style.display = 'none'; overlay.style.opacity = ''; }, 300);
+    }
+
+    closeBtn.addEventListener('click', closePopup);
+
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closePopup();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.style.display === 'flex') closePopup();
+    });
+
+    ctaBtn.addEventListener('click', function() {
+        closePopup();
+        window.reserverTerrain();
+    });
+
+    // Expose globally for banner button
+    window.openSemainePopup = function() {
+        overlay.style.display = 'flex';
+    };
+}
+
+/* ============================================
+   FORM SUBMIT (Formsubmit.co)
+   ============================================ */
+function initFormSubmit() {
+    const forms = document.querySelectorAll('form[data-formsubmit="true"]');
+    if (!forms.length) return;
+
+    forms.forEach(form => {
+        const feedback = form.querySelector('.form-feedback');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const successMsg = form.getAttribute('data-success-message') ||
+            'Merci, votre demande sera traitée sous 24h.';
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.setAttribute('aria-busy', 'true');
+            }
+
+            if (feedback) {
+                feedback.textContent = '';
+                feedback.classList.remove('visible', 'is-error');
+            }
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'Accept': 'application/json' },
+                });
+
+                if (!res.ok) {
+                    throw new Error('Formsubmit error');
+                }
+
+                if (feedback) {
+                    feedback.textContent = successMsg;
+                    feedback.classList.add('visible');
+                }
+                form.reset();
+            } catch (err) {
+                if (feedback) {
+                    feedback.textContent = "Une erreur est survenue. Réessayez.";
+                    feedback.classList.add('visible', 'is-error');
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.removeAttribute('aria-busy');
+                }
+            }
+        });
+    });
+}
+
+/* ============================================
+   LAZY EMBEDS (Maps)
+   ============================================ */
+function initLazyEmbeds() {
+    const embeds = document.querySelectorAll('.lazy-embed');
+    if (!embeds.length) return;
+
+    embeds.forEach(embed => {
+        const btn = embed.querySelector('.lazy-embed__btn');
+        const src = embed.getAttribute('data-src');
+        if (!src) return;
+
+        const title = embed.getAttribute('data-title') || '';
+
+        const loadEmbed = () => {
+            if (embed.querySelector('iframe')) return;
+            const iframe = document.createElement('iframe');
+            iframe.src = src;
+            iframe.loading = 'lazy';
+            iframe.referrerPolicy = 'no-referrer-when-downgrade';
+            if (title) iframe.title = title;
+            iframe.allowFullscreen = true;
+            iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0';
+            embed.appendChild(iframe);
+            if (btn) btn.remove();
+        };
+
+        // Auto-load immediately
+        loadEmbed();
+    });
+}
+
+/* ============================================
+   MOBILE CTA (Contextual)
+   ============================================ */
+function initMobileCta() {
+    const cta = document.querySelector('.mobile-cta');
+    if (!cta) return;
+
+    const actions = cta.querySelector('.mobile-cta__actions');
+    if (!actions) return;
+
+    const buttons = Array.from(actions.querySelectorAll('.mobile-cta__btn'));
+    if (buttons.length < 2) return;
+
+    const tableBtn = buttons.find(btn => (btn.getAttribute('href') || '').includes('reserver-restaurant'));
+    const terrainBtn = buttons.find(btn => (btn.getAttribute('href') || '').includes('reserver/'));
+    if (!tableBtn || !terrainBtn) return;
+
+    const path = window.location.pathname;
+    const preferTable = path.includes('reserver-restaurant') || path.includes('bar-restaurant');
+
+    if (preferTable) {
+        tableBtn.classList.add('btn--primary', 'text-light');
+        tableBtn.classList.remove('btn--light');
+        terrainBtn.classList.add('btn--light');
+        terrainBtn.classList.remove('btn--primary', 'text-light');
+        actions.innerHTML = '';
+        actions.append(tableBtn, terrainBtn);
+    }
 }

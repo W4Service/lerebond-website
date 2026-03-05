@@ -1,0 +1,533 @@
+/* ============================================
+   RESERVATION POPUP — LE REBOND
+   Popup en bas à droite avec widget de réservation
+   ============================================ */
+
+/* Overlay */
+.resa-popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,26,0.3);
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.resa-popup-overlay.visible {
+    display: block;
+    opacity: 1;
+}
+
+/* Popup container */
+.resa-popup {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 420px;
+    max-height: 85vh;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 12px 48px rgba(26,26,26,0.2);
+    z-index: 9999;
+    overflow: hidden;
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    flex-direction: column;
+}
+.resa-popup.visible {
+    display: flex;
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+/* Popup header */
+.resa-popup__header {
+    background: linear-gradient(135deg, #4a0614 0%, #680920 50%, #8b1230 100%);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+.resa-popup__header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.resa-popup__header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(239,167,7,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #efa707;
+    font-size: 18px;
+}
+.resa-popup__header-text h3 {
+    font-family: 'Turret Road', 'Kanit', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f4f0e6;
+    line-height: 1.2;
+}
+.resa-popup__header-text p {
+    font-family: 'Kanit', sans-serif;
+    font-size: 11px;
+    color: rgba(244,240,230,0.6);
+    margin-top: 2px;
+}
+.resa-popup__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.resa-popup__btn-expand,
+.resa-popup__btn-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(244,240,230,0.1);
+    color: #f4f0e6;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+.resa-popup__btn-expand:hover,
+.resa-popup__btn-close:hover {
+    background: rgba(244,240,230,0.2);
+}
+
+/* Popup body - scrollable */
+.resa-popup__body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Stepper in popup */
+.resa-popup .rp-steps {
+    display: flex;
+    gap: 4px;
+    padding: 12px 20px;
+    background: #f4f0e6;
+}
+.resa-popup .rp-step-dot {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(104,9,32,0.15);
+    transition: background 0.4s ease;
+}
+.resa-popup .rp-step-dot.active { background: #680920; }
+.resa-popup .rp-step-dot.done { background: #efa707; }
+
+/* Popup content area */
+.resa-popup .rp-content {
+    padding: 20px;
+    font-family: 'Kanit', sans-serif;
+}
+
+/* Steps */
+.resa-popup .rp-step {
+    display: none;
+    animation: rpFadeIn 0.3s ease;
+}
+.resa-popup .rp-step.active { display: block; }
+
+@keyframes rpFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Field labels */
+.resa-popup .rp-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #680920;
+    margin-bottom: 8px;
+    display: block;
+    font-family: 'Kanit', sans-serif;
+}
+
+/* Person selector */
+.resa-popup .rp-persons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.resa-popup .rp-person-btn {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.resa-popup .rp-person-btn:hover {
+    border-color: #680920;
+    background: rgba(104,9,32,0.05);
+}
+.resa-popup .rp-person-btn.selected {
+    border-color: #680920;
+    background: #680920;
+    color: #f4f0e6;
+}
+
+/* Calendar */
+.resa-popup .rp-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.resa-popup .rp-month-nav span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+.resa-popup .rp-month-nav button {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #680920;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.resa-popup .rp-month-nav button:hover {
+    border-color: #680920;
+}
+.resa-popup .rp-day-header,
+.resa-popup .rp-date-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+}
+.resa-popup .rp-day-header {
+    margin-bottom: 6px;
+}
+.resa-popup .rp-day-name {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(26,26,26,0.35);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.resa-popup .rp-date-btn {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    border: 1.5px solid transparent;
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.resa-popup .rp-date-btn:hover:not(.disabled):not(.empty) {
+    border-color: #680920;
+}
+.resa-popup .rp-date-btn.selected {
+    border-color: #680920;
+    background: #680920;
+    color: #f4f0e6;
+}
+.resa-popup .rp-date-btn.today {
+    border-color: #efa707;
+    color: #efa707;
+    font-weight: 700;
+}
+.resa-popup .rp-date-btn.today.selected {
+    background: #680920;
+    border-color: #680920;
+    color: #f4f0e6;
+}
+.resa-popup .rp-date-btn.disabled {
+    color: rgba(26,26,26,0.2);
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.resa-popup .rp-date-btn.empty {
+    background: transparent;
+    cursor: default;
+}
+
+/* Time slots */
+.resa-popup .rp-service-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #680920;
+    margin: 14px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.resa-popup .rp-service-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(104,9,32,0.15);
+}
+.resa-popup .rp-time-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.resa-popup .rp-time-btn {
+    padding: 10px 6px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+.resa-popup .rp-time-btn:hover { border-color: #680920; }
+.resa-popup .rp-time-btn.selected {
+    border-color: #680920;
+    background: #680920;
+    color: #f4f0e6;
+}
+.resa-popup .rp-time-btn .rp-places {
+    font-size: 10px;
+    color: rgba(26,26,26,0.4);
+    margin-top: 1px;
+}
+.resa-popup .rp-time-btn.selected .rp-places { color: rgba(244,240,230,0.7); }
+.resa-popup .rp-time-btn.low .rp-places { color: #efa707; }
+.resa-popup .rp-time-btn.full {
+    opacity: 0.3;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.resa-popup .rp-time-btn.past {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Form */
+.resa-popup .rp-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.resa-popup .rp-form-group {
+    margin-bottom: 12px;
+}
+.resa-popup .rp-form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #680920;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+.resa-popup .rp-form-group input,
+.resa-popup .rp-form-group textarea,
+.resa-popup .rp-form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(104,9,32,0.2);
+    background: #f4f0e6;
+    color: #1a1a1a;
+    font-family: 'Kanit', sans-serif;
+    font-size: 13px;
+    transition: border-color 0.2s ease;
+    outline: none;
+}
+.resa-popup .rp-form-group input:focus,
+.resa-popup .rp-form-group textarea:focus,
+.resa-popup .rp-form-group select:focus {
+    border-color: #680920;
+}
+.resa-popup .rp-form-group input::placeholder,
+.resa-popup .rp-form-group textarea::placeholder {
+    color: rgba(26,26,26,0.3);
+}
+.resa-popup .rp-form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+.resa-popup .rp-form-group select option {
+    background: #fff;
+}
+
+/* Nav buttons */
+.resa-popup .rp-nav {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+.resa-popup .rp-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-align: center;
+}
+.resa-popup .rp-btn-primary {
+    background: #680920;
+    color: #f4f0e6;
+}
+.resa-popup .rp-btn-primary:hover { background: #8b1230; }
+.resa-popup .rp-btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.resa-popup .rp-btn-secondary {
+    background: #f4f0e6;
+    color: #680920;
+    border: 1.5px solid rgba(104,9,32,0.2);
+}
+.resa-popup .rp-btn-secondary:hover {
+    border-color: #680920;
+}
+
+/* Recap */
+.resa-popup .rp-recap-card {
+    background: #f4f0e6;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.resa-popup .rp-recap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+.resa-popup .rp-recap-row:not(:last-child) {
+    border-bottom: 1px solid rgba(104,9,32,0.08);
+}
+.resa-popup .rp-recap-label {
+    font-size: 12px;
+    color: rgba(26,26,26,0.5);
+}
+.resa-popup .rp-recap-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* Confirmation */
+.resa-popup .rp-confirmation {
+    text-align: center;
+    padding: 16px 0;
+}
+.resa-popup .rp-confirmation-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: rgba(104,9,32,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+    color: #680920;
+}
+.resa-popup .rp-confirmation h3 {
+    font-family: 'Turret Road', 'Kanit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #680920;
+}
+.resa-popup .rp-confirmation p {
+    color: rgba(26,26,26,0.6);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Error */
+.resa-popup .rp-error {
+    background: rgba(248,81,73,0.08);
+    border: 1px solid rgba(248,81,73,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #d32f2f;
+    font-size: 12px;
+    margin-bottom: 12px;
+    display: none;
+}
+.resa-popup .rp-error.visible { display: block; }
+
+/* Loading */
+.resa-popup .rp-loading {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.85);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+}
+.resa-popup .rp-loading.visible { display: flex; }
+.resa-popup .rp-spinner {
+    width: 32px; height: 32px;
+    border: 3px solid rgba(104,9,32,0.15);
+    border-top-color: #680920;
+    border-radius: 50%;
+    animation: rpSpin 0.8s linear infinite;
+}
+@keyframes rpSpin { to { transform: rotate(360deg); } }
+
+/* No slots */
+.resa-popup .rp-no-slots {
+    text-align: center;
+    padding: 20px;
+    color: rgba(26,26,26,0.5);
+    font-size: 13px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .resa-popup {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        max-height: 90vh;
+        border-radius: 16px 16px 0 0;
+    }
+    .resa-popup .rp-form-row {
+        grid-template-columns: 1fr;
+    }
+}

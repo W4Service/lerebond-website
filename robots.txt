@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://le-rebond.fr/sitemap.xml
