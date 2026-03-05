@@ -1,8 +1,8 @@
 <!--
   ============================================================
-  EMAIL DE CONFIRMATION CLIENT — Le Rebond
+  EMAIL DE RAPPEL J-1 CLIENT — Le Rebond
   ============================================================
-  À coller dans le champ "HTML" du node "Email Confirmation Client"
+  À coller dans le champ "HTML" du node "Email Rappel J-1"
   dans n8n. Les {{ }} sont des expressions n8n.
   ============================================================
 -->
@@ -23,7 +23,7 @@
           <tr>
             <td style="background: linear-gradient(135deg, #4a0614 0%, #680920 50%, #8b1230 100%); border-radius:16px 16px 0 0; padding:32px 28px; text-align:center;">
               <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:13px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(244,240,230,0.6); margin-bottom:10px;">Le Rebond</div>
-              <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:26px; font-weight:800; color:#f4f0e6; line-height:1.2;">Réservation confirmée ✓</div>
+              <div style="font-family:'Turret Road', 'Kanit', Arial, sans-serif; font-size:26px; font-weight:800; color:#f4f0e6; line-height:1.2;">Rappel : c'est demain ! 🎉</div>
               <div style="font-size:13px; color:rgba(244,240,230,0.55); margin-top:8px;">Bar-Restaurant · Complexe sportif · Noyon</div>
             </td>
           </tr>
@@ -37,7 +37,7 @@
                 Bonjour <strong style="color:#680920;">{{ $json.prenom }}</strong>,
               </div>
               <div style="font-size:14px; color:rgba(26,26,26,0.65); margin-bottom:24px; line-height:1.6;">
-                Votre table est réservée au Rebond. Voici le récapitulatif :
+                Nous vous rappelons que votre table est réservée <strong>demain</strong> au Rebond. On vous attend !
               </div>
 
               <!-- Carte récap -->
@@ -89,9 +89,9 @@
                 </div>
               </div>
 
-              <!-- Rappel -->
+              <!-- Note -->
               <div style="margin-top:20px; font-size:13px; color:rgba(26,26,26,0.45); line-height:1.6; text-align:center;">
-                Vous recevrez un rappel la veille de votre réservation.
+                En cas d'empêchement, vous pouvez encore annuler votre réservation.
               </div>
 
             </td>
@@ -103,7 +103,7 @@
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="border-top:1px solid rgba(104,9,32,0.1); padding-top:20px; text-align:center;">
-                    <div style="font-size:12px; color:rgba(26,26,26,0.4); margin-bottom:12px;">Besoin de modifier ou d'annuler ?</div>
+                    <div style="font-size:12px; color:rgba(26,26,26,0.4); margin-bottom:12px;">Besoin d'annuler ?</div>
                     <a href="https://le-rebond.fr/annulation/?token={{ $json.token_annulation }}"
                        style="display:inline-block; padding:10px 24px; background-color:#ffffff; border:1px solid rgba(104,9,32,0.3); border-radius:8px; color:#680920; font-size:13px; text-decoration:none; font-weight:500;">
                       Annuler ma réservation
@@ -122,7 +122,7 @@
                 Bar-Restaurant &amp; Complexe sportif · Noyon, Oise<br>
                 Padel · Five · Restaurant<br>
                 <br>
-                Cet email a été envoyé automatiquement suite à votre réservation en ligne.
+                Cet email a été envoyé automatiquement en rappel de votre réservation.
               </div>
             </td>
           </tr>
