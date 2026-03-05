@@ -755,11 +755,11 @@ function initSemainePopup() {
         '    <div class="semaine-popup__offers">' +
         '      <div class="semaine-popup__card">' +
         '        <div class="semaine-popup__icon semaine-popup__icon--primary">&#127934;</div>' +
-        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 séance offerte</div><div class="semaine-popup__card-desc">Padel ou Foot 5 · Sur réservation via l\'app</div></div>' +
+        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 séance offerte</div><div class="semaine-popup__card-desc">Padel ou Foot 5</div></div>' +
         '        <div class="semaine-popup__tag">GRATUIT</div>' +
         '      </div>' +
         '      <div class="semaine-popup__card">' +
-        '        <div class="semaine-popup__icon semaine-popup__icon--accent">&#129371;</div>' +
+        '        <div class="semaine-popup__icon semaine-popup__icon--accent">&#129380;</div>' +
         '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 boisson offerte</div><div class="semaine-popup__card-desc">À retirer au comptoir lors de ta 1ʳᵉ visite</div></div>' +
         '        <div class="semaine-popup__tag semaine-popup__tag--accent">OFFERT</div>' +
         '      </div>' +

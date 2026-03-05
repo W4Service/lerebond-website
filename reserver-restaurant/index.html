@@ -380,9 +380,6 @@
     // RESERVATION WIDGET — LE REBOND
     // ============================================================
     const RESA_CONFIG = Object.assign({
-        SUPABASE_URL: 'https://XXXXX.supabase.co',
-        SUPABASE_ANON_KEY: 'eyXXXXX',
-        N8N_WEBHOOK_URL: 'https://n8n.ton-domaine.com/webhook/reservation',
         MAX_PERSONNES: 10,
         JOURS_AVANCE: 30,
         MIN_LEAD_MINUTES: 120,
@@ -751,9 +748,9 @@
     }
 
     async function resaNotifyN8N(data) {
-        if (!RESA_CONFIG.N8N_WEBHOOK_URL || RESA_CONFIG.N8N_WEBHOOK_URL.includes('ton-domaine')) return;
+        if (!RESA_CONFIG.N8N_WEBHOOK_URL_RESERVATION) return;
 
-        await fetch(RESA_CONFIG.N8N_WEBHOOK_URL, {
+        await fetch(RESA_CONFIG.N8N_WEBHOOK_URL_RESERVATION, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

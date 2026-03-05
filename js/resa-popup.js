@@ -8,9 +8,6 @@
 
     // Config
     const RP_CONFIG = Object.assign({
-        SUPABASE_URL: 'https://XXXXX.supabase.co',
-        SUPABASE_ANON_KEY: 'eyXXXXX',
-        N8N_WEBHOOK_URL: 'https://n8n.ton-domaine.com/webhook/reservation',
         MAX_PERSONNES: 10,
         JOURS_AVANCE: 30,
         MIN_LEAD_MINUTES: 120,
@@ -598,8 +595,8 @@
     };
 
     async function rpNotifyN8N(data) {
-        if (!RP_CONFIG.N8N_WEBHOOK_URL || RP_CONFIG.N8N_WEBHOOK_URL.includes('ton-domaine')) return;
-        await fetch(RP_CONFIG.N8N_WEBHOOK_URL, {
+        if (!RP_CONFIG.N8N_WEBHOOK_URL_RESERVATION) return;
+        await fetch(RP_CONFIG.N8N_WEBHOOK_URL_RESERVATION, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

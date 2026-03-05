@@ -708,18 +708,10 @@
 // ============================================================
 // CONFIGURATION — À MODIFIER AVEC TES VALEURS SUPABASE
 // ============================================================
-const CONFIG = {
-    // Supabase
-    SUPABASE_URL: 'https://XXXXX.supabase.co',       // ← Ton URL Supabase
-    SUPABASE_ANON_KEY: 'eyXXXXX',                     // ← Ta clé anon (publique)
-    
-    // n8n webhook (pour notifications email + restaurant)
-    N8N_WEBHOOK_URL: 'https://n8n.ton-domaine.com/webhook/reservation',  // ← Ton webhook n8n
-    
-    // Config locale (fallback si Supabase pas encore configuré)
+const CONFIG = Object.assign({
     MAX_PERSONNES: 10,
     JOURS_AVANCE: 30,
-};
+}, window.REBOND_CONFIG || {});
 
 // ============================================================
 // STATE
@@ -1085,9 +1077,9 @@ async function submitReservation() {
 }
 
 async function notifyN8N(data) {
-    if (!CONFIG.N8N_WEBHOOK_URL || CONFIG.N8N_WEBHOOK_URL.includes('ton-domaine')) return;
-    
-    await fetch(CONFIG.N8N_WEBHOOK_URL, {
+    if (!CONFIG.N8N_WEBHOOK_URL_RESERVATION) return;
+
+    await fetch(CONFIG.N8N_WEBHOOK_URL_RESERVATION, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
