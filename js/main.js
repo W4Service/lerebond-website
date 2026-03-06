@@ -839,11 +839,25 @@ function initFormSubmit() {
                     throw new Error('Formsubmit error');
                 }
 
-                if (feedback) {
-                    feedback.textContent = successMsg;
-                    feedback.classList.add('visible');
-                }
                 form.reset();
+                form.style.display = 'none';
+
+                var wrapper = form.closest('.contact-form-wrapper');
+                if (wrapper) {
+                    var confirmDiv = document.createElement('div');
+                    confirmDiv.className = 'contact-confirm';
+                    confirmDiv.innerHTML =
+                        '<div class="contact-confirm__icon">&#10003;</div>' +
+                        '<h3 class="contact-confirm__title">Message envoy\u00e9 !</h3>' +
+                        '<p class="contact-confirm__text">' + successMsg + '</p>' +
+                        '<button class="btn btn--outline-dark contact-confirm__btn" type="button">Envoyer un autre message</button>';
+                    wrapper.appendChild(confirmDiv);
+
+                    confirmDiv.querySelector('.contact-confirm__btn').addEventListener('click', function() {
+                        confirmDiv.remove();
+                        form.style.display = '';
+                    });
+                }
             } catch (err) {
                 if (feedback) {
                     feedback.textContent = "Une erreur est survenue. Réessayez.";
