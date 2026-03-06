@@ -799,6 +799,8 @@ function initSemainePopup() {
     // Expose globally for banner button
     window.openSemainePopup = function() {
         overlay.style.display = 'flex';
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ event: 'semaine_gratuite_open' });
     };
 }
 
@@ -838,6 +840,12 @@ function initFormSubmit() {
                 if (!res.ok) {
                     throw new Error('Formsubmit error');
                 }
+
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({
+                    event: 'contact_form_submit',
+                    contact_subject: new FormData(form).get('subject') || '',
+                });
 
                 form.reset();
                 form.style.display = 'none';
