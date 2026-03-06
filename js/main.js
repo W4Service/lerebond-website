@@ -842,7 +842,7 @@ function initFormSubmit() {
                 form.reset();
                 form.style.display = 'none';
 
-                var wrapper = form.closest('.contact-form-wrapper');
+                var wrapper = form.closest('.contact-form-wrapper') || form.closest('.quote-form-container') || form.parentElement;
                 if (wrapper) {
                     var confirmDiv = document.createElement('div');
                     confirmDiv.className = 'contact-confirm';
