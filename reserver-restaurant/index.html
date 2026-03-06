@@ -725,6 +725,13 @@
                     token_annulation: result.token_annulation,
                 }).catch(e => console.warn('n8n notification failed:', e));
 
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({
+                    event: 'reservation_submit',
+                    reservation_personnes: data.p_personnes,
+                    reservation_service: data.p_service,
+                });
+
                 document.getElementById('resaRecapView').style.display = 'none';
                 document.getElementById('resaConfirmView').style.display = 'block';
                 document.getElementById('resaConfirmEmail').textContent = data.p_email;

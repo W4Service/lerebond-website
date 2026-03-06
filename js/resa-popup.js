@@ -576,6 +576,12 @@
             const result = await rpRPC('creer_reservation', data);
             if (result && result.success) {
                 rpNotifyN8N({ ...data, reservation_id: result.reservation_id, token_annulation: result.token_annulation }).catch(() => {});
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({
+                    event: 'reservation_submit',
+                    reservation_personnes: data.p_personnes,
+                    reservation_service: data.p_service,
+                });
                 document.getElementById('rpRecapView').style.display = 'none';
                 document.getElementById('rpConfirmView').style.display = 'block';
                 document.getElementById('rpConfirmEmail').textContent = data.p_email;
