@@ -4,20 +4,27 @@
    ============================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize all components
+    // Initialize critical components first
     initHeader();
     initMobileNav();
-    initScrollAnimations();
-    initFAQ();
-    initEventFilters();
-    initParticles();
-    initSmoothScroll();
-    initCountdown();
     initReservationPopup();
     initFormSubmit();
-    initLazyEmbeds();
     initMobileCta();
     initSemainePopup();
+
+    // Defer non-critical components to after first paint
+    var deferInit = window.requestIdleCallback || function(cb) { setTimeout(cb, 50); };
+    deferInit(function() {
+        initScrollAnimations();
+        initFAQ();
+        initEventFilters();
+        initSmoothScroll();
+        initLazyEmbeds();
+        requestAnimationFrame(function() {
+            initParticles();
+            initCountdown();
+        });
+    });
 });
 
 /* ============================================
@@ -257,8 +264,6 @@ function initParticles() {
         const style = getComputedStyle(document.documentElement);
         const secondaryColor = style.getPropertyValue('--secondary').trim();
 
-        console.log('Particle color update - secondary:', secondaryColor);
-
         // Convert hex to RGB
         if (secondaryColor.startsWith('#')) {
             const hex = secondaryColor.slice(1);
@@ -267,7 +272,6 @@ function initParticles() {
                 g: parseInt(hex.substring(2, 4), 16),
                 b: parseInt(hex.substring(4, 6), 16)
             };
-            console.log('Particle color set to:', particleColor);
         }
         // Handle rgb() format
         else if (secondaryColor.startsWith('rgb')) {
@@ -278,7 +282,6 @@ function initParticles() {
                     g: parseInt(match[2]),
                     b: parseInt(match[3])
                 };
-                console.log('Particle color set to (rgb):', particleColor);
             }
         }
     }
