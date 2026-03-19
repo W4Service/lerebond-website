@@ -1029,6 +1029,13 @@
     color: #f4f0e6;
 }
 
+.event-note {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0.5rem 0 0;
+    font-style: italic;
+}
+
 /* ============================================
    MENU TABS (bar-restaurant.html)
    ============================================ */
