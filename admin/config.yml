@@ -2,8 +2,8 @@ backend:
   name: github
   repo: W4Service/lerebond-website
   branch: main
-  auth_type: pkce
-  app_id: Ov23liHV03smh6UH5Tfr
+  base_url: https://api.netlify.com
+  auth_endpoint: auth
 
 media_folder: "img/events"
 public_folder: "/img/events"
