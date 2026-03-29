@@ -10,8 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initReservationPopup();
     initFormSubmit();
     initMobileCta();
-    initSemainePopup();
-
     // Defer non-critical components to after first paint
     var deferInit = window.requestIdleCallback || function(cb) { setTimeout(cb, 50); };
     deferInit(function() {
@@ -22,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         initLazyEmbeds();
         requestAnimationFrame(function() {
             initParticles();
-            initCountdown();
         });
     });
 });
@@ -538,167 +535,6 @@ function isInViewport(element) {
 }
 
 /* ============================================
-   COUNTDOWN TIMER
-   16 Mars 2026 à 09h00 (heure de Paris)
-   ============================================ */
-function initCountdown() {
-    // Target: 16 Mars 2026 09:00:00 Paris time (CET = UTC+1, but March is CET before DST switch on March 29)
-    const targetDate = new Date('2026-03-16T09:00:00+01:00');
-
-    const heroTimer = document.getElementById('countdown-hero-timer');
-    const heroContainer = document.getElementById('countdown-hero');
-
-    // Create floating countdown (on all pages)
-    const floating = document.createElement('div');
-    floating.className = 'countdown-floating';
-    floating.id = 'countdown-floating';
-    floating.innerHTML = '<p class="countdown-floating__label">Ouverture dans</p><div class="countdown-floating__timer" id="countdown-floating-timer"></div>';
-    document.body.appendChild(floating);
-
-    const floatingTimer = document.getElementById('countdown-floating-timer');
-
-    function buildTimerHTML(days, hours, minutes, seconds) {
-        return '<div class="countdown-unit"><span class="countdown-unit__value">' + String(days).padStart(2, '0') + '</span><span class="countdown-unit__label">Jours</span></div>' +
-            '<span class="countdown-separator">:</span>' +
-            '<div class="countdown-unit"><span class="countdown-unit__value">' + String(hours).padStart(2, '0') + '</span><span class="countdown-unit__label">Heures</span></div>' +
-            '<span class="countdown-separator">:</span>' +
-            '<div class="countdown-unit"><span class="countdown-unit__value">' + String(minutes).padStart(2, '0') + '</span><span class="countdown-unit__label">Min</span></div>' +
-            '<span class="countdown-separator">:</span>' +
-            '<div class="countdown-unit"><span class="countdown-unit__value">' + String(seconds).padStart(2, '0') + '</span><span class="countdown-unit__label">Sec</span></div>';
-    }
-
-    // --- Fireworks ---
-    function launchFireworks(durationMs) {
-        const canvas = document.createElement('canvas');
-        canvas.id = 'fireworks-canvas';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
-        document.body.appendChild(canvas);
-        const ctx = canvas.getContext('2d');
-
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resize();
-        window.addEventListener('resize', resize, { passive: true });
-
-        const particles = [];
-        const colors = ['#ff4757','#ffa502','#2ed573','#1e90ff','#ff6b81','#eccc68','#ffffff','#a29bfe'];
-
-        function spawnBurst() {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height * 0.6;
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            for (let i = 0; i < 80; i++) {
-                const angle = (Math.PI * 2 * i) / 80;
-                const speed = 2 + Math.random() * 5;
-                particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, alpha: 1, color, radius: 2 + Math.random() * 2 });
-            }
-        }
-
-        let burstInterval = setInterval(spawnBurst, 400);
-        spawnBurst();
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.alpha -= 0.018;
-                if (p.alpha <= 0) { particles.splice(i, 1); continue; }
-                ctx.globalAlpha = p.alpha;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1;
-            if (particles.length > 0 || burstInterval) requestAnimationFrame(draw);
-        }
-        draw();
-
-        setTimeout(function() {
-            clearInterval(burstInterval);
-            burstInterval = null;
-            // Let remaining particles finish, then remove canvas
-            setTimeout(function() { canvas.remove(); }, 3000);
-        }, durationMs);
-    }
-
-    function onCountdownFinished() {
-        // Hide floating widget
-        floating.style.display = 'none';
-        // Hide hero countdown section
-        if (heroContainer) heroContainer.style.display = 'none';
-        // Hide reservation toast popup if present
-        var toast = document.getElementById('resa-popup-toast');
-        if (toast) toast.style.display = 'none';
-        // Launch fireworks for 5s
-        launchFireworks(5000);
-    }
-
-    var countdownDone = false;
-    var countdownInterval;
-
-    function updateCountdown() {
-        const now = new Date();
-        const diff = targetDate - now;
-
-        if (diff <= 0) {
-            if (!countdownDone) {
-                countdownDone = true;
-                clearInterval(countdownInterval);
-                onCountdownFinished();
-            }
-            return;
-        }
-
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        const html = buildTimerHTML(days, hours, minutes, seconds);
-
-        if (heroTimer) heroTimer.innerHTML = html;
-        if (floatingTimer) floatingTimer.innerHTML = html;
-    }
-
-    // Update every second
-    updateCountdown();
-    countdownInterval = setInterval(updateCountdown, 1000);
-
-    // If page loads within 24h after opening: show fireworks for 5s then stop
-    var now = new Date();
-    var endOf24h = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
-    if (now >= targetDate && now < endOf24h) {
-        launchFireworks(5000);
-    }
-
-    // Show/hide floating countdown based on scroll
-    function handleFloatingVisibility() {
-        // Hide near bottom of page to avoid footer overlap
-        const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 150);
-        if (nearBottom) {
-            floating.classList.remove('visible');
-            return;
-        }
-        if (heroContainer) {
-            // On index page: show floating when hero countdown is out of view
-            const rect = heroContainer.getBoundingClientRect();
-            if (rect.bottom < 0) {
-                floating.classList.add('visible');
-            } else {
-                floating.classList.remove('visible');
-            }
-        } else {
-            // On other pages: always show floating
-            floating.classList.add('visible');
-        }
-    }
-
-    window.addEventListener('scroll', throttle(handleFloatingVisibility, 100), { passive: true });
-    // Initial check
-    handleFloatingVisibility();
-}
-
-/* ============================================
    RESERVATION POPUP (Toast)
    ============================================ */
 function initReservationPopup() {
@@ -741,70 +577,6 @@ function initReservationPopup() {
         }
     });
 
-}
-
-/* ============================================
-   SEMAINE GRATUITE POPUP
-   ============================================ */
-function initSemainePopup() {
-    // Inject popup HTML into the page
-    var popupHTML = '' +
-        '<div class="semaine-overlay" id="semaine-overlay">' +
-        '  <div class="semaine-popup" role="dialog" aria-modal="true" aria-label="Semaine gratuite Le Rebond">' +
-        '    <button class="semaine-popup__close" id="semaine-close" aria-label="Fermer">&times;</button>' +
-        '    <div class="semaine-popup__badge"><span class="semaine-popup__dot"></span> Offre limitée · 1 semaine</div>' +
-        '    <h2 class="semaine-popup__title">Semaine<br>gratuite de jeu&nbsp;!</h2>' +
-        '    <p class="semaine-popup__sub">Découvrez nos terrains de Padel &amp; Foot 5 dernier cri.<br>Réservez, jouez, profitez.</p>' +
-        '    <div class="semaine-popup__offers">' +
-        '      <div class="semaine-popup__card">' +
-        '        <div class="semaine-popup__icon semaine-popup__icon--primary">&#127934;</div>' +
-        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 séance offerte</div><div class="semaine-popup__card-desc">Padel ou Foot 5</div></div>' +
-        '        <div class="semaine-popup__tag">GRATUIT</div>' +
-        '      </div>' +
-        '      <div class="semaine-popup__card">' +
-        '        <div class="semaine-popup__icon semaine-popup__icon--accent">&#129380;</div>' +
-        '        <div class="semaine-popup__info"><div class="semaine-popup__card-title">1 boisson offerte</div><div class="semaine-popup__card-desc">À retirer au comptoir lors de ta 1ʳᵉ visite</div></div>' +
-        '        <div class="semaine-popup__tag semaine-popup__tag--accent">OFFERT</div>' +
-        '      </div>' +
-        '    </div>' +
-        '    <div class="semaine-popup__divider">réservation obligatoire via l\'app</div>' +
-        '    <button class="semaine-popup__cta" id="semaine-cta">Je réserve ma séance gratuite</button>' +
-        '    <p class="semaine-popup__footer">Valable du 16 au 22 mars 2026</p>' +
-        '  </div>' +
-        '</div>';
-
-    document.body.insertAdjacentHTML('beforeend', popupHTML);
-
-    var overlay = document.getElementById('semaine-overlay');
-    var closeBtn = document.getElementById('semaine-close');
-    var ctaBtn = document.getElementById('semaine-cta');
-
-    function closePopup() {
-        overlay.style.opacity = '0';
-        setTimeout(function() { overlay.style.display = 'none'; overlay.style.opacity = ''; }, 300);
-    }
-
-    closeBtn.addEventListener('click', closePopup);
-
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) closePopup();
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && overlay.style.display === 'flex') closePopup();
-    });
-
-    ctaBtn.addEventListener('click', function() {
-        closePopup();
-        window.reserverTerrain();
-    });
-
-    // Expose globally for banner button
-    window.openSemainePopup = function() {
-        overlay.style.display = 'flex';
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({ event: 'semaine_gratuite_open' });
-    };
 }
 
 /* ============================================
