@@ -1,0 +1,42 @@
+backend:
+  name: github
+  repo: W4Service/lerebond-website
+  branch: main
+  auth_type: pkce
+  app_id: Ov23liHV03smh6UH5Tfr
+
+media_folder: "img/events"
+public_folder: "/img/events"
+
+locale: "fr"
+
+collections:
+  - name: "events"
+    label: "Événements"
+    files:
+      - name: "events-data"
+        label: "Liste des événements"
+        file: "data/events.json"
+        format: "json"
+        fields:
+          - name: "events"
+            label: "Événements"
+            widget: "list"
+            summary: "{{fields.title}} — {{fields.date}}"
+            fields:
+              - { name: "id", label: "ID (slug unique)", widget: "string", hint: "Identifiant unique sans espaces ni accents, ex: tournoi-decouverte" }
+              - { name: "title", label: "Titre", widget: "string" }
+              - { name: "date", label: "Date (vide si pas encore définie)", widget: "string", required: false, hint: "Format AAAA-MM-JJ, ex: 2026-03-25" }
+              - { name: "time_start", label: "Heure de début", widget: "string", hint: "ex: 18h00" }
+              - { name: "time_end", label: "Heure de fin", widget: "string", hint: "ex: 00h00" }
+              - { name: "category", label: "Sport", widget: "select", options: ["padel", "five"] }
+              - { name: "type", label: "Type d'événement", widget: "select", options: ["tournoi", "ligue", "montante", "animation"] }
+              - { name: "description", label: "Description", widget: "text" }
+              - { name: "price", label: "Tarif", widget: "string", hint: "ex: 15€/joueur ou Tarifs à venir" }
+              - { name: "max_participants", label: "Participants max", widget: "string", hint: "ex: 12 paires max, 24 joueurs" }
+              - { name: "image", label: "Image", widget: "image", required: false }
+              - { name: "registration_link", label: "Lien d'inscription", widget: "string", required: false, hint: "URL complète ou laisser vide" }
+              - { name: "featured", label: "À la une", widget: "boolean", default: false }
+              - { name: "status_text", label: "Texte de statut", widget: "string", hint: "ex: 3 matchs minimum assurés, Arrive prochainement" }
+              - { name: "coming_soon", label: "Prochainement (date pas encore fixée)", widget: "boolean", default: false }
+              - { name: "registration_note", label: "Note d'inscription (petit texte sous le bouton)", widget: "string", required: false }

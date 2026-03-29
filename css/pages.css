@@ -1036,6 +1036,15 @@
     font-style: italic;
 }
 
+.events-loading,
+.events-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-xl) var(--space-md);
+    color: #888;
+    font-size: 1.1rem;
+}
+
 /* ============================================
    MENU TABS (bar-restaurant.html)
    ============================================ */
