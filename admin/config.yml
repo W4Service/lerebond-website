@@ -2,8 +2,7 @@ backend:
   name: github
   repo: W4Service/lerebond-website
   branch: main
-  base_url: https://api.netlify.com
-  auth_endpoint: auth
+  site_domain: le-rebond.netlify.app
 
 media_folder: "img/events"
 public_folder: "/img/events"
