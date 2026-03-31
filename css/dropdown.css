@@ -1,3 +1,6 @@
+/* ============================================
+   NAV DROPDOWN
+   ============================================ */
 .nav__dropdown {
     position: relative;
 }
@@ -85,4 +88,139 @@
         background: rgba(255, 255, 255, 0.1);
         color: var(--accent);
     }
+}
+
+/* ============================================
+   EVENT CARDS (overrides)
+   ============================================ */
+.event-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.event-card-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.event-card-description {
+    flex: 1;
+}
+
+.events-loading,
+.events-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-xl) var(--space-md);
+    color: #888;
+    font-size: 1.1rem;
+}
+
+.event-note {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0.5rem 0 0;
+    font-style: italic;
+}
+
+/* ============================================
+   EVENT TABS
+   ============================================ */
+.event-tab-content {
+    display: none;
+}
+
+.event-tab-content.active {
+    display: block;
+}
+
+/* ============================================
+   ANNIVERSAIRE
+   ============================================ */
+.anniv-intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: center;
+}
+
+.anniv-intro__text h3 {
+    font-size: 1.5rem;
+    margin-bottom: var(--space-sm);
+    color: var(--accent, #efa707);
+}
+
+.anniv-intro__text p {
+    font-size: 1.1rem;
+    line-height: 1.7;
+}
+
+.anniv-intro__img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg);
+}
+
+.anniv-formule__features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+}
+
+.anniv-feature {
+    text-align: center;
+    padding: var(--space-lg) var(--space-md);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.anniv-feature__icon {
+    color: var(--accent, #efa707);
+    margin-bottom: var(--space-sm);
+}
+
+.anniv-feature__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: var(--light, #f4f0e6);
+}
+
+.anniv-feature__desc {
+    font-size: 0.9rem;
+    color: var(--secondary, #cec3b6);
+}
+
+.anniv-form-wrapper {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .anniv-intro {
+        grid-template-columns: 1fr;
+    }
+
+    .anniv-formule__features {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   FORM CONDITIONAL FIELDS (contact page)
+   ============================================ */
+.form-conditional {
+    animation: fadeIn 0.3s ease;
+    padding: var(--space-md);
+    margin: var(--space-sm) 0;
+    background: rgba(104, 9, 32, 0.03);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(104, 9, 32, 0.1);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
