@@ -831,6 +831,8 @@
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-medium);
+    display: flex;
+    flex-direction: column;
 }
 
 .event-card:hover {
@@ -923,6 +925,9 @@
 
 .event-card-content {
     padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .event-meta {
@@ -975,6 +980,7 @@
     font-size: 0.9375rem;
     margin-bottom: var(--space-sm);
     line-height: 1.6;
+    flex: 1;
 }
 
 .event-details {
