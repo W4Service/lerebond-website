@@ -98,9 +98,12 @@ function initMobileNav() {
 
     // Mobile dropdown toggle
     document.querySelectorAll('.nav__dropdown-toggle').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var dropdown = btn.closest('.nav__dropdown');
-            if (dropdown) dropdown.classList.toggle('open');
+        btn.addEventListener('click', function(e) {
+            if (window.innerWidth <= 768) {
+                e.preventDefault();
+                var dropdown = btn.closest('.nav__dropdown');
+                if (dropdown) dropdown.classList.toggle('open');
+            }
         });
     });
 
