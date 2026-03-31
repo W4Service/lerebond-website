@@ -63,7 +63,13 @@
 <nav class="nav">
 <ul class="nav__list">
 <li><a class="nav__link" href="./">Accueil</a></li>
-<li><a class="nav__link" href="evenements/">Événements</a></li>
+<li class="nav__dropdown">
+<button class="nav__dropdown-toggle" aria-expanded="false">Événements <svg class="nav__dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+<div class="nav__dropdown-menu">
+<a href="evenements/#sportif">Sportif</a>
+<a href="evenements/#anniversaire">Anniversaire</a>
+</div>
+</li>
 <li><a class="nav__link" href="bar-restaurant/">Bar &amp; Restaurant</a></li>
 <li><a class="nav__link" href="tarifs/">Tarifs</a></li>
 <li><a class="nav__link" href="groupes/">Groupes</a></li>

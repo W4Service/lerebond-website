@@ -63,7 +63,13 @@
 <nav class="nav">
 <ul class="nav__list">
 <li><a class="nav__link" href="./">Accueil</a></li>
-<li><a class="nav__link active" href="evenements/">Événements</a></li>
+<li class="nav__dropdown">
+<button class="nav__dropdown-toggle active" aria-expanded="false">Événements <svg class="nav__dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+<div class="nav__dropdown-menu">
+<a href="#sportif">Sportif</a>
+<a href="#anniversaire">Anniversaire</a>
+</div>
+</li>
 <li><a class="nav__link" href="bar-restaurant/">Bar &amp; Restaurant</a></li>
 <li><a class="nav__link" href="tarifs/">Tarifs</a></li>
 <li><a class="nav__link" href="groupes/">Groupes</a></li>
@@ -96,15 +102,6 @@
 </nav>
 <h1 class="page-hero__title" data-animate="">Événements &amp; Compétitions</h1>
 <p class="page-hero__text" data-animate="" data-delay="100">Tournois, ligues et animations pour tous les niveaux</p>
-</div>
-</section>
-<!-- Event Tabs -->
-<section class="section event-tabs-section">
-<div class="container">
-<div class="event-tabs">
-<button class="event-tab active" data-tab="sportif">Sportif</button>
-<button class="event-tab" data-tab="anniversaire">Anniversaire</button>
-</div>
 </div>
 </section>
 <div id="tab-sportif" class="event-tab-content active">
@@ -473,15 +470,26 @@
 })();
 </script>
 <script>
-document.querySelectorAll('.event-tab').forEach(function(tab) {
-  tab.addEventListener('click', function() {
-    document.querySelectorAll('.event-tab').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('.event-tab-content').forEach(function(c) { c.classList.remove('active'); });
-    tab.classList.add('active');
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-});
+(function() {
+  function showTab(name) {
+    var tabs = document.querySelectorAll('.event-tab-content');
+    tabs.forEach(function(c) { c.classList.remove('active'); });
+    var target = document.getElementById('tab-' + name);
+    if (target) target.classList.add('active');
+  }
+
+  function handleHash() {
+    var hash = window.location.hash.replace('#', '');
+    if (hash === 'anniversaire') {
+      showTab('anniversaire');
+    } else {
+      showTab('sportif');
+    }
+  }
+
+  handleHash();
+  window.addEventListener('hashchange', handleHash);
+})();
 </script>
 </body>
 </html>
