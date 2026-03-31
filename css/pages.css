@@ -1099,13 +1099,12 @@
 .anniv-intro__text h3 {
     font-size: 1.5rem;
     margin-bottom: var(--space-sm);
-    color: #680920;
+    color: var(--accent, #efa707);
 }
 
 .anniv-intro__text p {
     font-size: 1.1rem;
     line-height: 1.7;
-    opacity: 0.8;
 }
 
 .anniv-intro__img {
@@ -1123,12 +1122,13 @@
 .anniv-feature {
     text-align: center;
     padding: var(--space-lg) var(--space-md);
-    background: #f4f0e6;
+    background: rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .anniv-feature__icon {
-    color: #680920;
+    color: var(--accent, #efa707);
     margin-bottom: var(--space-sm);
 }
 
@@ -1136,11 +1136,12 @@
     font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 0.25rem;
+    color: var(--light, #f4f0e6);
 }
 
 .anniv-feature__desc {
     font-size: 0.9rem;
-    opacity: 0.7;
+    color: var(--secondary, #cec3b6);
 }
 
 .anniv-form-wrapper {
@@ -1155,10 +1156,6 @@
 
     .anniv-formule__features {
         grid-template-columns: 1fr;
-    }
-
-    .event-tabs {
-        flex-wrap: wrap;
     }
 }
 
