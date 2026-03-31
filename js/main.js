@@ -169,12 +169,10 @@ function initEventFilters() {
     let activeType = 'all';
 
     function fixOrphan(cards) {
-        const cols = window.innerWidth > 1024 ? 3 : window.innerWidth > 768 ? 2 : 1;
-        cards.forEach((card, i) => {
-            const isOrphan = (i === cards.length - 1) && (cards.length % cols !== 0);
-            card.style.gridColumn = isOrphan ? '1 / -1' : '';
-            card.style.maxWidth = isOrphan ? '480px' : '';
-            card.style.marginInline = isOrphan ? 'auto' : '';
+        cards.forEach(card => {
+            card.style.gridColumn = '';
+            card.style.maxWidth = '';
+            card.style.marginInline = '';
         });
     }
 
