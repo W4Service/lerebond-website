@@ -98,6 +98,16 @@
 <p class="page-hero__text" data-animate="" data-delay="100">Tournois, ligues et animations pour tous les niveaux</p>
 </div>
 </section>
+<!-- Event Tabs -->
+<section class="section event-tabs-section">
+<div class="container">
+<div class="event-tabs">
+<button class="event-tab active" data-tab="sportif">Sportif</button>
+<button class="event-tab" data-tab="anniversaire">Anniversaire</button>
+</div>
+</div>
+</section>
+<div id="tab-sportif" class="event-tab-content active">
 <!-- Event Filters -->
 <section class="section section-filters">
 <div class="container">
@@ -226,6 +236,130 @@
 </div>
 </div>
 </section>
+</div>
+<div id="tab-anniversaire" class="event-tab-content">
+<!-- Anniversary Hero -->
+<section class="section">
+<div class="container">
+<div class="section-header" data-animate="">
+<span class="section-header__label">Célébrez</span>
+<h2 class="section-header__title">Anniversaires</h2>
+</div>
+<div class="anniv-intro" data-animate="">
+<div class="anniv-intro__text">
+<h3>Fêtez votre anniversaire de façon sportive et originale</h3>
+<p>Formules enfants et adultes disponibles. Un moment inoubliable entre amis ou en famille, avec activités sportives et goûter inclus.</p>
+</div>
+<div class="anniv-intro__image">
+<img alt="Anniversaire au Rebond" class="anniv-intro__img" decoding="async" loading="lazy" src="img/five-groupe-rassemblement.webp" width="1280" height="960"/>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Formule -->
+<section class="section section-alt">
+<div class="container">
+<div class="section-header center" data-animate="">
+<span class="section-header__label">Notre offre</span>
+<h2 class="section-header__title">Formule Classique</h2>
+</div>
+<div class="anniv-formule" data-animate="">
+<div class="anniv-formule__features">
+<div class="anniv-feature">
+<div class="anniv-feature__icon"><svg fill="none" height="32" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="32"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+<h4 class="anniv-feature__title">1h30 d'activité</h4>
+<p class="anniv-feature__desc">Padel ou Foot au choix</p>
+</div>
+<div class="anniv-feature">
+<div class="anniv-feature__icon"><svg fill="none" height="32" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="32"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg></div>
+<h4 class="anniv-feature__title">1h de goûter</h4>
+<p class="anniv-feature__desc">Biscuits et sirop inclus</p>
+</div>
+<div class="anniv-feature">
+<div class="anniv-feature__icon"><svg fill="none" height="32" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="32"><line x1="12" x2="12" y1="1" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+<h4 class="anniv-feature__title">À partir de 20€</h4>
+<p class="anniv-feature__desc">Par enfant</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Formulaire Anniversaire -->
+<section class="section" id="form-anniversaire">
+<div class="container">
+<div class="section-header center" data-animate="">
+<span class="section-header__label">Réservez</span>
+<h2 class="section-header__title">Demande de réservation</h2>
+<p>Remplissez le formulaire ci-dessous et nous vous recontacterons sous 24h.</p>
+</div>
+<div class="contact-form-wrapper anniv-form-wrapper" data-animate="">
+<form action="https://formsubmit.co/ajax/contact@le-rebond.fr" class="contact-form anniv-form" data-formsubmit="true" data-success-message="Merci, votre demande sera traitée sous 24h." method="POST">
+<input name="_honey" style="display:none" type="text"/>
+<input name="_subject" type="hidden" value="Demande anniversaire — Le Rebond"/>
+<input name="_captcha" type="hidden" value="true"/>
+<input name="_template" type="hidden" value="table"/>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="anniv-name">Nom du contact *</label>
+<input class="form-input" id="anniv-name" name="name" required type="text"/>
+</div>
+<div class="form-group">
+<label class="form-label" for="anniv-email">Email *</label>
+<input class="form-input" id="anniv-email" name="email" required type="email"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="anniv-phone">Téléphone *</label>
+<input class="form-input" id="anniv-phone" name="phone" required type="tel"/>
+</div>
+<div class="form-group">
+<label class="form-label" for="anniv-date">Date souhaitée *</label>
+<input class="form-input" id="anniv-date" name="date" required type="date"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="anniv-participants">Nombre d'enfants *</label>
+<input class="form-input" id="anniv-participants" min="1" name="participants" required type="number"/>
+</div>
+<div class="form-group">
+<label class="form-label" for="anniv-age">Âge des enfants *</label>
+<input class="form-input" id="anniv-age" name="age" placeholder="ex: 8-10 ans" required type="text"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="anniv-activity">Activité souhaitée *</label>
+<select class="form-select" id="anniv-activity" name="activity" required>
+<option value="">Choisir une activité</option>
+<option value="padel">Padel</option>
+<option value="foot">Foot 5</option>
+<option value="les-deux">Les deux</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label" for="anniv-budget">Budget</label>
+<select class="form-select" id="anniv-budget" name="budget">
+<option value="">Sélectionner</option>
+<option value="0-200">0€ - 200€</option>
+<option value="200-500">200€ - 500€</option>
+</select>
+</div>
+</div>
+<div class="form-group full-width">
+<label class="form-label" for="anniv-message">Message</label>
+<textarea class="form-textarea" id="anniv-message" name="message" rows="3" placeholder="Précisions sur votre événement..."></textarea>
+</div>
+<div class="form-feedback" aria-live="polite"></div>
+<button class="btn btn--primary btn--block" type="submit">Envoyer la demande</button>
+</form>
+</div>
+</div>
+</section>
+</div>
 <!-- CTA Section -->
 <section class="section section-cta">
 <div class="container text-center">
@@ -337,6 +471,17 @@
         toast._t = setTimeout(function() { toast.classList.remove('show'); }, 5000);
     };
 })();
+</script>
+<script>
+document.querySelectorAll('.event-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.event-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.event-tab-content').forEach(function(c) { c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
 </script>
 </body>
 </html>

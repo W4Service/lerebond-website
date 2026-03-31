@@ -1052,6 +1052,129 @@
 }
 
 /* ============================================
+   EVENT TABS (evenements)
+   ============================================ */
+.event-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.event-tab {
+    padding: 0.75rem 2rem;
+    border: 2px solid #680920;
+    background: transparent;
+    color: #680920;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.event-tab.active,
+.event-tab:hover {
+    background: #680920;
+    color: #f4f0e6;
+}
+
+.event-tab-content {
+    display: none;
+}
+
+.event-tab-content.active {
+    display: block;
+}
+
+/* ============================================
+   ANNIVERSAIRE
+   ============================================ */
+.anniv-intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: center;
+}
+
+.anniv-intro__text h3 {
+    font-size: 1.5rem;
+    margin-bottom: var(--space-sm);
+    color: #680920;
+}
+
+.anniv-intro__text p {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    opacity: 0.8;
+}
+
+.anniv-intro__img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg);
+}
+
+.anniv-formule__features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+}
+
+.anniv-feature {
+    text-align: center;
+    padding: var(--space-lg) var(--space-md);
+    background: #f4f0e6;
+    border-radius: var(--radius-lg);
+}
+
+.anniv-feature__icon {
+    color: #680920;
+    margin-bottom: var(--space-sm);
+}
+
+.anniv-feature__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.anniv-feature__desc {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.anniv-form-wrapper {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .anniv-intro {
+        grid-template-columns: 1fr;
+    }
+
+    .anniv-formule__features {
+        grid-template-columns: 1fr;
+    }
+
+    .event-tabs {
+        flex-wrap: wrap;
+    }
+}
+
+/* ============================================
+   FORM CONDITIONAL FIELDS
+   ============================================ */
+.form-conditional {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
    MENU TABS (bar-restaurant.html)
    ============================================ */
 .menu-tabs {

@@ -219,9 +219,97 @@
 <option value="reservation">Question sur une réservation</option>
 <option value="evenement">Événements &amp; Tournois</option>
 <option value="groupe">Groupes &amp; Entreprises</option>
+<option value="anniversaire">Anniversaire</option>
 <option value="bar">Bar &amp; Restaurant</option>
 <option value="autre">Autre demande</option>
 </select>
+</div>
+<!-- Dynamic fields based on subject -->
+<div class="form-conditional" id="fields-anniversaire" style="display:none">
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="c-anniv-participants">Nombre de personnes</label>
+<input class="form-input" id="c-anniv-participants" name="anniv_participants" type="number" min="1"/>
+</div>
+<div class="form-group">
+<label class="form-label" for="c-anniv-age">Âge des enfants</label>
+<input class="form-input" id="c-anniv-age" name="anniv_age" type="text" placeholder="ex: 8-10 ans"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="c-anniv-date">Date souhaitée</label>
+<input class="form-input" id="c-anniv-date" name="anniv_date" type="date"/>
+</div>
+<div class="form-group">
+<label class="form-label" for="c-anniv-activity">Activité souhaitée</label>
+<select class="form-select" id="c-anniv-activity" name="anniv_activity">
+<option value="">Choisir</option>
+<option value="padel">Padel</option>
+<option value="foot">Foot 5</option>
+<option value="les-deux">Les deux</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="c-anniv-budget">Budget</label>
+<select class="form-select" id="c-anniv-budget" name="anniv_budget">
+<option value="">Sélectionner</option>
+<option value="0-200">0€ - 200€</option>
+<option value="200-500">200€ - 500€</option>
+</select>
+</div>
+</div>
+</div>
+
+<div class="form-conditional" id="fields-groupe" style="display:none">
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="c-grp-participants">Nombre de personnes</label>
+<input class="form-input" id="c-grp-participants" name="grp_participants" type="number" min="1"/>
+</div>
+<div class="form-group">
+<label class="form-label" for="c-grp-date">Date souhaitée</label>
+<input class="form-input" id="c-grp-date" name="grp_date" type="date"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="c-grp-event-type">Type d'événement</label>
+<select class="form-select" id="c-grp-event-type" name="grp_event_type">
+<option value="">Choisir</option>
+<option value="team-building">Team building</option>
+<option value="tournoi">Tournoi</option>
+<option value="autre">Autre</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label" for="c-grp-budget">Budget</label>
+<select class="form-select" id="c-grp-budget" name="grp_budget">
+<option value="">Sélectionner</option>
+<option value="0-200">0€ - 200€</option>
+<option value="200-500">200€ - 500€</option>
+</select>
+</div>
+</div>
+</div>
+
+<div class="form-conditional" id="fields-reservation" style="display:none">
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="c-resa-activity">Activité</label>
+<select class="form-select" id="c-resa-activity" name="resa_activity">
+<option value="">Choisir</option>
+<option value="padel">Padel</option>
+<option value="foot">Foot 5</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label" for="c-resa-date">Date et créneau souhaité</label>
+<input class="form-input" id="c-resa-date" name="resa_date" type="text" placeholder="ex: Samedi 5 avril, 14h-16h"/>
+</div>
+</div>
 </div>
 <div class="form-group">
 <label class="form-label" for="referral">Connu via</label>
@@ -412,6 +500,22 @@
         clearTimeout(toast._t);
         toast._t = setTimeout(function() { toast.classList.remove('show'); }, 5000);
     };
+})();
+</script>
+<script>
+(function() {
+  var subjectSelect = document.querySelector('#contact-form select[name="subject"]');
+  if (!subjectSelect) return;
+
+  subjectSelect.addEventListener('change', function() {
+    // Hide all conditional fields
+    document.querySelectorAll('.form-conditional').forEach(function(el) {
+      el.style.display = 'none';
+    });
+    // Show relevant fields
+    var fields = document.getElementById('fields-' + this.value);
+    if (fields) fields.style.display = 'block';
+  });
 })();
 </script>
 </body>
