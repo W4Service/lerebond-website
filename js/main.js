@@ -95,6 +95,24 @@ function initMobileNav() {
             setExpanded(false);
         }
     });
+
+    // Mobile dropdown toggle
+    document.querySelectorAll('.nav__dropdown-toggle').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var dropdown = btn.closest('.nav__dropdown');
+            if (dropdown) dropdown.classList.toggle('open');
+        });
+    });
+
+    // Close mobile menu when clicking dropdown links
+    document.querySelectorAll('.nav__dropdown-menu a').forEach(function(link) {
+        link.addEventListener('click', function() {
+            toggle.classList.remove('active');
+            nav.classList.remove('active');
+            document.body.style.overflow = '';
+            setExpanded(false);
+        });
+    });
 }
 
 /* ============================================
