@@ -1,18 +1,15 @@
 .nav__dropdown {
     position: relative;
-    display: flex;
-    align-items: center;
 }
 
 .nav__dropdown > .nav__link {
-    display: flex;
-    align-items: center;
     gap: 0.3rem;
 }
 
 .nav__dropdown-arrow {
     width: 10px;
     height: 10px;
+    vertical-align: middle;
     transition: transform var(--transition-fast);
 }
 
