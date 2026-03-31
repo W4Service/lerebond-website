@@ -23,7 +23,7 @@
     left: 50%;
     transform: translateX(-50%);
     min-width: 180px;
-    background: var(--surface);
+    background: var(--primary);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
     padding: 0.5rem 0;
@@ -43,15 +43,15 @@
     padding: 0.6rem 1.2rem;
     font-size: 0.85rem;
     font-weight: 500;
-    color: var(--text);
+    color: var(--light);
     text-decoration: none;
     transition: background var(--transition-fast), color var(--transition-fast);
     white-space: nowrap;
 }
 
 .nav__dropdown-menu a:hover {
-    background: rgba(104, 9, 32, 0.05);
-    color: var(--primary);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent);
 }
 
 @media (max-width: 768px) {
