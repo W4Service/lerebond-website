@@ -1167,6 +1167,11 @@
    ============================================ */
 .form-conditional {
     animation: fadeIn 0.3s ease;
+    padding: var(--space-md);
+    margin: var(--space-sm) 0;
+    background: rgba(104, 9, 32, 0.03);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(104, 9, 32, 0.1);
 }
 
 @keyframes fadeIn {
