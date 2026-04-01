@@ -223,60 +223,9 @@
 <h2 class="section-header__title">Rejoignez la <span class="text-primary">communauté</span></h2>
 <p class="section-header__text">Tournois, ligues, montantes/descendantes... Il y en a pour tous les niveaux à Noyon (Oise) !</p>
 </div>
-<div class="grid grid--3">
-<div class="card card--event" data-animate="" data-delay="1">
-<div class="card__image">
-<div class="text-light event-placeholder"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
-<div class="card__date">
-<span class="card__date-day card__date-day--sm">Bientôt</span>
+<div class="grid grid--3" id="home-events-grid">
+<p class="text-muted" style="grid-column:1/-1;text-align:center">Chargement des événements...</p>
 </div>
-</div>
-<div class="card__content">
-<span class="card__badge card__badge--static">Tournois</span>
-<h3 class="card__title">Tournois Padel &amp; Five</h3>
-<p class="card__text">De P25 à P250 ouvert à tous les niveaux (licencié FFT) mais aussi des tournois de Five. Format mixte, ambiance conviviale garantie.</p>
-<div class="card__meta">
-<span class="card__meta-item"><svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Le Rebond</span>
-<span class="card__meta-item">⏰ 17h-00h *</span>
-</div>
-</div>
-</div>
-<div class="card card--event" data-animate="" data-delay="2">
-<div class="card__image">
-<div class="text-light event-placeholder"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line></svg></div>
-<div class="card__date">
-<span class="card__date-day card__date-day--sm">Bientôt</span>
-</div>
-</div>
-<div class="card__content">
-<span class="card__badge card__badge--static">Ligue</span>
-<h3 class="card__title">Ligue Hebdo Padel</h3>
-<p class="card__text">Inscrivez votre équipe pour la ligue du jeudi soir. 8 équipes, 10 semaines de compétition.</p>
-<div class="card__meta">
-<span class="card__meta-item"><svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Le Rebond</span>
-<span class="card__meta-item">⏰ 19h-22h</span>
-</div>
-</div>
-</div>
-<div class="card card--event" data-animate="" data-delay="3">
-<div class="card__image">
-<div class="text-light event-placeholder"><svg fill="none" height="48" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="48"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg></div>
-<div class="card__date">
-<span class="card__date-day card__date-day--sm">Bientôt</span>
-</div>
-</div>
-<div class="card__content">
-<span class="card__badge card__badge--static">Animation</span>
-<h3 class="card__title">Montante/Descendante</h3>
-<p class="card__text">Venez seul ou en duo, on forme les équipes sur place. Idéal pour rencontrer de nouveaux partenaires.</p>
-<div class="card__meta">
-<span class="card__meta-item"><svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Le Rebond</span>
-<span class="card__meta-item">⏰ 18h-21h</span>
-</div>
-</div>
-</div>
-</div>
-<p class="text-muted events-note">* Horaires susceptibles de changer suivant les tournois.</p>
 <div class="text-center mt-4">
 <a class="btn btn--secondary text-brand btn--cream" href="evenements/">Voir tous les événements</a>
 </div>
@@ -904,6 +853,44 @@
         }
         
     }).catch(function(){ document.getElementById("event-banner").style.display="none"; document.body.classList.remove("has-event-banner"); });
+})();
+</script>
+<script>
+(function() {
+    var MONTHS = ['Janv.','Fév.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
+    var TYPE_LABELS = {tournoi:'Tournoi',ligue:'Ligue',montante:'Montante',animation:'Animation'};
+    var grid = document.getElementById('home-events-grid');
+    if (!grid) return;
+    fetch('data/events.json').then(function(r){return r.json()}).then(function(data) {
+        var now = new Date(); now.setHours(0,0,0,0);
+        var upcoming = data.events
+            .filter(function(ev){return new Date(ev.date+'T23:59:59') >= now})
+            .sort(function(a,b){return a.date.localeCompare(b.date)})
+            .slice(0,3);
+        if (!upcoming.length) { grid.innerHTML = '<p class="text-muted" style="grid-column:1/-1;text-align:center">Aucun événement à venir pour le moment.</p>'; return; }
+        var html = '';
+        upcoming.forEach(function(ev, i) {
+            var d = new Date(ev.date+'T00:00:00');
+            var day = d.getDate();
+            var month = MONTHS[d.getMonth()];
+            var imgSrc = ev.image || 'img/default-event.webp';
+            html += '<div class="card card--event" data-animate="" data-delay="'+(i+1)+'">';
+            html += '<div class="card__image">';
+            html += '<img alt="'+ev.title+'" style="width:100%;height:100%;object-fit:cover" loading="lazy" src="'+imgSrc+'"/>';
+            html += '<div class="card__date"><span class="card__date-day">'+day+'</span><span class="card__date-month">'+month+'</span></div>';
+            html += '</div>';
+            html += '<div class="card__content">';
+            html += '<span class="card__badge card__badge--static">'+(TYPE_LABELS[ev.type]||ev.type)+'</span>';
+            html += '<h3 class="card__title">'+ev.title+'</h3>';
+            html += '<p class="card__text">'+ev.description.substring(0,120)+(ev.description.length>120?'...':'')+'</p>';
+            html += '<div class="card__meta">';
+            html += '<span class="card__meta-item">⏰ '+ev.time_start+' - '+ev.time_end+'</span>';
+            html += '<span class="card__meta-item">'+ev.price+'</span>';
+            html += '</div></div></div>';
+        });
+        grid.innerHTML = html;
+        if (typeof initScrollAnimations === 'function') initScrollAnimations();
+    }).catch(function(){ grid.innerHTML = ''; });
 })();
 </script>
 </body>
