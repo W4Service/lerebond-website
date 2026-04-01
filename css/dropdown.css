@@ -91,6 +91,18 @@
 }
 
 /* ============================================
+   HERO STATS (inside hero section)
+   ============================================ */
+.hero__stats {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(244, 240, 230, 0.92);
+    z-index: 2;
+}
+
+/* ============================================
    EVENT CARDS (overrides)
    ============================================ */
 .event-card {
