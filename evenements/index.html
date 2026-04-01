@@ -47,14 +47,13 @@
 <noscript><iframe height="0" src="https://www.googletagmanager.com/ns.html?id=GTM-W2M4QW7M" style="display: none; visibility: hidden" width="0"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 <a class="skip-link" href="#main-content">Aller au contenu principal</a>
-<!-- Event Banner (masqué)
-<div class="event-banner">
+<!-- Event Banner (dynamique) -->
+<div class="event-banner" id="event-banner" style="display:none">
 <div class="event-banner__inner">
-<span class="event-banner__text"><svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg> Prochain événement : Semaine gratuite de jeu - Du 16 au 22 mars 2026</span>
-<a class="event-banner__link" href="#" onclick="reserverTerrain();return false">S'inscrire →</a> <a class="event-banner__link event-banner__link--info" href="#" onclick="openSemainePopup();return false">En savoir plus</a>
+<span class="event-banner__text" id="event-banner-text"></span>
+<a class="event-banner__link" id="event-banner-link" href="evenements/">Voir →</a>
 </div>
 </div>
--->
 <!-- Header -->
 <header class="header">
 <div class="header__inner">
@@ -126,6 +125,7 @@
 <button class="filter-btn" data-filter-type="tournoi">Tournois</button>
 <button class="filter-btn" data-filter-type="ligue">Ligues</button>
 <button class="filter-btn" data-filter-type="montante">Montantes</button>
+<button class="filter-btn" data-filter-type="animation">Animations</button>
 </div>
 </div>
 </div>
@@ -505,6 +505,23 @@
 
   handleHash();
   window.addEventListener('hashchange', handleHash);
+})();
+</script>
+<script>
+(function() {
+    var MONTHS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    fetch("data/events.json").then(function(r){return r.json()}).then(function(data) {
+        var now = new Date(); now.setHours(0,0,0,0);
+        var events = data.events.sort(function(a,b){return a.date.localeCompare(b.date)});
+        var next = null;
+        for (var i = 0; i < events.length; i++) { if (new Date(events[i].date + "T23:59:59") >= now) { next = events[i]; break; } }
+        if (!next) return;
+        var p = next.date.split("-"), day = parseInt(p[2]), month = MONTHS[parseInt(p[1])-1];
+        document.getElementById("event-banner-text").innerHTML = '<svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg> Prochain événement : ' + next.title + ' — ' + day + ' ' + month + ' · ' + next.time_start + ' - ' + next.time_end;
+        var link = document.getElementById("event-banner-link");
+        if (next.registration_link) { link.href = next.registration_link; link.target = "_blank"; link.rel = "noopener"; link.textContent = "S'inscrire →"; }
+        document.getElementById("event-banner").style.display = "";
+    }).catch(function(){});
 })();
 </script>
 </body>
