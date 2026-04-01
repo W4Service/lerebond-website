@@ -48,7 +48,7 @@
 <!-- End Google Tag Manager (noscript) -->
 <a class="skip-link" href="#main-content">Aller au contenu principal</a>
 <!-- Event Banner (dynamique) -->
-<div class="event-banner" id="event-banner" style="display:none">
+<div class="event-banner" id="event-banner">
 <div class="event-banner__inner">
 <span class="event-banner__text" id="event-banner-text"></span>
 <a class="event-banner__link" id="event-banner-link" href="evenements/">Voir →</a>
@@ -885,7 +885,7 @@
             var d = new Date(events[i].date + 'T23:59:59');
             if (d >= now) { next = events[i]; break; }
         }
-        if (!next) return;
+        if (!next) { document.getElementById("event-banner").style.display="none"; document.body.classList.remove("has-event-banner"); return; }
         var parts = next.date.split('-');
         var day = parseInt(parts[2]);
         var month = MONTHS[parseInt(parts[1]) - 1];
@@ -902,8 +902,8 @@
             link.href = 'evenements/';
             link.textContent = 'Voir →';
         }
-        banner.style.display = '';
-    }).catch(function(){});
+        
+    }).catch(function(){ document.getElementById("event-banner").style.display="none"; document.body.classList.remove("has-event-banner"); });
 })();
 </script>
 </body>
