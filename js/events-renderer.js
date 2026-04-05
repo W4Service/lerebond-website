@@ -74,9 +74,17 @@
         return '<a class="btn btn--primary" href="#" onclick="csOpen();return false">S\'inscrire</a>';
     }
 
+    function isPast(ev) {
+        if (!ev.date) return false;
+        var now = new Date();
+        now.setHours(0, 0, 0, 0);
+        return new Date(ev.date + 'T23:59:59') < now;
+    }
+
     function buildCard(ev, index) {
         var isFeatured = ev.featured;
-        var classes = 'event-card' + (isFeatured ? ' event-card-featured' : '');
+        var past = isPast(ev);
+        var classes = 'event-card' + (isFeatured ? ' event-card-featured' : '') + (past ? ' event-card--past' : '');
         var delay = (index + 1) * 50 + 50;
 
         var html = '<div class="' + classes + '" data-animate="" data-category="' + ev.category + '" data-delay="' + delay + '" data-type="' + ev.type + '"' + (ev.id ? ' id="' + ev.id + '"' : '') + '>';
@@ -139,11 +147,20 @@
         var grid = document.querySelector('.events-grid');
         if (!grid) return;
 
-        // Sort: featured first, then by date (dated events before coming_soon), then by order
+        // Sort: upcoming first (by date asc), then past events at the end (by date desc)
         events.sort(function (a, b) {
-            if (a.featured !== b.featured) return a.featured ? -1 : 1;
-            if (a.coming_soon !== b.coming_soon) return a.coming_soon ? 1 : -1;
-            if (a.date && b.date) return a.date.localeCompare(b.date);
+            var aPast = isPast(a);
+            var bPast = isPast(b);
+            // Upcoming before past
+            if (aPast !== bPast) return aPast ? 1 : -1;
+            // Within upcoming: featured first, then by date
+            if (!aPast) {
+                if (a.featured !== b.featured) return a.featured ? -1 : 1;
+                if (a.coming_soon !== b.coming_soon) return a.coming_soon ? 1 : -1;
+                if (a.date && b.date) return a.date.localeCompare(b.date);
+            }
+            // Within past: most recent first
+            if (aPast && a.date && b.date) return b.date.localeCompare(a.date);
             return 0;
         });
 

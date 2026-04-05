@@ -91,6 +91,41 @@
 }
 
 /* ============================================
+   PAST EVENTS (grayed out)
+   ============================================ */
+.event-card--past {
+    opacity: 0.45;
+    filter: grayscale(60%);
+    pointer-events: auto;
+}
+
+.event-card--past .btn--primary {
+    background: #888;
+    border-color: #888;
+    pointer-events: none;
+}
+
+.event-card--past .event-card-image::after {
+    content: 'Terminé';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #f4f0e6;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    z-index: 2;
+}
+
+.event-card--past .event-card-image {
+    position: relative;
+}
+
+/* ============================================
    HERO STATS (inside hero section)
    ============================================ */
 .hero__stats {
