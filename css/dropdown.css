@@ -91,49 +91,89 @@
 }
 
 /* ============================================
-   PROMO BAR (persistent, dismissable)
+   PROMO POPUP (bottom-right toast)
    ============================================ */
-.promo-bar {
-    background: var(--accent, #efa707);
-    text-align: center;
-    padding: 0.4rem 1rem;
-}
-
-.promo-bar__inner {
+.promo-popup {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    max-width: 320px;
+    background: #680920;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    max-width: 1200px;
-    margin: 0 auto;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem 1.2rem;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-.promo-bar__text {
+.promo-popup.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.promo-popup__content {
+    flex: 1;
+}
+
+.promo-popup__emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.promo-popup__text {
+    font-size: 0.85rem;
+    color: #f4f0e6;
+    line-height: 1.4;
+    margin-top: 0.25rem;
+}
+
+.promo-popup__text strong {
+    color: #efa707;
+}
+
+.promo-popup__link {
+    display: inline-block;
+    margin-top: 0.5rem;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #1a1a1a;
-    letter-spacing: 0.02em;
+    color: #efa707;
+    text-decoration: none;
 }
 
-.promo-bar__close {
+.promo-popup__link:hover {
+    text-decoration: underline;
+}
+
+.promo-popup__close {
     background: none;
     border: none;
-    color: #1a1a1a;
-    font-size: 1.3rem;
+    color: #f4f0e6;
+    font-size: 1.4rem;
     cursor: pointer;
-    padding: 0 0.3rem;
+    padding: 0;
     line-height: 1;
-    opacity: 0.6;
+    opacity: 0.5;
     transition: opacity 0.2s;
+    flex-shrink: 0;
 }
 
-.promo-bar__close:hover {
+.promo-popup__close:hover {
     opacity: 1;
 }
 
 @media (max-width: 480px) {
-    .promo-bar__text {
-        font-size: 0.65rem;
+    .promo-popup {
+        bottom: 80px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
     }
 }
 

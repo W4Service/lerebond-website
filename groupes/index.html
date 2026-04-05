@@ -52,8 +52,8 @@
 <span class="event-banner__text" id="event-banner-text">Chargement...</span>
 <a class="event-banner__link" id="event-banner-link" href="evenements/">Voir →</a>
 </div>
-<div class="promo-bar" id="promo-bar"><div class="promo-bar__inner"><span class="promo-bar__text">🎉 Tout avril : tarifs heures creuses sur tous les créneaux !</span><button class="promo-bar__close" onclick="document.getElementById('promo-bar').style.display='none';sessionStorage.setItem('promo-closed','1')" aria-label="Fermer">&times;</button></div></div>
-<script>if(sessionStorage.getItem('promo-closed'))document.getElementById('promo-bar').style.display='none';</script>
+
+
 </div>
 <!-- Header -->
 <header class="header">
@@ -554,6 +554,18 @@
         
     }).catch(function(){ document.getElementById("event-banner").style.display="none"; document.body.classList.remove("has-event-banner"); });
 })();
+</script>
+<!-- Promo Popup -->
+<div class="promo-popup" id="promo-popup">
+<div class="promo-popup__content">
+<span class="promo-popup__emoji">🎉</span>
+<p class="promo-popup__text"><strong>Tout avril</strong> — Tarifs heures creuses sur tous les créneaux, Padel et Five !</p>
+<a class="promo-popup__link" href="tarifs/">Voir les tarifs →</a>
+</div>
+<button class="promo-popup__close" onclick="document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo-closed','1')" aria-label="Fermer">&times;</button>
+</div>
+<script>
+if(!sessionStorage.getItem('promo-closed')){setTimeout(function(){document.getElementById('promo-popup').classList.add('show')},1500);}
 </script>
 </body>
 </html>
