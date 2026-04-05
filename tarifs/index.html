@@ -53,6 +53,14 @@
 <a class="event-banner__link" id="event-banner-link" href="evenements/">Voir →</a>
 </div>
 </div>
+<!-- Promo Banner -->
+<div class="promo-bar" id="promo-bar">
+<div class="promo-bar__inner">
+<span class="promo-bar__text">🎉 Tout le mois d'avril, tous les tarifs sont en heures creuses — Padel et Five !</span>
+<button class="promo-bar__close" onclick="document.getElementById('promo-bar').style.display='none';sessionStorage.setItem('promo-closed','1')" aria-label="Fermer">&times;</button>
+</div>
+</div>
+<script>if(sessionStorage.getItem('promo-closed'))document.getElementById('promo-bar').style.display='none';</script>
 <!-- Header -->
 <header class="header">
 <div class="header__inner">
@@ -101,18 +109,6 @@
 </nav>
 <h1 class="page-hero__title" data-animate="">Nos tarifs</h1>
 <p class="page-hero__text" data-animate="" data-delay="100">Des prix adaptés à toutes les pratiques</p>
-</div>
-</section>
-<!-- Promo Avril -->
-<section class="section section-dark">
-<div class="container">
-<div class="promo-banner" data-animate="">
-<span class="promo-banner__icon">🎉</span>
-<div class="promo-banner__content">
-<strong>Offre d'ouverture — Tout le mois d'avril, tous les tarifs sont en heures creuses !</strong>
-<p>Padel et Five, profitez des tarifs heures creuses sur tous les créneaux sans exception.</p>
-</div>
-</div>
 </div>
 </section>
 <!-- Padel Pricing Section -->
