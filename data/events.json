@@ -137,7 +137,7 @@
       "description": "Séance d'initiation au padel réservée aux femmes. Découvrez ce sport dans une ambiance détendue et bienveillante. Prêt de matériel inclus.",
       "price": "Gratuit",
       "max_participants": "",
-      "image": "img/sport-pause-joueuses.webp",
+      "image": "img/fitness-stretching-rouge.webp",
       "registration_link": "https://lerebond.mymobileapp.fr",
       "featured": true,
       "status_text": "Gratuit · Prêt de matériel inclus",
@@ -271,7 +271,7 @@
       "registration_note": "Inscription via la rubrique Événements de l'application mobile"
     },
     {
-      "id": "tournoi-five-26-04",
+      "id": "tournoi-five-27-04",
       "title": "Tournoi Five",
       "date": "2026-04-26",
       "time_start": "19h30",
