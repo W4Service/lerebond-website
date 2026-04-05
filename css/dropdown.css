@@ -91,6 +91,36 @@
 }
 
 /* ============================================
+   PROMO BANNER
+   ============================================ */
+.promo-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    background: rgba(239, 167, 7, 0.15);
+    border: 1px solid rgba(239, 167, 7, 0.3);
+    border-radius: var(--radius-lg, 12px);
+    text-align: left;
+}
+
+.promo-banner__icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.promo-banner__content strong {
+    color: var(--accent, #efa707);
+    font-size: 1.1rem;
+}
+
+.promo-banner__content p {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--secondary, #cec3b6);
+}
+
+/* ============================================
    PAST EVENTS (grayed out)
    ============================================ */
 .event-card--past {
