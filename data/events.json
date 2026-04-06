@@ -55,24 +55,6 @@
       "registration_note": "Inscription via la rubrique Événements de l'application mobile"
     },
     {
-      "id": "initiation-famille-06-04",
-      "title": "Initiation Famille",
-      "date": "2026-04-06",
-      "time_start": "9h00",
-      "time_end": "10h30",
-      "category": "padel",
-      "type": "animation",
-      "description": "Découvrez le padel en famille ! Séance d'initiation encadrée avec prêt de matériel inclus et boisson offerte. Un moment convivial pour petits et grands.",
-      "price": "15€/adulte · 5€/enfant",
-      "max_participants": "",
-      "image": "img/groupe-amis-sport-exterieur.webp",
-      "registration_link": "https://lerebond.mymobileapp.fr",
-      "featured": false,
-      "status_text": "Prêt de matériel inclus",
-      "coming_soon": false,
-      "registration_note": "Inscription via la rubrique Événements de l'application mobile"
-    },
-    {
       "id": "tournoi-padel-08-04",
       "title": "Tournoi Padel Sans Licence",
       "date": "2026-04-08",
@@ -137,7 +119,7 @@
       "description": "Séance d'initiation au padel réservée aux femmes. Découvrez ce sport dans une ambiance détendue et bienveillante. Prêt de matériel inclus.",
       "price": "Gratuit",
       "max_participants": "",
-      "image": "img/fitness-stretching-rouge.webp",
+      "image": "img/style-sportswear-rouge.webp",
       "registration_link": "https://lerebond.mymobileapp.fr",
       "featured": true,
       "status_text": "Gratuit · Prêt de matériel inclus",
