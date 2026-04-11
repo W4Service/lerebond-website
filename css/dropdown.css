@@ -251,10 +251,47 @@
 }
 
 /* ============================================
+   NAV FIT (compact layout for many items)
+   ============================================ */
+@media (min-width: 1025px) {
+    .nav__list {
+        gap: 1.2rem !important;
+        align-items: center;
+    }
+    .nav__list > li {
+        display: flex;
+        align-items: center;
+    }
+    .nav__link {
+        white-space: nowrap;
+        font-size: 0.78rem !important;
+        letter-spacing: 0.04em !important;
+    }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px) {
+    .nav__list {
+        gap: 0.9rem !important;
+    }
+    .nav__link {
+        font-size: 0.72rem !important;
+    }
+}
+
+/* ============================================
    NAV DROPDOWN
    ============================================ */
 .nav__dropdown {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nav__dropdown-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.3rem;
+    line-height: 1;
 }
 
 .nav__dropdown > .nav__link {
