@@ -646,6 +646,39 @@
 </div>
 </div>
 </section>
+<!-- Cours Teaser -->
+<section class="cours-teaser" id="cours-teaser">
+<div class="container">
+<div class="cours-teaser__grid" data-animate="">
+<div class="cours-teaser__content">
+<span class="cours-teaser__label">Cours de Padel</span>
+<h2 class="cours-teaser__title">Progressez avec <span>Pierre Daumont</span></h2>
+<p class="cours-teaser__sub">Classé parmi les 400 premiers joueurs français au padel</p>
+<p class="cours-teaser__text">Que vous soyez débutant ou compétiteur, perfectionnez votre jeu avec un coach professionnel. Cours individuels, en duo ou en groupe — à votre rythme.</p>
+<div class="cours-teaser__prices">
+<div class="cours-teaser__price">
+<span class="cours-teaser__price-label">Individuel</span>
+<span class="cours-teaser__price-value">dès 50€</span>
+</div>
+<div class="cours-teaser__price">
+<span class="cours-teaser__price-label">Duo</span>
+<span class="cours-teaser__price-value">dès 25€/joueur</span>
+</div>
+<div class="cours-teaser__price">
+<span class="cours-teaser__price-label">Groupe (4)</span>
+<span class="cours-teaser__price-value">dès 12,50€/joueur</span>
+</div>
+</div>
+<a class="btn btn--primary text-light" href="tarifs/#cours">Voir les tarifs &amp; réserver →</a>
+</div>
+<div class="cours-teaser__visual">
+<img alt="Cours de padel au Rebond" decoding="async" loading="lazy" src="img/padel-mains-vitre.webp" width="1280" height="720"/>
+<div class="cours-teaser__overlay"></div>
+<span class="cours-teaser__badge">Pro</span>
+</div>
+</div>
+</div>
+</section>
 <!-- Replay Teaser -->
 <section class="replay-teaser" id="replays-teaser">
 <div class="container">
@@ -897,7 +930,7 @@ Conservation 15 jours
 <script>
 (function() {
     var MONTHS = ['Janv.','Fév.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
-    var TYPE_LABELS = {tournoi:'Tournoi',ligue:'Ligue',montante:'Montante',animation:'Animation'};
+    var TYPE_LABELS = {tournoi:'Tournoi','tournoi-loisir':'Tournoi Loisir',ligue:'Ligue',montante:'Montante',animation:'Animation'};
     var grid = document.getElementById('home-events-grid');
     if (!grid) return;
     fetch('data/events.json').then(function(r){return r.json()}).then(function(data) {
