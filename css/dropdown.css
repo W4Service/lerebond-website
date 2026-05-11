@@ -1,4 +1,18 @@
 /* ============================================
+   TARIF EVENTS GRID (4 cards on tarifs page)
+   ============================================ */
+.tarif-events-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-md, 24px) !important;
+}
+
+@media (max-width: 768px) {
+    .tarif-events-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ============================================
    PRICING BADGE (icon + text alignment fix)
    ============================================ */
 .pricing-card-badge {
