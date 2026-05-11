@@ -1,4 +1,20 @@
 /* ============================================
+   PRICING BADGE (icon + text alignment fix)
+   ============================================ */
+.pricing-card-badge {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.4rem;
+    line-height: 1;
+}
+
+.pricing-card-badge svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================
    SUBSCRIPTIONS GRID (4 cards)
    ============================================ */
 .pricing-cards-grid--4 {
