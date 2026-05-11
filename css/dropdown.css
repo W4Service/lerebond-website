@@ -128,10 +128,10 @@
 }
 
 /* ============================================
-   HOMEPAGE COURS TEASER
+   HOMEPAGE COURS TEASER (bordeaux DA)
    ============================================ */
 .cours-teaser {
-    background: linear-gradient(135deg, #f4f0e6 0%, rgba(244, 240, 230, 0.92) 100%);
+    background: linear-gradient(135deg, rgba(104, 9, 32, 0.95), rgba(58, 5, 16, 0.95)), url('img/padel-mains-vitre.webp') center/cover;
     padding: var(--space-xl, 64px) 0;
     position: relative;
     overflow: hidden;
@@ -145,7 +145,7 @@
 }
 
 .cours-teaser__content {
-    color: #1a1a1a;
+    color: var(--light, #f4f0e6);
 }
 
 .cours-teaser__label {
@@ -155,7 +155,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-    color: #680920;
+    color: #efa707;
     margin-bottom: 0.75rem;
 }
 
@@ -165,11 +165,11 @@
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 0.5rem;
-    color: #1a1a1a;
+    color: var(--light, #f4f0e6);
 }
 
 .cours-teaser__title span {
-    color: #680920;
+    color: #efa707;
 }
 
 .cours-teaser__sub {
@@ -178,13 +178,14 @@
     font-weight: 600;
     margin-bottom: 1rem;
     letter-spacing: 0.02em;
+    opacity: 0.95;
 }
 
 .cours-teaser__text {
     font-size: 1rem;
     line-height: 1.6;
     margin-bottom: 1.5rem;
-    color: #555;
+    opacity: 0.9;
 }
 
 .cours-teaser__prices {
@@ -195,11 +196,11 @@
 }
 
 .cours-teaser__price {
-    background: rgba(104, 9, 32, 0.06);
+    background: rgba(239, 167, 7, 0.08);
     border-radius: 10px;
-    padding: 0.75rem 0.75rem;
+    padding: 0.85rem 0.75rem;
     text-align: center;
-    border: 1px solid rgba(104, 9, 32, 0.12);
+    border: 1px solid rgba(239, 167, 7, 0.25);
 }
 
 .cours-teaser__price-label {
@@ -208,15 +209,15 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #888;
-    margin-bottom: 0.2rem;
+    color: var(--secondary, #cec3b6);
+    margin-bottom: 0.3rem;
 }
 
 .cours-teaser__price-value {
     display: block;
     font-weight: 700;
-    color: #680920;
-    font-size: 0.85rem;
+    color: #efa707;
+    font-size: 0.95rem;
 }
 
 .cours-teaser__visual {
@@ -224,7 +225,8 @@
     border-radius: 16px;
     overflow: hidden;
     aspect-ratio: 4 / 3;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(239, 167, 7, 0.2);
 }
 
 .cours-teaser__visual img {
@@ -237,7 +239,7 @@
 .cours-teaser__overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(104, 9, 32, 0.15), transparent);
+    background: linear-gradient(135deg, rgba(104, 9, 32, 0.3), transparent 60%);
     pointer-events: none;
 }
 
