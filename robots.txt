@@ -1,3 +1,15 @@
 User-agent: *
 Allow: /
+
+# Pages techniques à ne pas indexer
+Disallow: /admin/
+Disallow: /annulation/
+Disallow: /qr-code/
+Disallow: /widget-reservation/
+Disallow: /team/
+
+# Fichiers techniques
+Disallow: /data/
+Disallow: /*.json$
+
 Sitemap: https://le-rebond.fr/sitemap.xml
