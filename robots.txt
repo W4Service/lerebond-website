@@ -4,8 +4,6 @@ Allow: /
 # Pages techniques à ne pas indexer
 Disallow: /admin/
 Disallow: /annulation/
-Disallow: /widget-reservation/
-Disallow: /team/
 
 # Fichiers techniques
 Disallow: /data/
