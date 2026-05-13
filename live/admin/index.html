@@ -55,34 +55,46 @@
 </div>
 
 <!-- ADMIN VIEW -->
-<div class="live-wrap" id="admin-view" style="display:none">
+<div class="admin-layout" id="admin-view" style="display:none">
 
-<div class="admin-header">
+<header class="admin-topbar">
+<img src="img/logo-blanc.webp" alt="Le Rebond" class="topbar-logo" onerror="this.src='img/logo-8.webp'">
+<div class="topbar-title">
+<span class="topbar-label">Pilote du Chrono</span>
+<span class="topbar-status" id="status">Chargement…</span>
+</div>
+<div class="topbar-user">
 <span class="user-pill">👤 <span id="user-email">…</span></span>
 <button class="btn-logout" id="btn-logout">Déconnexion</button>
 </div>
+</header>
 
-<img src="img/logo-blanc.webp" alt="Le Rebond" class="live-logo" onerror="this.src='img/logo-8.webp'">
+<main class="admin-grid">
 
-<div class="live-title">Pilote du Chrono</div>
+<!-- Chrono preview -->
+<section class="admin-chrono">
 <div id="chrono-nom" style="display:none">—</div>
-<div id="status">Chargement…</div>
-
 <div class="display idle" id="display">--:--</div>
-
 <div class="progress-container">
 <div class="progress-bar" id="progress"></div>
 </div>
+<div class="admin-link">
+Visible sur <a href="live/" target="_blank">le-rebond.fr/live</a>
+</div>
+</section>
 
-<div class="admin-panel">
-<h2>⚙️ Configuration</h2>
+<!-- Panneau contrôle -->
+<section class="admin-controls">
 
-<div class="setup-row">
-<div class="input-group">
-<input type="text" id="input-nom" placeholder="Nom du chrono" value="Chrono">
+<div class="control-block">
+<label class="control-label">Nom du chrono</label>
+<div class="input-group input-group--full">
+<input type="text" id="input-nom" placeholder="Ex: Match 1 - Padel" value="Chrono">
 </div>
 </div>
 
+<div class="control-block">
+<label class="control-label">Durée</label>
 <div class="setup-row">
 <div class="input-group">
 <input type="number" id="input-min" value="5" min="0" max="999" inputmode="numeric">
@@ -92,17 +104,21 @@
 <input type="number" id="input-sec" value="0" min="0" max="59" inputmode="numeric">
 <label>sec</label>
 </div>
-<button type="button" class="btn-live btn-live--outline" id="btn-apply">Appliquer</button>
+<button type="button" class="btn-live btn-live--outline btn-live--small" id="btn-apply">Appliquer</button>
+</div>
 </div>
 
+<div class="control-block">
+<label class="control-label">Presets</label>
 <div class="presets">
 <button type="button" class="preset-btn" data-min="1" data-sec="0" data-nom="1 min">1 min</button>
 <button type="button" class="preset-btn" data-min="3" data-sec="0" data-nom="3 min">3 min</button>
 <button type="button" class="preset-btn" data-min="5" data-sec="0" data-nom="5 min">5 min</button>
-<button type="button" class="preset-btn" data-min="7" data-sec="0" data-nom="Match - 7 min">7 min (match)</button>
+<button type="button" class="preset-btn" data-min="7" data-sec="0" data-nom="Match 7 min">7 min</button>
 <button type="button" class="preset-btn" data-min="10" data-sec="0" data-nom="10 min">10 min</button>
 <button type="button" class="preset-btn" data-min="15" data-sec="0" data-nom="15 min">15 min</button>
 <button type="button" class="preset-btn" data-min="30" data-sec="0" data-nom="30 min">30 min</button>
+</div>
 </div>
 
 <div class="controls">
@@ -116,14 +132,13 @@ Pause
 </button>
 <button type="button" class="btn-live btn-live--danger" id="btn-reset">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-Réinitialiser
+Reset
 </button>
 </div>
 
-<p style="margin-top:1.5rem;font-size:0.85rem;text-align:center;color:rgba(244,240,230,0.5)">
-Les changements sont visibles instantanément sur <a href="live/" target="_blank" style="color:#f4c941;text-decoration:none">le-rebond.fr/live</a>
-</p>
-</div>
+</section>
+
+</main>
 
 </div>
 
