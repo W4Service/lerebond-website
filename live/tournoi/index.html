@@ -4,10 +4,10 @@
 <base href="https://le-rebond.fr/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live — Le Rebond</title>
-<meta name="description" content="Chronomètre en direct depuis Le Rebond Noyon — Padel & Five.">
+<title>Tournoi Live — Le Rebond</title>
+<meta name="description" content="Suivez le tournoi en direct au Rebond Noyon : matchs, scores, classement des poules en temps réel.">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="https://le-rebond.fr/live/">
+<link rel="canonical" href="https://le-rebond.fr/live/tournoi/">
 <meta content="#680920" name="theme-color">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
@@ -21,6 +21,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
 </style>
 <link rel="stylesheet" href="css/live.css">
+<link rel="stylesheet" href="css/tournoi.css">
 
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -28,8 +29,34 @@
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','%%GTM_ID%%');</script>
+
+<style>
+.tournoi-live-body { padding-bottom: 4rem; overflow-y: auto !important; height: auto !important; min-height: 100vh; }
+.tournoi-live-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(244,240,230,0.1);
+}
+.tournoi-live-header-top img { height: 36px; max-width: 130px; object-fit: contain; }
+.tournoi-live-back {
+    position: absolute;
+    left: 1.5rem;
+    top: 1.5rem;
+    color: rgba(244,240,230,0.7);
+    text-decoration: none;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.tournoi-live-back:hover { color: #f4c941; }
+</style>
 </head>
-<body class="live-body live-body--client">
+<body class="live-body tournoi-live-body">
 <noscript><iframe height="0" src="https://www.googletagmanager.com/ns.html?id=%%GTM_ID%%" style="display:none" width="0"></iframe></noscript>
 
 <button class="fullscreen-btn" id="fullscreen-btn" title="Plein écran (F)">
@@ -41,25 +68,14 @@
 </svg>
 </button>
 
-<div class="live-wrap">
-<img src="img/logo-blanc.webp" alt="Le Rebond" class="live-logo" onerror="this.src='img/logo-8.webp'">
+<header class="tournoi-live-header-top">
+<a href="live/" class="tournoi-live-back">← Live</a>
+<img src="img/logo-blanc.webp" alt="Le Rebond" onerror="this.src='img/logo-8.webp'">
+</header>
 
-<div class="live-title">Live</div>
-<div id="chrono-nom">Chrono</div>
-<div id="status">Chargement…</div>
-
-<div class="display idle" id="display">--:--</div>
-
-<div class="progress-container">
-<div class="progress-bar" id="progress"></div>
-</div>
-
-<div class="live-subtitle">Suivi en direct depuis Le Rebond Noyon</div>
-
-<div style="margin-top:1.5rem">
-<a href="live/tournoi/" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.7rem 1.5rem;background:rgba(244,201,65,0.15);border:1px solid rgba(244,201,65,0.4);border-radius:999px;color:#f4c941;text-decoration:none;font-weight:600;font-size:0.9rem;letter-spacing:0.05em;transition:all 0.2s ease">
-🏆 Voir le tournoi en cours
-</a>
+<div class="tournoi-live-wrap">
+<div id="tournoi-content">
+<div style="text-align:center;padding:3rem;color:rgba(244,240,230,0.5)">Chargement…</div>
 </div>
 </div>
 
@@ -68,6 +84,6 @@
 <script src="js/vendor/supabase.min.js"></script>
 <script src="js/resa-config.min.js"></script>
 <script src="js/supabase-client.js"></script>
-<script src="js/chrono-client.js"></script>
+<script src="js/tournoi-client.js"></script>
 </body>
 </html>

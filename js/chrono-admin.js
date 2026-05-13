@@ -290,6 +290,10 @@
             subscribe();
             loop();
         });
+        // Initialiser aussi la vue tournoi (en arrière-plan)
+        if (window.TournoiAdmin && window.TournoiAdmin.init) {
+            window.TournoiAdmin.init();
+        }
     }
 
     loginForm.addEventListener('submit', async function (e) {

@@ -19,6 +19,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
 </style>
 <link rel="stylesheet" href="css/live.css">
+<link rel="stylesheet" href="css/tournoi.css">
 </head>
 <body class="live-body">
 
@@ -60,16 +61,21 @@
 <header class="admin-topbar">
 <img src="img/logo-blanc.webp" alt="Le Rebond" class="topbar-logo" onerror="this.src='img/logo-8.webp'">
 <div class="topbar-title">
-<span class="topbar-label">Pilote du Chrono</span>
+<span class="topbar-label" id="topbar-label">Pilote du Chrono</span>
 <span class="topbar-status" id="status">Chargement…</span>
 </div>
 <div class="topbar-user">
+<div class="admin-switcher">
+<button type="button" id="tab-chrono" class="active" onclick="window.switchTab('chrono')">⏱ Chrono</button>
+<button type="button" id="tab-tournoi" onclick="window.switchTab('tournoi')">🏆 Tournoi</button>
+</div>
 <span class="user-pill">👤 <span id="user-email">…</span></span>
 <button class="btn-logout" id="btn-logout">Déconnexion</button>
 </div>
 </header>
 
-<main class="admin-grid">
+<!-- VUE CHRONO -->
+<main class="admin-grid" id="chrono-section">
 
 <!-- Chrono preview -->
 <section class="admin-chrono">
@@ -140,11 +146,52 @@ Reset
 
 </main>
 
+<!-- VUE TOURNOI -->
+<main class="tournoi-admin-wrap" id="tournoi-section" style="display:none">
+<div id="tournoi-root"></div>
+</main>
+
 </div>
 
 <script src="js/vendor/supabase.min.js"></script>
 <script src="js/resa-config.min.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/chrono-admin.js"></script>
+<script src="js/tournoi-admin.js"></script>
+<script>
+// Switcher tabs
+window.switchTab = function(tab) {
+    var chronoSec = document.getElementById('chrono-section');
+    var tournoiSec = document.getElementById('tournoi-section');
+    var tabChrono = document.getElementById('tab-chrono');
+    var tabTournoi = document.getElementById('tab-tournoi');
+    var label = document.getElementById('topbar-label');
+    if (tab === 'chrono') {
+        chronoSec.style.display = '';
+        tournoiSec.style.display = 'none';
+        tabChrono.classList.add('active');
+        tabTournoi.classList.remove('active');
+        if (label) label.textContent = 'Pilote du Chrono';
+    } else {
+        chronoSec.style.display = 'none';
+        tournoiSec.style.display = '';
+        tabChrono.classList.remove('active');
+        tabTournoi.classList.add('active');
+        if (label) label.textContent = 'Gestion du Tournoi';
+        if (window.TournoiAdmin && window.TournoiAdmin.init) window.TournoiAdmin.init();
+    }
+    sessionStorage.setItem('admin-tab', tab);
+};
+
+// Restore tab on load (after auth check)
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        var saved = sessionStorage.getItem('admin-tab');
+        if (saved === 'tournoi') {
+            window.switchTab('tournoi');
+        }
+    }, 500);
+});
+</script>
 </body>
 </html>
