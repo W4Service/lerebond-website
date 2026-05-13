@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live — Le Rebond</title>
+<meta name="description" content="Chronomètre en direct depuis Le Rebond Noyon — Padel & Five.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://le-rebond.fr/live/">
+<meta content="#680920" name="theme-color">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+
+<style>
+@font-face { font-family: 'Turret Road'; src: url('fonts/TurretRoad-ExtraBold.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
+</style>
+<link rel="stylesheet" href="css/live.css">
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-W2M4QW7M');</script>
+</head>
+<body class="live-body">
+<noscript><iframe height="0" src="https://www.googletagmanager.com/ns.html?id=GTM-W2M4QW7M" style="display:none" width="0"></iframe></noscript>
+
+<button class="fullscreen-btn" id="fullscreen-btn" title="Plein écran (F)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="15 3 21 3 21 9"></polyline>
+<polyline points="9 21 3 21 3 15"></polyline>
+<line x1="21" y1="3" x2="14" y2="10"></line>
+<line x1="3" y1="21" x2="10" y2="14"></line>
+</svg>
+</button>
+
+<div class="live-wrap">
+<img src="img/logo-blanc.webp" alt="Le Rebond" class="live-logo" onerror="this.src='img/logo-8.webp'">
+
+<div class="live-title">Live</div>
+<div id="chrono-nom">Chrono</div>
+<div id="status">Chargement…</div>
+
+<div class="display idle" id="display">--:--</div>
+
+<div class="progress-container">
+<div class="progress-bar" id="progress"></div>
+</div>
+
+<div class="live-subtitle">Suivi en direct depuis Le Rebond Noyon</div>
+</div>
+
+<div class="footer-tag">A Place in Motion</div>
+
+<script src="js/vendor/supabase.min.js"></script>
+<script src="js/resa-config.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/chrono-client.js"></script>
+</body>
+</html>

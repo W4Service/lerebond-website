@@ -1,0 +1,420 @@
+/* ============================================
+   LIVE PAGES (chrono client + admin)
+   ============================================ */
+
+.live-body {
+    background: linear-gradient(135deg, #680920 0%, #4d061a 100%);
+    color: #f4f0e6;
+    min-height: 100vh;
+    overflow: hidden;
+    user-select: none;
+}
+
+.live-body::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -10%;
+    width: 50%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(239, 167, 7, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+.live-body::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    left: -10%;
+    width: 50%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(244, 240, 230, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.live-wrap {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.live-logo {
+    height: 70px;
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.live-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    letter-spacing: 0.08em;
+    color: #f4c941;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+}
+
+.live-subtitle {
+    font-family: 'Kanit', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #f4f0e6;
+    opacity: 0.75;
+    margin-bottom: 2rem;
+    letter-spacing: 0.04em;
+}
+
+#chrono-nom {
+    font-family: 'Kanit', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #efa707;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+#status {
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #f4f0e6;
+    opacity: 0.7;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.04em;
+}
+
+.display {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(5rem, 18vw, 14rem);
+    line-height: 1;
+    color: #f4f0e6;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    transition: color 0.3s ease;
+    font-variant-numeric: tabular-nums;
+}
+.display.idle { color: rgba(244, 240, 230, 0.5); }
+.display.warning {
+    color: #f4c941;
+    animation: pulse-warn 1s ease-in-out infinite;
+}
+.display.danger {
+    color: #ea1a15;
+    animation: pulse-danger 0.5s ease-in-out infinite;
+}
+.display.finished {
+    color: #efa707;
+    animation: finished 0.8s ease-in-out infinite;
+}
+@keyframes pulse-warn { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+@keyframes pulse-danger { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); opacity: 0.85; } }
+@keyframes finished { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+.progress-container {
+    width: 100%;
+    max-width: 800px;
+    height: 6px;
+    background: rgba(244, 240, 230, 0.15);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+}
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #efa707, #f4c941);
+    border-radius: 3px;
+    transition: width 0.95s linear, background 0.3s ease;
+}
+.progress-bar.warning { background: linear-gradient(90deg, #f4c941, #ea1a15); }
+.progress-bar.danger { background: linear-gradient(90deg, #ea1a15, #680920); }
+
+.fullscreen-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: rgba(244, 240, 230, 0.08);
+    border: 1px solid rgba(244, 240, 230, 0.18);
+    color: #f4f0e6;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+.fullscreen-btn:hover {
+    background: rgba(239, 167, 7, 0.2);
+    border-color: #f4c941;
+    color: #f4c941;
+}
+.fullscreen-btn svg { width: 20px; height: 20px; }
+
+.footer-tag {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: #f4f0e6;
+    opacity: 0.4;
+    text-transform: uppercase;
+}
+
+/* ===== ADMIN SPECIFIC ===== */
+
+.admin-header {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: rgba(244, 240, 230, 0.7);
+    z-index: 10;
+}
+.admin-header .user-pill {
+    background: rgba(244, 240, 230, 0.1);
+    border: 1px solid rgba(244, 240, 230, 0.2);
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-weight: 500;
+}
+.btn-logout {
+    background: none;
+    border: 1px solid rgba(244, 240, 230, 0.3);
+    color: rgba(244, 240, 230, 0.7);
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-logout:hover {
+    color: #ea1a15;
+    border-color: #ea1a15;
+}
+
+.admin-panel {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 1rem;
+    padding: 1.5rem;
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.admin-panel h2 {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    color: #f4c941;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.setup-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    background: rgba(244, 240, 230, 0.08);
+    border: 1px solid rgba(244, 240, 230, 0.18);
+    border-radius: 12px;
+    padding: 0.5rem 0.9rem;
+}
+.input-group input {
+    background: transparent;
+    border: 0;
+    color: #f4f0e6;
+    font-family: 'Kanit', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    width: 4rem;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.input-group input::-webkit-outer-spin-button,
+.input-group input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.input-group input[type="text"] { width: 14rem; text-align: left; font-size: 1rem; }
+.input-group input:focus { color: #f4c941; }
+.input-group label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(244, 240, 230, 0.6);
+    margin-left: 0.4rem;
+    font-weight: 600;
+}
+
+.presets {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+.preset-btn {
+    background: rgba(244, 240, 230, 0.08);
+    color: #f4f0e6;
+    border: 1px solid rgba(244, 240, 230, 0.18);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.preset-btn:hover {
+    background: rgba(239, 167, 7, 0.15);
+    border-color: #f4c941;
+    color: #f4c941;
+}
+
+.controls {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-live {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.85rem 1.8rem;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 130px;
+    justify-content: center;
+}
+.btn-live:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-live--primary { background: #efa707; color: #1a1a1a; }
+.btn-live--primary:hover:not(:disabled) {
+    background: #f4c941;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(239, 167, 7, 0.35);
+}
+
+.btn-live--outline {
+    background: transparent;
+    color: #f4f0e6;
+    border-color: rgba(244, 240, 230, 0.4);
+}
+.btn-live--outline:hover:not(:disabled) {
+    background: rgba(244, 240, 230, 0.1);
+    border-color: #f4f0e6;
+}
+
+.btn-live--danger {
+    background: transparent;
+    color: rgba(244, 240, 230, 0.85);
+    border-color: rgba(234, 26, 21, 0.4);
+}
+.btn-live--danger:hover:not(:disabled) {
+    background: rgba(234, 26, 21, 0.15);
+    border-color: #ea1a15;
+    color: #ea1a15;
+}
+
+/* ===== LOGIN VIEW ===== */
+
+#login-view {
+    width: 100%;
+    max-width: 400px;
+    padding: 2rem;
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    text-align: left;
+}
+#login-view h2 {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+.field {
+    margin-bottom: 1rem;
+}
+.field label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(244, 240, 230, 0.7);
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+}
+.field input {
+    width: 100%;
+    background: rgba(244, 240, 230, 0.08);
+    border: 1px solid rgba(244, 240, 230, 0.2);
+    color: #f4f0e6;
+    font-family: 'Kanit', sans-serif;
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    outline: none;
+}
+.field input:focus {
+    border-color: #f4c941;
+}
+#login-error {
+    color: #ea1a15;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    min-height: 1.2em;
+}
+
+@media (max-width: 600px) {
+    .input-group input { font-size: 1.1rem; width: 3.2rem; }
+    .input-group input[type="text"] { width: 10rem; font-size: 0.9rem; }
+    .btn-live { font-size: 0.85rem; padding: 0.7rem 1.3rem; min-width: 100px; }
+    .preset-btn { font-size: 0.75rem; padding: 0.4rem 0.7rem; }
+    .admin-header { top: 1rem; left: 1rem; font-size: 0.75rem; }
+    .fullscreen-btn { top: 1rem; right: 1rem; width: 38px; height: 38px; }
+}
