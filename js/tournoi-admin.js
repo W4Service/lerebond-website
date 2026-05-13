@@ -12,6 +12,7 @@
     var poules = [];
     var equipes = [];
     var matchs = [];
+    var archivedTournois = [];
 
     // Elements (sera initialisé après login)
     var els = {};
@@ -36,12 +37,51 @@
     // ===== Chargement des données =====
 
     async function loadActiveTournoi() {
-        var res = await supa.from('tournois').select('*').eq('status', 'actif').order('created_at', { ascending: false }).limit(1);
-        if (res.data && res.data.length > 0) {
-            currentTournoi = res.data[0];
+        var [resActif, resArchivés] = await Promise.all([
+            supa.from('tournois').select('*').eq('status', 'actif').order('created_at', { ascending: false }).limit(1),
+            supa.from('tournois').select('*').eq('status', 'archive').order('updated_at', { ascending: false })
+        ]);
+        archivedTournois = resArchivés.data || [];
+        if (resActif.data && resActif.data.length > 0) {
+            currentTournoi = resActif.data[0];
             await loadDetails();
+        } else {
+            currentTournoi = null;
+            poules = []; equipes = []; matchs = [];
         }
         render();
+    }
+
+    async function restoreTournoi(id) {
+        if (!confirm('Restaurer ce tournoi en actif ? Il redeviendra visible côté client.\n\nSi un autre tournoi est déjà actif, il sera archivé.')) return;
+        // Archive le tournoi actif éventuel
+        if (currentTournoi) {
+            await supa.from('tournois').update({ status: 'archive', updated_at: new Date().toISOString() }).eq('id', currentTournoi.id);
+        }
+        var res = await supa.from('tournois').update({ status: 'actif', updated_at: new Date().toISOString() }).eq('id', id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        currentTournoi = res.data;
+        await loadDetails();
+        await loadActiveTournoi();
+        showToast('Tournoi restauré', 'ok');
+    }
+
+    async function deleteTournoiArchive(id) {
+        var t = archivedTournois.find(function (x) { return x.id === id; });
+        var nom = t ? t.nom : 'ce tournoi';
+        if (!confirm('⚠️ SUPPRIMER DÉFINITIVEMENT « ' + nom + ' » ?\n\nToutes les équipes, poules et matchs liés seront effacés. Cette action est irréversible.')) return;
+        if (!confirm('Vraiment sûr ? Tape OK dans la prochaine boîte pour confirmer.')) return;
+        var confirmText = prompt('Tape « SUPPRIMER » en majuscules pour confirmer :');
+        if (confirmText !== 'SUPPRIMER') { showToast('Suppression annulée', 'error'); return; }
+        // Cascade manuelle au cas où la DB n'a pas ON DELETE CASCADE
+        await supa.from('matchs').delete().eq('tournoi_id', id);
+        await supa.from('equipes').delete().eq('tournoi_id', id);
+        await supa.from('poules').delete().eq('tournoi_id', id);
+        var res = await supa.from('tournois').delete().eq('id', id);
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        archivedTournois = archivedTournois.filter(function (x) { return x.id !== id; });
+        render();
+        showToast('Tournoi supprimé', 'ok');
     }
 
     async function loadDetails() {
@@ -82,8 +122,7 @@
         if (!confirm('Archiver ce tournoi ? Il ne sera plus visible côté client.')) return;
         var res = await supa.from('tournois').update({ status: 'archive', updated_at: new Date().toISOString() }).eq('id', currentTournoi.id);
         if (res.error) { showToast('Erreur', 'error'); console.error(res.error); return; }
-        currentTournoi = null; poules = []; equipes = []; matchs = [];
-        render();
+        await loadActiveTournoi();
         showToast('Tournoi archivé', 'ok');
     }
 
@@ -458,16 +497,15 @@
         var inputTerrains = el('input', { type: 'number', min: '1', max: '10', value: '3', class: 'tournoi-input' });
         form.appendChild(el('div', { class: 'input-group' }, inputTerrains));
 
-        form.appendChild(el('label', { class: 'control-label', style: 'margin-top:1rem' }, 'Format de score (FFT Padel)'));
+        form.appendChild(el('label', { class: 'control-label', style: 'margin-top:1rem' }, 'Format de score (FFT Padel 2026)'));
         var selectFormat = el('select', { class: 'tournoi-input' });
+        // Formats officiels FFT padel 2026 (A à E) + Americano + Libre
         var fftFormats = [
-            { v: '2sets_supertb', label: '2 sets + super tie-break (officiel FFT)' },
-            { v: '2sets_classique', label: '2 sets + 3ᵉ set complet (long)' },
-            { v: 'proset_9jeux', label: 'Pro set : 1 set à 9 jeux (TB à 8-8)' },
-            { v: '1set_6jeux', label: '1 set à 6 jeux (TB à 6-6)' },
-            { v: '1set_4jeux', label: '1 set court à 4 jeux (TB à 3-3)' },
-            { v: 'supertb_10', label: 'Super tie-break seul à 10 points' },
-            { v: 'supertb_15', label: 'Super tie-break seul à 15 points' },
+            { v: 'format_b', label: 'B — 2 sets de 6 jeux + super tie-break à 10' },
+            { v: 'format_a', label: 'A — 3 sets de 6 jeux (TB à 7)' },
+            { v: 'format_c', label: 'C — 2 sets de 4 jeux + super tie-break à 10' },
+            { v: 'format_d', label: 'D — 1 set de 9 jeux (TB à 7)' },
+            { v: 'format_e', label: 'E — Super tie-break unique à 10 points' },
             { v: 'americano', label: 'Americano (points cumulés)' },
             { v: 'libre', label: 'Libre (saisie texte personnalisée)' }
         ];
@@ -476,8 +514,8 @@
         });
         form.appendChild(el('div', { class: 'input-group input-group--full' }, selectFormat));
 
-        // Description du format choisi
-        var formatHint = el('p', { class: 'format-hint' }, getFormatHint('2sets_supertb'));
+        // Description du format choisi (défaut: B, le plus courant en FFT)
+        var formatHint = el('p', { class: 'format-hint' }, getFormatHint('format_b'));
         form.appendChild(formatHint);
         selectFormat.addEventListener('change', function () {
             formatHint.textContent = getFormatHint(selectFormat.value);
@@ -494,27 +532,57 @@
         els.tFormat = selectFormat;
 
         wrap.appendChild(card);
+        if (archivedTournois.length > 0) {
+            wrap.appendChild(renderArchivedSection());
+        }
         return wrap;
+    }
+
+    function renderArchivedSection() {
+        var card = el('div', { class: 'tournoi-card tournoi-card--archived' });
+        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '📦 Tournois archivés (' + archivedTournois.length + ')'));
+        var list = el('div', { class: 'archived-list' });
+        archivedTournois.forEach(function (t) {
+            var row = el('div', { class: 'archived-item' });
+            var info = el('div', { class: 'archived-info' });
+            info.appendChild(el('div', { class: 'archived-nom' }, t.nom));
+            var meta = [];
+            if (t.date) meta.push('📅 ' + t.date);
+            if (t.format_score) meta.push('🎾 ' + t.format_score);
+            if (meta.length > 0) info.appendChild(el('div', { class: 'archived-meta' }, meta.join(' · ')));
+            row.appendChild(info);
+            var actions = el('div', { class: 'archived-actions' });
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small',
+                onclick: function () { restoreTournoi(t.id); },
+                title: 'Remettre actif'
+            }, '↺ Restaurer'));
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--danger btn-live--small',
+                onclick: function () { deleteTournoiArchive(t.id); },
+                title: 'Supprimer définitivement'
+            }, '🗑 Supprimer'));
+            row.appendChild(actions);
+            list.appendChild(row);
+        });
+        card.appendChild(list);
+        return card;
     }
 
     function getFormatHint(format) {
         switch (format) {
-            case '2sets_supertb':
-                return 'Le plus utilisé en compétition padel FFT. 2 sets gagnants en 6 jeux, tie-break à 6-6. Si 1 set partout, super tie-break à 10 points (avec 2 d\'écart).';
-            case '2sets_classique':
-                return 'Format long classique : 2 sets gagnants en 6 jeux. 3ᵉ set complet (pas de super tie-break) si 1-1.';
-            case 'proset_9jeux':
-                return 'Pro set : 1 set en 9 jeux gagnants. Tie-break à 8-8. Format intermédiaire entre les sets et le tie-break.';
-            case '1set_6jeux':
-                return 'Format rapide : 1 set en 6 jeux gagnants. Tie-break à 6-6.';
-            case '1set_4jeux':
-                return 'Format très rapide : 1 set court en 4 jeux gagnants. Tie-break à 3-3. Idéal pour tournois multi-chances ou poules denses.';
-            case 'supertb_10':
-                return 'Un seul super tie-break à 10 points (avec 2 d\'écart). Format ultra-rapide pour formats internes club.';
-            case 'supertb_15':
-                return 'Un seul super tie-break à 15 points (avec 2 d\'écart). Un peu plus long que le 10 points.';
+            case 'format_a':
+                return 'Format A (FFT) — Format long. 3 sets gagnants de 6 jeux, tie-break classique à 7 points en cas d\'égalité 6-6. Réservé aux grands tournois.';
+            case 'format_b':
+                return 'Format B (FFT) — Le plus courant en compétition padel. 2 sets gagnants de 6 jeux. Si 1 set partout, super tie-break à 10 points (avec 2 d\'écart).';
+            case 'format_c':
+                return 'Format C (FFT) — 2 sets gagnants de 4 jeux. Si 1 set partout, super tie-break à 10 points (avec 2 d\'écart). Format court.';
+            case 'format_d':
+                return 'Format D (FFT) — 1 set unique de 9 jeux, tie-break classique à 7 points si 8-8. Format intermédiaire.';
+            case 'format_e':
+                return 'Format E (FFT) — Un seul super tie-break à 10 points (avec 2 d\'écart). Format ultra-rapide pour P25 ou formats club.';
             case 'americano':
-                return 'Format Americano : on compte les points marqués pendant un temps donné (ex: 16 ou 24 points par match). Saisie libre dans le score.';
+                return 'Format Americano : on compte les points marqués sur un temps ou un nombre de jeux donné. Saisie libre dans le score.';
             case 'libre':
                 return 'Saisie libre : tu écris ce que tu veux dans le score (ex: « 21 » pour des points, « 6-4 6-3 » pour des sets, etc.).';
         }

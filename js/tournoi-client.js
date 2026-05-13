@@ -77,16 +77,21 @@
 
     function formatLabel(f) {
         switch (f) {
-            case '2sets_supertb': return '2 sets + super tie-break';
-            case '2sets_classique': return '2 sets + 3ᵉ set complet';
-            case 'proset_9jeux': return 'Pro set (9 jeux)';
-            case '1set_9jeux': return '1 set en 9 jeux';
-            case '1set_6jeux': return '1 set en 6 jeux';
-            case '1set_4jeux': return '1 set court (4 jeux)';
-            case 'supertb_10': return 'Super tie-break (10 pts)';
-            case 'supertb_15': return 'Super tie-break (15 pts)';
+            case 'format_a': return 'Format A · 3 sets de 6 jeux';
+            case 'format_b': return 'Format B · 2 sets de 6 jeux + super TB';
+            case 'format_c': return 'Format C · 2 sets de 4 jeux + super TB';
+            case 'format_d': return 'Format D · 1 set de 9 jeux';
+            case 'format_e': return 'Format E · super TB à 10';
             case 'americano': return 'Americano';
             case 'libre': return null;
+            // Anciens codes (rétro-compat pour tournois déjà créés)
+            case '2sets_supertb': return 'Format B · 2 sets de 6 jeux + super TB';
+            case '2sets_classique': return '2 sets + 3ᵉ set complet';
+            case 'proset_9jeux': return 'Format D · 1 set de 9 jeux';
+            case '1set_6jeux': return '1 set en 6 jeux';
+            case '1set_4jeux': return '1 set court (4 jeux)';
+            case 'supertb_10': return 'Format E · super TB à 10';
+            case 'supertb_15': return 'Super tie-break (15 pts)';
         }
         return null;
     }

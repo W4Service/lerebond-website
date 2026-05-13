@@ -79,10 +79,12 @@
 /* Vue création centrée */
 .tournoi-create-wrap {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     min-height: calc(100vh - 200px);
     padding: 2rem 1rem;
+    gap: 1.5rem;
 }
 
 .tournoi-card--centered {
@@ -93,6 +95,57 @@
 }
 .tournoi-card--centered .tournoi-form {
     text-align: left;
+}
+
+/* Tournois archivés */
+.tournoi-card--archived {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    background: rgba(244, 240, 230, 0.04);
+    border-color: rgba(244, 240, 230, 0.12);
+}
+.archived-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+.archived-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(244, 240, 230, 0.04);
+    border: 1px solid rgba(244, 240, 230, 0.1);
+    border-radius: 10px;
+}
+.archived-info { flex: 1; min-width: 0; }
+.archived-nom {
+    font-weight: 600;
+    color: #f4f0e6;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.archived-meta {
+    font-size: 0.78rem;
+    color: rgba(244, 240, 230, 0.55);
+    margin-top: 0.2rem;
+}
+.archived-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+@media (max-width: 600px) {
+    .archived-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .archived-actions { justify-content: flex-end; }
 }
 
 .format-hint {
