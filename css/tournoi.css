@@ -97,6 +97,43 @@
     text-align: left;
 }
 
+/* Checkbox dans le formulaire de création */
+.checkbox-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.6rem;
+    row-gap: 0.15rem;
+    align-items: center;
+    margin-top: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    background: rgba(244, 240, 230, 0.04);
+    border: 1px solid rgba(244, 240, 230, 0.12);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.checkbox-row:hover {
+    background: rgba(244, 240, 230, 0.07);
+    border-color: rgba(244, 201, 65, 0.3);
+}
+.checkbox-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #f4c941;
+    cursor: pointer;
+    grid-row: span 2;
+}
+.checkbox-text {
+    font-weight: 600;
+    color: #f4f0e6;
+    font-size: 0.9rem;
+}
+.checkbox-hint {
+    font-size: 0.78rem;
+    color: rgba(244, 240, 230, 0.55);
+    line-height: 1.4;
+}
+
 /* Tournois archivés */
 .tournoi-card--archived {
     width: 100%;

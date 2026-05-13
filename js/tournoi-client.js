@@ -117,6 +117,7 @@
         if (currentTournoi.date) sub += '📅 ' + currentTournoi.date;
         var fmt = formatLabel(currentTournoi.format_score);
         if (fmt) sub += (sub ? ' · ' : '') + '🎾 ' + fmt;
+        if (currentTournoi.no_ad) sub += (sub ? ' · ' : '') + 'No-ad';
         if (sub) header.appendChild(el('p', { class: 'tournoi-live-subtitle' }, sub));
         root.appendChild(header);
 
