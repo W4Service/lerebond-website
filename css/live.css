@@ -41,14 +41,27 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    width: 100%;
+    max-width: 100vw;
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+/* Conteneur formulaire login : centré + correctement dimensionné */
+#login-view {
     text-align: center;
 }
 
 .live-logo {
     height: 70px;
-    margin-bottom: 1.5rem;
+    width: auto;
+    max-width: 240px;
+    object-fit: contain;
+    margin: 0 auto 1.5rem;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+    display: block;
 }
 
 .live-title {
@@ -358,9 +371,10 @@
 
 /* ===== LOGIN VIEW ===== */
 
-#login-view {
+#login-form {
     width: 100%;
     max-width: 400px;
+    margin: 0 auto;
     padding: 2rem;
     background: rgba(244, 240, 230, 0.06);
     border: 1px solid rgba(244, 240, 230, 0.15);
@@ -368,7 +382,7 @@
     backdrop-filter: blur(10px);
     text-align: left;
 }
-#login-view h2 {
+#login-form h2 {
     font-family: 'Turret Road', sans-serif;
     font-weight: 800;
     color: #f4c941;
