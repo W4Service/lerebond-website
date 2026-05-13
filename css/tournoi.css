@@ -374,6 +374,23 @@ select.tournoi-input option {
 .match-item--termine {
     opacity: 0.65;
 }
+.match-item--pending-dep {
+    opacity: 0.55;
+    border-style: dashed;
+}
+
+.match-equipe--placeholder {
+    font-style: italic;
+    color: rgba(244, 201, 65, 0.7);
+    font-family: 'Turret Road', sans-serif;
+    letter-spacing: 0.05em;
+}
+
+.match-dep-hint {
+    font-size: 0.8rem;
+    color: rgba(244, 240, 230, 0.5);
+    font-style: italic;
+}
 
 .match-header {
     margin-bottom: 0.4rem;
@@ -515,6 +532,14 @@ select.tournoi-input option {
     font-size: 1.1rem;
 }
 .live-match-equipe:last-child { text-align: right; }
+.live-match-equipe--placeholder,
+.match-mini-equipe--placeholder {
+    font-style: italic;
+    color: rgba(244, 201, 65, 0.7);
+    font-family: 'Turret Road', sans-serif;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
 .live-match-score {
     font-family: 'Turret Road', sans-serif;
     font-weight: 800;
