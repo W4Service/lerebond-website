@@ -1,0 +1,634 @@
+/* ============================================
+   TOURNOI — Admin + Client
+   ============================================ */
+
+/* ===== ADMIN ===== */
+
+.tournoi-admin-wrap {
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+#tournoi-root {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tournoi-card {
+    background: rgba(244, 240, 230, 0.08);
+    border: 1px solid rgba(244, 240, 230, 0.2);
+    border-radius: 16px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.tournoi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.tournoi-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: #f4c941;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+}
+
+.tournoi-subtitle {
+    font-size: 0.9rem;
+    color: rgba(244, 240, 230, 0.7);
+}
+
+.tournoi-section-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #efa707;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.15);
+}
+
+.tournoi-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tournoi-form {
+    display: flex;
+    flex-direction: column;
+    max-width: 500px;
+}
+
+.tournoi-input {
+    background: transparent;
+    border: 0;
+    color: #f4f0e6;
+    font-family: 'Kanit', sans-serif;
+    font-size: 1rem;
+    padding: 0.4rem 0.6rem;
+    outline: none;
+    width: 100%;
+    flex: 1;
+}
+.tournoi-input::placeholder { color: rgba(244, 240, 230, 0.4); }
+
+.tournoi-input--mini {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+}
+
+select.tournoi-input {
+    appearance: none;
+    cursor: pointer;
+    background: rgba(244, 240, 230, 0.05);
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(244, 240, 230, 0.2);
+}
+select.tournoi-input--mini {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+}
+select.tournoi-input option {
+    background: #680920;
+    color: #f4f0e6;
+}
+
+.control-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(244, 240, 230, 0.7);
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    display: block;
+}
+
+/* Équipes */
+
+.equipes-list {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.equipe-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    background: rgba(244, 240, 230, 0.05);
+    border: 1px solid rgba(244, 240, 230, 0.12);
+    border-radius: 10px;
+}
+.equipe-nom {
+    flex: 1;
+    font-weight: 500;
+    color: #f4f0e6;
+}
+
+.icon-btn {
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(244, 240, 230, 0.18);
+    color: rgba(244, 240, 230, 0.8);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+.icon-btn:hover {
+    color: #ea1a15;
+    border-color: #ea1a15;
+    background: rgba(234, 26, 21, 0.1);
+}
+
+/* Poules */
+
+.poules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.poule-card {
+    background: rgba(244, 240, 230, 0.05);
+    border: 1px solid rgba(239, 167, 7, 0.3);
+    border-radius: 12px;
+    padding: 1rem;
+}
+.poule-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.12);
+}
+.poule-nom {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.poule-terrain {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    color: rgba(244, 240, 230, 0.7);
+}
+.poule-equipes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.poule-equipes li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    font-size: 0.9rem;
+}
+.poule-empty {
+    color: rgba(244, 240, 230, 0.4);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+/* Matchs admin */
+
+.terrain-section {
+    margin-bottom: 1.5rem;
+}
+.terrain-title {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 700;
+    color: #f4f0e6;
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px dashed rgba(244, 240, 230, 0.15);
+}
+
+.matchs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.match-item {
+    background: rgba(244, 240, 230, 0.05);
+    border: 1px solid rgba(244, 240, 230, 0.12);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+.match-item--en_cours {
+    border-color: #ea1a15;
+    background: rgba(234, 26, 21, 0.08);
+    box-shadow: 0 0 20px rgba(234, 26, 21, 0.15);
+}
+.match-item--termine {
+    opacity: 0.65;
+}
+
+.match-header {
+    margin-bottom: 0.4rem;
+}
+.match-meta {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(244, 240, 230, 0.55);
+    font-weight: 600;
+}
+.match-body {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+.match-equipe {
+    font-weight: 600;
+    color: #f4f0e6;
+}
+.match-equipe:last-child { text-align: right; }
+.match-vs {
+    color: rgba(244, 240, 230, 0.5);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.match-score-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.score-input {
+    width: 60px;
+    text-align: center;
+    background: rgba(244, 240, 230, 0.14) !important;
+    border: 1px solid rgba(244, 240, 230, 0.3) !important;
+    border-radius: 6px !important;
+    padding: 0.35rem !important;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #f4c941 !important;
+}
+
+.match-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.tournoi-empty {
+    color: rgba(244, 240, 230, 0.5);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* ===== CLIENT (vue publique) ===== */
+
+.tournoi-live-wrap {
+    padding: 2rem 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.tournoi-live-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.tournoi-live-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    color: #f4c941;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+}
+.tournoi-live-subtitle {
+    font-size: 1rem;
+    color: rgba(244, 240, 230, 0.7);
+}
+
+.live-section-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #efa707;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 1rem;
+}
+.live-section-title--live {
+    color: #ea1a15;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.live-matchs-section {
+    margin-bottom: 2rem;
+}
+.live-matchs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.live-match {
+    position: relative;
+    background: rgba(234, 26, 21, 0.1);
+    border: 2px solid #ea1a15;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem 1.5rem;
+    box-shadow: 0 8px 30px rgba(234, 26, 21, 0.2);
+}
+.live-match-meta {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(244, 240, 230, 0.7);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+.live-match-body {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+}
+.live-match-equipe {
+    font-weight: 700;
+    color: #f4f0e6;
+    font-size: 1.1rem;
+}
+.live-match-equipe:last-child { text-align: right; }
+.live-match-score {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.live-match-score .score-sep {
+    color: rgba(244, 240, 230, 0.4);
+    font-size: 1.2rem;
+}
+
+.live-badge {
+    position: absolute;
+    top: -10px;
+    right: 16px;
+    background: #ea1a15;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.live-pulse {
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    animation: live-pulse 1s ease-in-out infinite;
+}
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.terrains-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.terrain-card {
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    border-radius: 14px;
+    padding: 1.25rem;
+}
+.terrain-card-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.12);
+}
+.terrain-subsection {
+    margin-bottom: 1rem;
+}
+.terrain-subtitle {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(244, 240, 230, 0.55);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.matchs-mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.match-mini {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(244, 240, 230, 0.05);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+.match-mini-equipe {
+    color: #f4f0e6;
+    font-weight: 500;
+}
+.match-mini-equipe:last-child { text-align: right; }
+.match-mini-equipe.vainqueur {
+    color: #f4c941;
+    font-weight: 700;
+}
+.match-mini-vs {
+    color: rgba(244, 240, 230, 0.4);
+    font-size: 0.75rem;
+}
+.match-mini-score {
+    font-family: 'Turret Road', sans-serif;
+    color: #efa707;
+    font-weight: 700;
+}
+
+.live-empty-mini {
+    color: rgba(244, 240, 230, 0.45);
+    font-style: italic;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+/* Poules live */
+
+.poules-live-section {
+    margin-bottom: 2rem;
+}
+.poules-live-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.poule-live-card {
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(239, 167, 7, 0.25);
+    border-radius: 12px;
+    padding: 1rem;
+}
+.poule-live-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.12);
+}
+.poule-live-nom {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.poule-live-terrain {
+    font-size: 0.75rem;
+    color: rgba(244, 240, 230, 0.6);
+    font-weight: 600;
+}
+
+.poule-live-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.poule-live-table td {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.9rem;
+    color: #f4f0e6;
+}
+.poule-pos {
+    color: #efa707;
+    font-weight: 700;
+    width: 30px;
+}
+.poule-eq {
+    width: auto;
+}
+.poule-qualif {
+    color: #f4c941;
+    font-weight: 700;
+    text-align: right;
+    width: 30px;
+}
+
+/* État vide */
+.live-empty {
+    text-align: center;
+    padding: 4rem 1rem;
+}
+.live-empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+.live-empty-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.live-empty-text {
+    color: rgba(244, 240, 230, 0.6);
+    font-size: 0.95rem;
+}
+
+/* ===== Switcher Chrono / Tournoi (admin) ===== */
+
+.admin-switcher {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.4rem;
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    border-radius: 12px;
+    margin: 0 auto 1rem;
+    width: fit-content;
+}
+.admin-switcher button {
+    background: transparent;
+    border: 0;
+    color: rgba(244, 240, 230, 0.6);
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s ease;
+}
+.admin-switcher button:hover {
+    color: #f4f0e6;
+}
+.admin-switcher button.active {
+    background: #efa707;
+    color: #1a1a1a;
+}
