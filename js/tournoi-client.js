@@ -60,6 +60,22 @@
     function findEq(id) { return equipes.find(function (e) { return e.id === id; }); }
     function findPoule(id) { return poules.find(function (p) { return p.id === id; }); }
 
+    function formatLabel(f) {
+        switch (f) {
+            case '2sets_supertb': return '2 sets + super tie-break';
+            case '2sets_classique': return '2 sets + 3ᵉ set complet';
+            case 'proset_9jeux': return 'Pro set (9 jeux)';
+            case '1set_9jeux': return '1 set en 9 jeux';
+            case '1set_6jeux': return '1 set en 6 jeux';
+            case '1set_4jeux': return '1 set court (4 jeux)';
+            case 'supertb_10': return 'Super tie-break (10 pts)';
+            case 'supertb_15': return 'Super tie-break (15 pts)';
+            case 'americano': return 'Americano';
+            case 'libre': return null;
+        }
+        return null;
+    }
+
     function render() {
         var root = document.getElementById('tournoi-content');
         if (!root) return;
@@ -77,7 +93,11 @@
         // Header
         var header = el('div', { class: 'tournoi-live-header' });
         header.appendChild(el('h1', { class: 'tournoi-live-title' }, currentTournoi.nom));
-        if (currentTournoi.date) header.appendChild(el('p', { class: 'tournoi-live-subtitle' }, '📅 ' + currentTournoi.date));
+        var sub = '';
+        if (currentTournoi.date) sub += '📅 ' + currentTournoi.date;
+        var fmt = formatLabel(currentTournoi.format_score);
+        if (fmt) sub += (sub ? ' · ' : '') + '🎾 ' + fmt;
+        if (sub) header.appendChild(el('p', { class: 'tournoi-live-subtitle' }, sub));
         root.appendChild(header);
 
         // Matchs en cours (en haut, mis en avant)

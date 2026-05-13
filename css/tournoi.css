@@ -9,6 +9,10 @@
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #tournoi-root {
@@ -69,7 +73,38 @@
 .tournoi-form {
     display: flex;
     flex-direction: column;
-    max-width: 500px;
+    width: 100%;
+}
+
+/* Vue création centrée */
+.tournoi-create-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 200px);
+    padding: 2rem 1rem;
+}
+
+.tournoi-card--centered {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: center;
+}
+.tournoi-card--centered .tournoi-form {
+    text-align: left;
+}
+
+.format-hint {
+    font-size: 0.8rem;
+    color: rgba(244, 240, 230, 0.65);
+    line-height: 1.5;
+    margin-top: 0.6rem;
+    padding: 0.7rem 0.9rem;
+    background: rgba(244, 201, 65, 0.06);
+    border-left: 3px solid rgba(244, 201, 65, 0.4);
+    border-radius: 4px;
+    font-style: italic;
 }
 
 .tournoi-input {
@@ -117,28 +152,101 @@ select.tournoi-input option {
     display: block;
 }
 
+/* Layout 2 colonnes équipes / poules */
+
+.tournoi-setup-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+@media (max-width: 900px) {
+    .tournoi-setup-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tournoi-card--equipes {
+    display: flex;
+    flex-direction: column;
+}
+
+.tournoi-hint {
+    font-size: 0.8rem;
+    color: rgba(244, 240, 230, 0.6);
+    margin: -0.5rem 0 0.75rem 0;
+    line-height: 1.4;
+}
+
+.equipes-sub-head {
+    margin-top: 0.75rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(244, 240, 230, 0.5);
+    font-weight: 700;
+}
+
 /* Équipes */
 
 .equipes-list {
-    margin-top: 1rem;
+    margin-top: 0.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.4rem;
+    min-height: 80px;
+    padding: 0.4rem;
+    border-radius: 10px;
+    border: 1px dashed transparent;
+    transition: background 0.15s, border-color 0.15s;
+}
+.equipes-list--dropzone.drop-target,
+.poule-equipes--dropzone.drop-target {
+    background: rgba(244, 201, 65, 0.08);
+    border-color: rgba(244, 201, 65, 0.5);
 }
 
 .equipe-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.9rem;
+    gap: 0.6rem;
+    padding: 0.55rem 0.8rem;
     background: rgba(244, 240, 230, 0.05);
     border: 1px solid rgba(244, 240, 230, 0.12);
     border-radius: 10px;
+}
+.equipe-item--draggable {
+    cursor: grab;
+    user-select: none;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.1s;
+}
+.equipe-item--draggable:hover {
+    border-color: rgba(244, 201, 65, 0.4);
+    background: rgba(244, 240, 230, 0.08);
+}
+.equipe-item--draggable:active {
+    cursor: grabbing;
+}
+.equipe-item--draggable.dragging {
+    opacity: 0.4;
+    transform: scale(0.97);
+}
+.drag-handle {
+    color: rgba(244, 240, 230, 0.35);
+    font-size: 0.85rem;
+    letter-spacing: -1px;
+    line-height: 1;
+    cursor: grab;
 }
 .equipe-nom {
     flex: 1;
     font-weight: 500;
     color: #f4f0e6;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .icon-btn {
@@ -162,8 +270,8 @@ select.tournoi-input option {
 
 .poules-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.85rem;
     margin-top: 1rem;
 }
 
@@ -198,22 +306,36 @@ select.tournoi-input option {
     color: rgba(244, 240, 230, 0.7);
 }
 .poule-equipes {
-    list-style: none;
-    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.4rem;
     margin: 0;
+    border-radius: 10px;
+    border: 1px dashed transparent;
+    min-height: 60px;
+    transition: background 0.15s, border-color 0.15s;
 }
-.poule-equipes li {
+.poule-equipe-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.4rem 0;
-    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+    background: rgba(244, 240, 230, 0.04);
+    border: 1px solid rgba(244, 240, 230, 0.1);
+    border-radius: 8px;
+    font-size: 0.88rem;
+}
+.poule-equipe-item .tournoi-input--mini {
+    width: 3rem;
 }
 .poule-empty {
     color: rgba(244, 240, 230, 0.4);
     font-style: italic;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    text-align: center;
+    padding: 0.5rem;
+    margin: 0;
 }
 
 /* Matchs admin */
