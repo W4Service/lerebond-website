@@ -60,6 +60,61 @@
     function findEq(id) { return equipes.find(function (e) { return e.id === id; }); }
     function findPoule(id) { return poules.find(function (p) { return p.id === id; }); }
 
+    // Classement en temps réel d'une poule
+    var FORMAT_HAS_SETS = {
+        format_a: true, format_b: true, format_c: true, format_d: true,
+        format_e: false, americano: false, libre: false
+    };
+    function manche(raw) {
+        if (raw == null) return NaN;
+        var m = String(raw).match(/^(\d+)/);
+        return m ? parseInt(m[1], 10) : NaN;
+    }
+    function computeClassement(pouleId) {
+        var eqs = equipes.filter(function (e) { return e.poule_id === pouleId; });
+        var stats = {};
+        eqs.forEach(function (e) {
+            stats[e.id] = { id: e.id, nom: e.nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
+        });
+        var fmt = currentTournoi && currentTournoi.format_score;
+        var hasSets = FORMAT_HAS_SETS[fmt];
+
+        var matchsPoule = matchs.filter(function (m) {
+            return m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine';
+        });
+        matchsPoule.forEach(function (m) {
+            if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) return;
+            stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
+            if (m.vainqueur_id === m.equipe_a_id) { stats[m.equipe_a_id].v++; stats[m.equipe_b_id].d++; }
+            else if (m.vainqueur_id === m.equipe_b_id) { stats[m.equipe_b_id].v++; stats[m.equipe_a_id].d++; }
+            if (hasSets) {
+                var splitter = /[\s,/;]+/;
+                var aArr = (m.score_a || '').trim().split(splitter).filter(Boolean);
+                var bArr = (m.score_b || '').trim().split(splitter).filter(Boolean);
+                var n = Math.min(aArr.length, bArr.length);
+                for (var i = 0; i < n; i++) {
+                    var a = manche(aArr[i]), b = manche(bArr[i]);
+                    if (isNaN(a) || isNaN(b)) continue;
+                    stats[m.equipe_a_id].jg += a; stats[m.equipe_a_id].jp += b;
+                    stats[m.equipe_b_id].jg += b; stats[m.equipe_b_id].jp += a;
+                    if (a > b) { stats[m.equipe_a_id].sg++; stats[m.equipe_b_id].sp++; }
+                    else if (b > a) { stats[m.equipe_b_id].sg++; stats[m.equipe_a_id].sp++; }
+                }
+            }
+        });
+        var arr = Object.keys(stats).map(function (k) { return stats[k]; });
+        arr.sort(function (a, b) {
+            if (b.v !== a.v) return b.v - a.v;
+            var dsA = a.sg - a.sp, dsB = b.sg - b.sp;
+            if (dsB !== dsA) return dsB - dsA;
+            var djA = a.jg - a.jp, djB = b.jg - b.jp;
+            if (djB !== djA) return djB - djA;
+            return a.nom.localeCompare(b.nom);
+        });
+        arr.forEach(function (s, i) { s.pos = i + 1; });
+        return arr;
+    }
+
     function placeholderLabel(sourceOrdre, sourceType) {
         if (sourceOrdre == null || !sourceType) return '?';
         return (sourceType === 'gagnant' ? 'GM' : 'PM') + (sourceOrdre + 1);
@@ -231,20 +286,38 @@
         if (p.terrain) head.appendChild(el('span', { class: 'poule-live-terrain' }, 'Terrain ' + p.terrain));
         card.appendChild(head);
 
-        var eqs = equipes.filter(function (e) { return e.poule_id === p.id; })
-            .sort(function (a, b) {
-                if (a.classement_poule && b.classement_poule) return a.classement_poule - b.classement_poule;
-                if (a.classement_poule) return -1;
-                if (b.classement_poule) return 1;
-                return a.nom.localeCompare(b.nom);
-            });
+        var classement = computeClassement(p.id);
+        var fmt = currentTournoi && currentTournoi.format_score;
+        var showSets = FORMAT_HAS_SETS[fmt];
 
         var table = el('table', { class: 'poule-live-table' });
-        eqs.forEach(function (eq) {
+        // En-tête
+        var thead = el('tr', { class: 'poule-live-thead' });
+        thead.appendChild(el('th', null, '#'));
+        thead.appendChild(el('th', { style: 'text-align:left' }, 'Équipe'));
+        thead.appendChild(el('th', { title: 'Matchs joués' }, 'MJ'));
+        thead.appendChild(el('th', { title: 'Victoires' }, 'V'));
+        if (showSets) thead.appendChild(el('th', { title: 'Diff. sets' }, '±S'));
+        if (showSets) thead.appendChild(el('th', { title: 'Diff. jeux' }, '±J'));
+        table.appendChild(thead);
+
+        classement.forEach(function (s) {
+            var eq = findEq(s.id);
             var row = el('tr');
-            row.appendChild(el('td', { class: 'poule-pos' }, eq.classement_poule ? '#' + eq.classement_poule : '·'));
-            row.appendChild(el('td', { class: 'poule-eq' }, eq.nom));
-            if (eq.qualifie) row.appendChild(el('td', { class: 'poule-qualif' }, '✓'));
+            row.appendChild(el('td', { class: 'poule-pos' }, s.mj > 0 ? '#' + s.pos : '·'));
+            var nomTd = el('td', { class: 'poule-eq' }, eq ? eq.nom : s.nom);
+            if (eq && eq.qualifie) nomTd.appendChild(document.createTextNode(' ✓'));
+            row.appendChild(nomTd);
+            row.appendChild(el('td', { class: 'poule-stat' }, String(s.mj)));
+            row.appendChild(el('td', { class: 'poule-stat poule-stat--v' }, String(s.v)));
+            if (showSets) {
+                var ds = s.sg - s.sp;
+                row.appendChild(el('td', { class: 'poule-stat' }, (ds >= 0 ? '+' : '') + ds));
+            }
+            if (showSets) {
+                var dj = s.jg - s.jp;
+                row.appendChild(el('td', { class: 'poule-stat' }, (dj >= 0 ? '+' : '') + dj));
+            }
             table.appendChild(row);
         });
         card.appendChild(table);

@@ -430,6 +430,30 @@ select.tournoi-input option {
 
 /* Matchs admin */
 
+.format-banner {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background: rgba(244, 201, 65, 0.08);
+    border: 1px solid rgba(244, 201, 65, 0.3);
+    border-radius: 10px;
+}
+.format-banner-label {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    letter-spacing: 0.05em;
+    font-size: 0.9rem;
+}
+.format-banner-example {
+    color: rgba(244, 240, 230, 0.7);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
 .terrain-section {
     margin-bottom: 1.5rem;
 }
@@ -795,24 +819,67 @@ select.tournoi-input option {
     width: 100%;
     border-collapse: collapse;
 }
+.poule-live-table th,
 .poule-live-table td {
     padding: 0.4rem 0.3rem;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     color: #f4f0e6;
+}
+.poule-live-thead th {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(244, 240, 230, 0.45);
+    font-weight: 700;
+    text-align: center;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.1);
+    padding-bottom: 0.5rem;
+}
+.poule-live-thead th:nth-child(2) {
+    text-align: left;
 }
 .poule-pos {
     color: #efa707;
     font-weight: 700;
-    width: 30px;
+    width: 32px;
+    font-family: 'Turret Road', sans-serif;
 }
 .poule-eq {
     width: auto;
+}
+.poule-stat {
+    text-align: center;
+    color: rgba(244, 240, 230, 0.85);
+    font-variant-numeric: tabular-nums;
+    width: 36px;
+}
+.poule-stat--v {
+    color: #f4c941;
+    font-weight: 700;
 }
 .poule-qualif {
     color: #f4c941;
     font-weight: 700;
     text-align: right;
     width: 30px;
+}
+
+/* Badges classement dans la vue admin poules */
+.poule-pos-badge {
+    color: #efa707;
+    font-weight: 700;
+    font-family: 'Turret Road', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 0.4rem;
+    background: rgba(239, 167, 7, 0.12);
+    border-radius: 6px;
+}
+.poule-stats {
+    font-size: 0.78rem;
+    color: rgba(244, 240, 230, 0.55);
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
 }
 
 /* État vide */
