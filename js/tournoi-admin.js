@@ -157,33 +157,84 @@
         render();
     }
 
-    // ===== Génération des matchs round-robin =====
+    // ===== Génération des matchs =====
+
+    function shuffle(arr) {
+        var a = arr.slice();
+        for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+    }
+
+    // Construit les matchs d'une poule selon le format choisi.
+    // - 'round_robin' : toutes les paires
+    // - 'croise4'     : format 4 équipes avec dépendances (M3=PM2/GM1, M4=GM2/PM1, M5=PM1/PM2, M6=GM1/GM2)
+    function buildMatchsPoule(poule, format) {
+        var eqs = equipes.filter(function (e) { return e.poule_id === poule.id; });
+        var base = { tournoi_id: currentTournoi.id, phase: 'poule', poule_id: poule.id, terrain: poule.terrain, status: 'en_attente' };
+        var out = [];
+        var ordre = 0;
+
+        if (format === 'croise4' && eqs.length === 4) {
+            var picked = shuffle(eqs);
+            // M1 : picked[0] vs picked[1]
+            out.push(Object.assign({}, base, { ordre: ordre++, equipe_a_id: picked[0].id, equipe_b_id: picked[1].id }));
+            // M2 : picked[2] vs picked[3]
+            out.push(Object.assign({}, base, { ordre: ordre++, equipe_a_id: picked[2].id, equipe_b_id: picked[3].id }));
+            // M3 : PM2 vs GM1
+            out.push(Object.assign({}, base, { ordre: ordre++,
+                equipe_a_source_ordre: 1, equipe_a_source_type: 'perdant',
+                equipe_b_source_ordre: 0, equipe_b_source_type: 'gagnant' }));
+            // M4 : GM2 vs PM1
+            out.push(Object.assign({}, base, { ordre: ordre++,
+                equipe_a_source_ordre: 1, equipe_a_source_type: 'gagnant',
+                equipe_b_source_ordre: 0, equipe_b_source_type: 'perdant' }));
+            // M5 : PM1 vs PM2 (petite finale)
+            out.push(Object.assign({}, base, { ordre: ordre++,
+                equipe_a_source_ordre: 0, equipe_a_source_type: 'perdant',
+                equipe_b_source_ordre: 1, equipe_b_source_type: 'perdant' }));
+            // M6 : GM1 vs GM2 (grande finale)
+            out.push(Object.assign({}, base, { ordre: ordre++,
+                equipe_a_source_ordre: 0, equipe_a_source_type: 'gagnant',
+                equipe_b_source_ordre: 1, equipe_b_source_type: 'gagnant' }));
+            return out;
+        }
+
+        // Round-robin par défaut
+        for (var i = 0; i < eqs.length; i++) {
+            for (var j = i + 1; j < eqs.length; j++) {
+                out.push(Object.assign({}, base, { ordre: ordre++, equipe_a_id: eqs[i].id, equipe_b_id: eqs[j].id }));
+            }
+        }
+        return out;
+    }
 
     async function genererMatchsPoules() {
-        if (!confirm('Générer tous les matchs de poule en round-robin ? Les matchs de poule existants seront supprimés.')) return;
+        // Pour chaque poule, demander le format (si 4 équipes, proposer croisé)
+        var formatsParPoule = {};
+        for (var i = 0; i < poules.length; i++) {
+            var p = poules[i];
+            var nbEqs = equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+            if (nbEqs < 2) { formatsParPoule[p.id] = null; continue; }
+            if (nbEqs === 4) {
+                var useCroise = confirm(p.nom + ' (4 équipes) : utiliser le format croisé (M1, M2 tirés au sort, puis PM2/GM1, GM2/PM1, PM1/PM2, GM1/GM2) ?\n\nAnnuler = round-robin classique (toutes les paires).');
+                formatsParPoule[p.id] = useCroise ? 'croise4' : 'round_robin';
+            } else {
+                formatsParPoule[p.id] = 'round_robin';
+            }
+        }
 
-        // Delete existing match matchs of phase 'poule' for this tournament
+        if (!confirm('Générer tous les matchs de poule ? Les matchs de poule existants seront supprimés.')) return;
+
         await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'poule');
 
         var newMatchs = [];
         poules.forEach(function (poule) {
-            var eqs = equipes.filter(function (e) { return e.poule_id === poule.id; });
-            var ordre = 0;
-            // Round-robin
-            for (var i = 0; i < eqs.length; i++) {
-                for (var j = i + 1; j < eqs.length; j++) {
-                    newMatchs.push({
-                        tournoi_id: currentTournoi.id,
-                        phase: 'poule',
-                        poule_id: poule.id,
-                        terrain: poule.terrain,
-                        equipe_a_id: eqs[i].id,
-                        equipe_b_id: eqs[j].id,
-                        ordre: ordre++,
-                        status: 'en_attente'
-                    });
-                }
-            }
+            var fmt = formatsParPoule[poule.id];
+            if (!fmt) return;
+            newMatchs = newMatchs.concat(buildMatchsPoule(poule, fmt));
         });
 
         if (newMatchs.length === 0) {
@@ -196,10 +247,79 @@
         matchs = matchs.filter(function (m) { return m.phase !== 'poule' });
         matchs = matchs.concat(res.data);
 
-        // Update tournament phase
         await updateTournoi({ phase: 'poules' });
-
         showToast(newMatchs.length + ' matchs de poule générés', 'ok');
+        render();
+    }
+
+    // ===== Résolution des dépendances (GM/PM) =====
+
+    // Renvoie l'id d'équipe correspondant à un placeholder, ou null si non encore résolu.
+    function resolveSource(pouleId, sourceOrdre, sourceType) {
+        if (sourceOrdre == null || !sourceType) return null;
+        var src = matchs.find(function (m) {
+            return m.poule_id === pouleId && m.phase === 'poule' && m.ordre === sourceOrdre;
+        });
+        if (!src || src.status !== 'termine' || !src.vainqueur_id) return null;
+        if (sourceType === 'gagnant') return src.vainqueur_id;
+        // perdant = l'autre équipe
+        if (src.equipe_a_id && src.equipe_b_id) {
+            return src.vainqueur_id === src.equipe_a_id ? src.equipe_b_id : src.equipe_a_id;
+        }
+        return null;
+    }
+
+    // Pour chaque match dépendant de la poule, met à jour equipe_a_id / equipe_b_id si la source est résolue.
+    async function propagateDependencies(pouleId) {
+        var updates = [];
+        matchs.forEach(function (m) {
+            if (m.poule_id !== pouleId || m.phase !== 'poule') return;
+            var patch = {};
+            if (!m.equipe_a_id && m.equipe_a_source_ordre != null) {
+                var resolvedA = resolveSource(pouleId, m.equipe_a_source_ordre, m.equipe_a_source_type);
+                if (resolvedA) patch.equipe_a_id = resolvedA;
+            }
+            if (!m.equipe_b_id && m.equipe_b_source_ordre != null) {
+                var resolvedB = resolveSource(pouleId, m.equipe_b_source_ordre, m.equipe_b_source_type);
+                if (resolvedB) patch.equipe_b_id = resolvedB;
+            }
+            if (Object.keys(patch).length > 0) updates.push({ id: m.id, patch: patch });
+        });
+        for (var i = 0; i < updates.length; i++) {
+            var u = updates[i];
+            var res = await supa.from('matchs').update(u.patch).eq('id', u.id).select().single();
+            if (!res.error) {
+                var idx = matchs.findIndex(function (m) { return m.id === u.id; });
+                if (idx >= 0) matchs[idx] = res.data;
+            }
+        }
+    }
+
+    // Quand un match est réinitialisé/score effacé : reset les matchs dépendants (cascading).
+    async function cascadeReset(pouleId, ordre) {
+        var dependants = matchs.filter(function (m) {
+            return m.poule_id === pouleId && m.phase === 'poule' && (
+                m.equipe_a_source_ordre === ordre || m.equipe_b_source_ordre === ordre
+            );
+        });
+        for (var i = 0; i < dependants.length; i++) {
+            var d = dependants[i];
+            var patch = {
+                status: 'en_attente',
+                score_a: null, score_b: null, vainqueur_id: null,
+                started_at: null, finished_at: null,
+                updated_at: new Date().toISOString()
+            };
+            if (d.equipe_a_source_ordre === ordre) patch.equipe_a_id = null;
+            if (d.equipe_b_source_ordre === ordre) patch.equipe_b_id = null;
+            var res = await supa.from('matchs').update(patch).eq('id', d.id).select().single();
+            if (!res.error) {
+                var idx = matchs.findIndex(function (m) { return m.id === d.id; });
+                if (idx >= 0) matchs[idx] = res.data;
+                // Cascade récursif
+                await cascadeReset(pouleId, d.ordre);
+            }
+        }
     }
 
     // ===== Match : actions admin =====
@@ -240,12 +360,18 @@
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         var i = matchs.findIndex(function (m) { return m.id === matchId });
         if (i >= 0) matchs[i] = res.data;
+
+        // Si un vainqueur est désigné, propager aux matchs dépendants de cette poule
+        if (vainqueurId && res.data.poule_id) {
+            await propagateDependencies(res.data.poule_id);
+        }
         render();
         showToast('Score enregistré', 'ok');
     }
 
     async function resetMatch(matchId) {
-        if (!confirm('Réinitialiser ce match (effacer le score) ?')) return;
+        if (!confirm('Réinitialiser ce match (effacer le score) ?\n\n⚠️ Les matchs dépendants de ce résultat seront aussi réinitialisés.')) return;
+        var match = matchs.find(function (m) { return m.id === matchId; });
         var res = await supa.from('matchs').update({
             score_a: null, score_b: null, vainqueur_id: null,
             status: 'en_attente', started_at: null, finished_at: null,
@@ -254,6 +380,11 @@
         if (res.error) { showToast('Erreur', 'error'); return; }
         var i = matchs.findIndex(function (m) { return m.id === matchId });
         if (i >= 0) matchs[i] = res.data;
+
+        // Cascade reset des matchs dépendants
+        if (match && match.poule_id != null) {
+            await cascadeReset(match.poule_id, match.ordre);
+        }
         render();
     }
 
@@ -582,19 +713,37 @@
         return card;
     }
 
+    function placeholderLabel(sourceOrdre, sourceType) {
+        if (sourceOrdre == null || !sourceType) return '?';
+        var prefix = sourceType === 'gagnant' ? 'GM' : 'PM';
+        return prefix + (sourceOrdre + 1);
+    }
+
+    function equipeLabel(m, side) {
+        var id = side === 'a' ? m.equipe_a_id : m.equipe_b_id;
+        if (id) {
+            var eq = equipes.find(function (e) { return e.id === id; });
+            return eq ? eq.nom : '?';
+        }
+        var sOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
+        var sType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
+        return placeholderLabel(sOrdre, sType);
+    }
+
     function renderMatchAdmin(m) {
         var eqA = equipes.find(function (e) { return e.id === m.equipe_a_id; });
         var eqB = equipes.find(function (e) { return e.id === m.equipe_b_id; });
         var poule = poules.find(function (p) { return p.id === m.poule_id; });
+        var ready = !!(m.equipe_a_id && m.equipe_b_id);
 
-        var card = el('div', { class: 'match-item match-item--' + m.status });
+        var card = el('div', { class: 'match-item match-item--' + m.status + (ready ? '' : ' match-item--pending-dep') });
 
         var header = el('div', { class: 'match-header' });
-        header.appendChild(el('span', { class: 'match-meta' }, (poule ? poule.nom + ' · ' : '') + 'Match ' + (m.ordre + 1) + ' · ' + statusLabel(m.status)));
+        header.appendChild(el('span', { class: 'match-meta' }, (poule ? poule.nom + ' · ' : '') + 'Match ' + (m.ordre + 1) + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent')));
         card.appendChild(header);
 
         var body = el('div', { class: 'match-body' });
-        body.appendChild(el('span', { class: 'match-equipe' }, eqA ? eqA.nom : '?'));
+        body.appendChild(el('span', { class: 'match-equipe' + (eqA ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'a')));
 
         // Si terminé : affiche le score, sinon inputs
         if (m.status === 'en_cours' || m.status === 'termine') {
@@ -607,14 +756,18 @@
             body.appendChild(el('span', { class: 'match-vs' }, 'vs'));
         }
 
-        body.appendChild(el('span', { class: 'match-equipe' }, eqB ? eqB.nom : '?'));
+        body.appendChild(el('span', { class: 'match-equipe' + (eqB ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'b')));
         card.appendChild(body);
 
         // Actions
         var actions = el('div', { class: 'match-actions' });
 
         if (m.status === 'en_attente') {
-            actions.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: function () { startMatch(m.id); } }, '▶ Démarrer'));
+            if (ready) {
+                actions.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: function () { startMatch(m.id); } }, '▶ Démarrer'));
+            } else {
+                actions.appendChild(el('span', { class: 'match-dep-hint' }, '⏳ équipes pas encore déterminées'));
+            }
         } else if (m.status === 'en_cours' || m.status === 'termine') {
             // Vainqueur select
             var vSelect = el('select', { id: 'vainqueur-' + m.id, class: 'tournoi-input tournoi-input--mini' });

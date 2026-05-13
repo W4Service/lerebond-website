@@ -60,6 +60,21 @@
     function findEq(id) { return equipes.find(function (e) { return e.id === id; }); }
     function findPoule(id) { return poules.find(function (p) { return p.id === id; }); }
 
+    function placeholderLabel(sourceOrdre, sourceType) {
+        if (sourceOrdre == null || !sourceType) return '?';
+        return (sourceType === 'gagnant' ? 'GM' : 'PM') + (sourceOrdre + 1);
+    }
+    function equipeNomFromMatch(m, side) {
+        var id = side === 'a' ? m.equipe_a_id : m.equipe_b_id;
+        if (id) {
+            var eq = findEq(id);
+            return eq ? eq.nom : '?';
+        }
+        var sOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
+        var sType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
+        return placeholderLabel(sOrdre, sType);
+    }
+
     function formatLabel(f) {
         switch (f) {
             case '2sets_supertb': return '2 sets + super tie-break';
@@ -168,13 +183,13 @@
             (poule ? poule.nom + ' · ' : '') + (m.terrain ? 'Terrain ' + m.terrain : '')
         ));
         var body = el('div', { class: 'live-match-body' });
-        body.appendChild(el('div', { class: 'live-match-equipe' }, eqA ? eqA.nom : '?'));
+        body.appendChild(el('div', { class: 'live-match-equipe' + (eqA ? '' : ' live-match-equipe--placeholder') }, equipeNomFromMatch(m, 'a')));
         var scoreEl = el('div', { class: 'live-match-score' });
         scoreEl.appendChild(el('span', null, m.score_a || '–'));
         scoreEl.appendChild(el('span', { class: 'score-sep' }, ':'));
         scoreEl.appendChild(el('span', null, m.score_b || '–'));
         body.appendChild(scoreEl);
-        body.appendChild(el('div', { class: 'live-match-equipe' }, eqB ? eqB.nom : '?'));
+        body.appendChild(el('div', { class: 'live-match-equipe' + (eqB ? '' : ' live-match-equipe--placeholder') }, equipeNomFromMatch(m, 'b')));
         card.appendChild(body);
 
         var pulse = el('span', { class: 'live-pulse' });
@@ -187,8 +202,8 @@
         var eqB = findEq(m.equipe_b_id);
 
         var item = el('div', { class: 'match-mini' });
-        var nomA = el('span', { class: 'match-mini-equipe' }, eqA ? eqA.nom : '?');
-        var nomB = el('span', { class: 'match-mini-equipe' }, eqB ? eqB.nom : '?');
+        var nomA = el('span', { class: 'match-mini-equipe' + (eqA ? '' : ' match-mini-equipe--placeholder') }, equipeNomFromMatch(m, 'a'));
+        var nomB = el('span', { class: 'match-mini-equipe' + (eqB ? '' : ' match-mini-equipe--placeholder') }, equipeNomFromMatch(m, 'b'));
         if (m.vainqueur_id === m.equipe_a_id) nomA.classList.add('vainqueur');
         if (m.vainqueur_id === m.equipe_b_id) nomB.classList.add('vainqueur');
 
