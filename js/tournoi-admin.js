@@ -299,16 +299,19 @@
             root.appendChild(renderCreate());
         } else {
             root.appendChild(renderHeader());
-            root.appendChild(renderPoulesSection());
-            root.appendChild(renderEquipesSection());
+            var setup = el('div', { class: 'tournoi-setup-grid' });
+            setup.appendChild(renderEquipesSection());
+            setup.appendChild(renderPoulesSection());
+            root.appendChild(setup);
             root.appendChild(renderMatchsSection());
         }
     }
 
     function renderCreate() {
-        var card = el('div', { class: 'tournoi-card' });
+        var wrap = el('div', { class: 'tournoi-create-wrap' });
+        var card = el('div', { class: 'tournoi-card tournoi-card--centered' });
         card.appendChild(el('h2', { class: 'tournoi-title' }, '🏆 Créer un tournoi'));
-        card.appendChild(el('p', { class: 'tournoi-subtitle' }, 'Aucun tournoi actif. Crée-en un nouveau ci-dessous.'));
+        card.appendChild(el('p', { class: 'tournoi-subtitle', style: 'margin-bottom:1.5rem' }, 'Aucun tournoi actif. Crée-en un nouveau ci-dessous.'));
 
         var form = el('div', { class: 'tournoi-form' });
 
@@ -324,15 +327,32 @@
         var inputTerrains = el('input', { type: 'number', min: '1', max: '10', value: '3', class: 'tournoi-input' });
         form.appendChild(el('div', { class: 'input-group' }, inputTerrains));
 
-        form.appendChild(el('label', { class: 'control-label', style: 'margin-top:1rem' }, 'Format de score'));
+        form.appendChild(el('label', { class: 'control-label', style: 'margin-top:1rem' }, 'Format de score (FFT Padel)'));
         var selectFormat = el('select', { class: 'tournoi-input' });
-        ['libre', 'sets', 'points'].forEach(function (v) {
-            var opt = el('option', { value: v }, v === 'libre' ? 'Libre (texte)' : v === 'sets' ? 'Sets (ex: 6-4 6-3)' : 'Points (ex: 21-15)');
-            selectFormat.appendChild(opt);
+        var fftFormats = [
+            { v: '2sets_supertb', label: '2 sets + super tie-break (officiel FFT)' },
+            { v: '2sets_classique', label: '2 sets + 3ᵉ set complet (long)' },
+            { v: 'proset_9jeux', label: 'Pro set : 1 set à 9 jeux (TB à 8-8)' },
+            { v: '1set_6jeux', label: '1 set à 6 jeux (TB à 6-6)' },
+            { v: '1set_4jeux', label: '1 set court à 4 jeux (TB à 3-3)' },
+            { v: 'supertb_10', label: 'Super tie-break seul à 10 points' },
+            { v: 'supertb_15', label: 'Super tie-break seul à 15 points' },
+            { v: 'americano', label: 'Americano (points cumulés)' },
+            { v: 'libre', label: 'Libre (saisie texte personnalisée)' }
+        ];
+        fftFormats.forEach(function (f) {
+            selectFormat.appendChild(el('option', { value: f.v }, f.label));
         });
         form.appendChild(el('div', { class: 'input-group input-group--full' }, selectFormat));
 
-        var btn = el('button', { class: 'btn-live btn-live--primary', style: 'margin-top:1.5rem', onclick: createTournoi }, 'Créer le tournoi');
+        // Description du format choisi
+        var formatHint = el('p', { class: 'format-hint' }, getFormatHint('2sets_supertb'));
+        form.appendChild(formatHint);
+        selectFormat.addEventListener('change', function () {
+            formatHint.textContent = getFormatHint(selectFormat.value);
+        });
+
+        var btn = el('button', { class: 'btn-live btn-live--primary', style: 'margin-top:1.5rem;width:100%', onclick: createTournoi }, 'Créer le tournoi');
         form.appendChild(btn);
         card.appendChild(form);
 
@@ -342,7 +362,32 @@
         els.tTerrains = inputTerrains;
         els.tFormat = selectFormat;
 
-        return card;
+        wrap.appendChild(card);
+        return wrap;
+    }
+
+    function getFormatHint(format) {
+        switch (format) {
+            case '2sets_supertb':
+                return 'Le plus utilisé en compétition padel FFT. 2 sets gagnants en 6 jeux, tie-break à 6-6. Si 1 set partout, super tie-break à 10 points (avec 2 d\'écart).';
+            case '2sets_classique':
+                return 'Format long classique : 2 sets gagnants en 6 jeux. 3ᵉ set complet (pas de super tie-break) si 1-1.';
+            case 'proset_9jeux':
+                return 'Pro set : 1 set en 9 jeux gagnants. Tie-break à 8-8. Format intermédiaire entre les sets et le tie-break.';
+            case '1set_6jeux':
+                return 'Format rapide : 1 set en 6 jeux gagnants. Tie-break à 6-6.';
+            case '1set_4jeux':
+                return 'Format très rapide : 1 set court en 4 jeux gagnants. Tie-break à 3-3. Idéal pour tournois multi-chances ou poules denses.';
+            case 'supertb_10':
+                return 'Un seul super tie-break à 10 points (avec 2 d\'écart). Format ultra-rapide pour formats internes club.';
+            case 'supertb_15':
+                return 'Un seul super tie-break à 15 points (avec 2 d\'écart). Un peu plus long que le 10 points.';
+            case 'americano':
+                return 'Format Americano : on compte les points marqués pendant un temps donné (ex: 16 ou 24 points par match). Saisie libre dans le score.';
+            case 'libre':
+                return 'Saisie libre : tu écris ce que tu veux dans le score (ex: « 21 » pour des points, « 6-4 6-3 » pour des sets, etc.).';
+        }
+        return '';
     }
 
     function renderHeader() {
@@ -364,9 +409,46 @@
         return card;
     }
 
+    function makeDraggableEquipe(item, eq) {
+        item.setAttribute('draggable', 'true');
+        item.dataset.equipeId = eq.id;
+        item.addEventListener('dragstart', function (e) {
+            e.dataTransfer.setData('text/plain', String(eq.id));
+            e.dataTransfer.effectAllowed = 'move';
+            item.classList.add('dragging');
+        });
+        item.addEventListener('dragend', function () {
+            item.classList.remove('dragging');
+        });
+    }
+
+    function makeDropZonePoule(zone, pouleId) {
+        zone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            zone.classList.add('drop-target');
+        });
+        zone.addEventListener('dragleave', function (e) {
+            if (e.target === zone) zone.classList.remove('drop-target');
+        });
+        zone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            zone.classList.remove('drop-target');
+            var equipeId = e.dataTransfer.getData('text/plain');
+            if (!equipeId) return;
+            // Préserver le type original (string si UUID, number si int)
+            var eq = equipes.find(function (x) { return String(x.id) === equipeId; });
+            if (!eq) return;
+            if (eq.poule_id === pouleId) return; // no-op
+            assignEquipePoule(eq.id, pouleId);
+        });
+    }
+
     function renderEquipesSection() {
-        var card = el('div', { class: 'tournoi-card' });
+        var card = el('div', { class: 'tournoi-card tournoi-card--equipes' });
+        var unassigned = equipes.filter(function (e) { return !e.poule_id; });
         card.appendChild(el('h3', { class: 'tournoi-section-title' }, '👥 Équipes (' + equipes.length + ')'));
+        card.appendChild(el('p', { class: 'tournoi-hint' }, '💡 Glisse une équipe sur une poule à droite pour l\'assigner.'));
 
         // Form ajout équipe
         var addForm = el('div', { class: 'setup-row' });
@@ -377,28 +459,29 @@
         card.appendChild(addForm);
         els.eqNom = inputEq;
 
-        // Liste équipes
-        if (equipes.length > 0) {
-            var list = el('div', { class: 'equipes-list' });
-            equipes.forEach(function (eq) {
-                var item = el('div', { class: 'equipe-item' });
+        // Sous-titre + zone de dépôt pour "désassigner"
+        var sub = el('div', { class: 'equipes-sub-head' });
+        sub.appendChild(el('span', null, 'Non assignées (' + unassigned.length + ')'));
+        card.appendChild(sub);
+
+        var unassignedZone = el('div', { class: 'equipes-list equipes-list--dropzone' });
+        makeDropZonePoule(unassignedZone, null);
+
+        if (unassigned.length === 0) {
+            unassignedZone.appendChild(el('p', { class: 'poule-empty' }, equipes.length === 0
+                ? 'Aucune équipe. Ajoute-en ci-dessus.'
+                : 'Toutes les équipes sont assignées. Dépose ici pour retirer d\'une poule.'));
+        } else {
+            unassigned.forEach(function (eq) {
+                var item = el('div', { class: 'equipe-item equipe-item--draggable' });
+                item.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
                 item.appendChild(el('span', { class: 'equipe-nom' }, eq.nom));
-
-                // Selecteur poule
-                var sel = el('select', { class: 'tournoi-input tournoi-input--mini', onchange: function (e) { assignEquipePoule(eq.id, e.target.value); } });
-                sel.appendChild(el('option', { value: '' }, '— Sans poule —'));
-                poules.forEach(function (p) {
-                    var opt = el('option', { value: p.id }, p.nom);
-                    if (eq.poule_id === p.id) opt.selected = true;
-                    sel.appendChild(opt);
-                });
-                item.appendChild(sel);
-
                 item.appendChild(el('button', { class: 'icon-btn icon-btn--danger', onclick: function () { deleteEquipe(eq.id); }, title: 'Supprimer' }, '🗑'));
-                list.appendChild(item);
+                makeDraggableEquipe(item, eq);
+                unassignedZone.appendChild(item);
             });
-            card.appendChild(list);
         }
+        card.appendChild(unassignedZone);
 
         return card;
     }
@@ -434,19 +517,22 @@
                 head.appendChild(el('button', { class: 'icon-btn icon-btn--danger', onclick: function () { deletePoule(p.id); }, title: 'Supprimer' }, '🗑'));
                 pcard.appendChild(head);
 
-                // Équipes de la poule
+                // Équipes de la poule (zone de drop)
                 var eqs = equipes.filter(function (e) { return e.poule_id === p.id; });
-                var elist = el('ul', { class: 'poule-equipes' });
+                var elist = el('div', { class: 'poule-equipes poule-equipes--dropzone' });
+                makeDropZonePoule(elist, p.id);
                 if (eqs.length === 0) {
-                    elist.appendChild(el('li', { class: 'poule-empty' }, 'Aucune équipe assignée'));
+                    elist.appendChild(el('p', { class: 'poule-empty' }, 'Dépose une équipe ici'));
                 } else {
                     eqs.forEach(function (eq) {
-                        var li = el('li');
-                        li.appendChild(el('span', null, eq.nom));
+                        var row = el('div', { class: 'poule-equipe-item equipe-item--draggable' });
+                        row.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
+                        row.appendChild(el('span', { class: 'equipe-nom' }, eq.nom));
                         // Classement input
-                        var classInp = el('input', { type: 'number', min: '1', max: eqs.length, value: eq.classement_poule || '', class: 'tournoi-input tournoi-input--mini', placeholder: 'pos', style: 'width:3rem', title: 'Classement final dans la poule', onchange: function (e) { setClassementPoule(eq.id, parseInt(e.target.value)); } });
-                        li.appendChild(classInp);
-                        elist.appendChild(li);
+                        var classInp = el('input', { type: 'number', min: '1', max: eqs.length, value: eq.classement_poule || '', class: 'tournoi-input tournoi-input--mini', placeholder: 'pos', title: 'Classement final dans la poule', onchange: function (e) { setClassementPoule(eq.id, parseInt(e.target.value)); } });
+                        row.appendChild(classInp);
+                        makeDraggableEquipe(row, eq);
+                        elist.appendChild(row);
                     });
                 }
                 pcard.appendChild(elist);
