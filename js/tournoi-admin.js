@@ -388,6 +388,31 @@
         var vainqueurSel = document.getElementById('vainqueur-' + matchId);
         var vainqueurId = vainqueurSel ? vainqueurSel.value || null : null;
 
+        // Validation du score selon le format
+        var fmt = currentTournoi && currentTournoi.format_score;
+        var validation = validateScore(scoreA, scoreB, fmt);
+        if (!validation.ok) {
+            showToast('Score invalide : ' + validation.error, 'error');
+            return;
+        }
+
+        // Auto-déduction du vainqueur si la validation l'a trouvé et qu'aucun n'est sélectionné
+        if (!vainqueurId && validation.vainqueurSide) {
+            var match = matchs.find(function (m) { return m.id === matchId; });
+            if (match) {
+                vainqueurId = validation.vainqueurSide === 'a' ? match.equipe_a_id : match.equipe_b_id;
+            }
+        }
+        // Cohérence : si l'admin a choisi un vainqueur, vérifier qu'il correspond au score
+        if (vainqueurId && validation.vainqueurSide) {
+            var match2 = matchs.find(function (m) { return m.id === matchId; });
+            var expectedId = validation.vainqueurSide === 'a' ? match2.equipe_a_id : match2.equipe_b_id;
+            if (expectedId && vainqueurId !== expectedId) {
+                showToast('Le vainqueur sélectionné ne correspond pas au score saisi.', 'error');
+                return;
+            }
+        }
+
         var res = await supa.from('matchs').update({
             score_a: scoreA,
             score_b: scoreB,
@@ -608,6 +633,214 @@
         return '';
     }
 
+    // ===== Règles de format & validation des scores =====
+    // Chaque règle décrit ce qu'un score doit ressembler pour le format choisi.
+    // - sets : nombre de sets gagnants requis (null = pas de notion de set classique)
+    // - jeux : nombre de jeux pour gagner un set (null = pas de set)
+    // - tb : score cible du tie-break dans le set (7 = TB à 6-6 jusqu'à 7, etc.)
+    // - superTb : super tie-break (à 10) à la place du set décisif (true/false)
+    // - superTbOnly : un seul super tie-break (Format E)
+    // - libre : pas de validation
+    var FORMAT_RULES = {
+        format_a: { sets: 2, jeux: 6, tb: 7,  superTb: false }, // 3 sets gagnants en 6 jeux (donc 2 sets gagnants suffisent)
+        format_b: { sets: 2, jeux: 6, tb: 7,  superTb: true  },
+        format_c: { sets: 2, jeux: 4, tb: 5,  superTb: true  }, // TB à 4-4 jusqu'à 5
+        format_d: { sets: 1, jeux: 9, tb: 7,  superTb: false }, // 1 set en 9 jeux, TB à 8-8 jusqu'à 7
+        format_e: { superTbOnly: true },
+        americano: { libre: true },
+        libre:     { libre: true }
+    };
+
+    // Note: pour format_a (3 sets gagnants), on en a besoin = 2 sets gagnants ? FFT 2026 = "3 sets de 6 jeux".
+    // 3 sets de 6 jeux = best of 5 ? Ou 2 sets gagnants sur 3 ? Le guide FFT décrit 2 sets gagnants pour A et B.
+    // On part sur 2 sets gagnants pour A (sans super TB) = identique à B mais avec 3e set complet en cas de 1-1.
+
+    function formatShortLabel(f) {
+        switch (f) {
+            case 'format_a': return 'Format A · 3 sets de 6 jeux (TB à 7)';
+            case 'format_b': return 'Format B · 2 sets de 6 jeux + super TB à 10';
+            case 'format_c': return 'Format C · 2 sets de 4 jeux + super TB à 10';
+            case 'format_d': return 'Format D · 1 set de 9 jeux (TB à 7)';
+            case 'format_e': return 'Format E · super TB à 10';
+            case 'americano': return 'Americano (points cumulés)';
+            case 'libre': return 'Libre';
+        }
+        return f || 'Libre';
+    }
+
+    function formatExample(f) {
+        switch (f) {
+            case 'format_a': return 'Ex : 6-4 6-3  ·  6-7(5) 6-4 6-2';
+            case 'format_b': return 'Ex : 6-4 6-3  ·  6-4 4-6 10-7';
+            case 'format_c': return 'Ex : 4-2 4-1  ·  4-2 2-4 10-8';
+            case 'format_d': return 'Ex : 9-5  ·  9-8(7-4)';
+            case 'format_e': return 'Ex : 10-7  ·  12-10';
+            case 'americano': return 'Ex : 21  ·  24';
+            case 'libre': return '';
+        }
+        return '';
+    }
+
+    // Parse un score brut en liste de "manches" (nombres). Renvoie [] si vide.
+    // Sépare sur espaces, slashes, virgules ou points-virgules.
+    function parseScoreSides(scoreA, scoreB) {
+        var splitter = /[\s,/;]+/;
+        var a = (scoreA || '').trim().split(splitter).filter(Boolean);
+        var b = (scoreB || '').trim().split(splitter).filter(Boolean);
+        return { a: a, b: b };
+    }
+
+    // Extrait le score numérique d'une manche, en ignorant un éventuel TB entre parenthèses : "7(5)" -> 7
+    function manche(raw) {
+        if (raw == null) return NaN;
+        var m = String(raw).match(/^(\d+)/);
+        return m ? parseInt(m[1], 10) : NaN;
+    }
+
+    // Détermine si un set [a, b] est gagné selon les règles données.
+    // Renvoie 'a', 'b' ou null (set non terminé / invalide).
+    function setWinner(a, b, rule) {
+        if (isNaN(a) || isNaN(b)) return null;
+        var target = rule.jeux;
+        var tbCap = rule.tb;     // valeur max du jeu décisif (ex: 7)
+        var tbAt = target;        // TB joué à target-target (ex: 6-6 ou 4-4 ou 8-8 pour set de 9)
+        // Cas particulier set de 9 : TB se joue à 8-8 jusqu'à 7
+        if (target === 9) tbAt = 8;
+        // Victoire classique : atteint target avec 2 d'écart
+        if (a >= target && a - b >= 2) return 'a';
+        if (b >= target && b - a >= 2) return 'b';
+        // Victoire au TB : tbAt+1 à tbAt
+        if (a === tbCap && b === tbAt) return 'a';
+        if (b === tbCap && a === tbAt) return 'b';
+        return null;
+    }
+
+    // Valide un score complet. Renvoie { ok, error, vainqueurSide } (side = 'a' | 'b' | null)
+    function validateScore(scoreA, scoreB, format) {
+        var rule = FORMAT_RULES[format] || FORMAT_RULES.libre;
+        if (rule.libre) return { ok: true, vainqueurSide: null };
+
+        var sides = parseScoreSides(scoreA, scoreB);
+        if (sides.a.length !== sides.b.length) {
+            return { ok: false, error: 'Le nombre de manches est différent côté A (' + sides.a.length + ') et côté B (' + sides.b.length + ').' };
+        }
+        if (sides.a.length === 0) {
+            return { ok: false, error: 'Saisis au moins une manche.' };
+        }
+
+        // === Format E : un seul super tie-break à 10 ===
+        if (rule.superTbOnly) {
+            if (sides.a.length !== 1) return { ok: false, error: 'Format E : une seule valeur attendue (super TB).' };
+            var a = manche(sides.a[0]); var b = manche(sides.b[0]);
+            if (isNaN(a) || isNaN(b)) return { ok: false, error: 'Score invalide.' };
+            if (Math.max(a, b) < 10) return { ok: false, error: 'Super TB : il faut au moins 10 points pour gagner.' };
+            if (Math.abs(a - b) < 2) return { ok: false, error: 'Super TB : 2 points d\'écart requis.' };
+            return { ok: true, vainqueurSide: a > b ? 'a' : 'b' };
+        }
+
+        // === Formats A, B, C, D ===
+        var setsGagnesA = 0, setsGagnesB = 0;
+        var setsRequis = rule.sets;
+        var setRule = { jeux: rule.jeux, tb: rule.tb };
+        var n = sides.a.length;
+
+        for (var i = 0; i < n; i++) {
+            var aRaw = manche(sides.a[i]);
+            var bRaw = manche(sides.b[i]);
+            if (isNaN(aRaw) || isNaN(bRaw)) {
+                return { ok: false, error: 'Manche ' + (i + 1) + ' : valeurs non numériques.' };
+            }
+
+            // Cas du super tie-break en dernière manche (format B, C)
+            var isLastAndSuperTb = rule.superTb && (i === n - 1) && setsGagnesA === setsRequis - 1 && setsGagnesB === setsRequis - 1;
+            if (isLastAndSuperTb) {
+                if (Math.max(aRaw, bRaw) < 10) return { ok: false, error: 'Super TB final : il faut au moins 10 points.' };
+                if (Math.abs(aRaw - bRaw) < 2) return { ok: false, error: 'Super TB final : 2 points d\'écart requis.' };
+                if (aRaw > bRaw) setsGagnesA++; else setsGagnesB++;
+                break;
+            }
+
+            var w = setWinner(aRaw, bRaw, setRule);
+            if (!w) {
+                return {
+                    ok: false,
+                    error: 'Manche ' + (i + 1) + ' (' + aRaw + '-' + bRaw + ') : score non valide pour un set de ' + rule.jeux + ' jeux (TB à ' + rule.tb + ').'
+                };
+            }
+            if (w === 'a') setsGagnesA++; else setsGagnesB++;
+
+            // Si quelqu'un a déjà atteint le nb de sets gagnants requis, le match est fini.
+            if (setsGagnesA === setsRequis || setsGagnesB === setsRequis) {
+                if (i !== n - 1) {
+                    return { ok: false, error: 'Le match est gagné au set ' + (i + 1) + ', mais d\'autres sets ont été saisis.' };
+                }
+                break;
+            }
+        }
+
+        if (setsGagnesA < setsRequis && setsGagnesB < setsRequis) {
+            return {
+                ok: false,
+                error: 'Match incomplet : il faut ' + setsRequis + ' sets gagnants. Actuel : ' + setsGagnesA + '-' + setsGagnesB + '.'
+            };
+        }
+
+        return { ok: true, vainqueurSide: setsGagnesA > setsGagnesB ? 'a' : 'b' };
+    }
+
+    // ===== Calcul du classement de poule en temps réel =====
+    // Critères : victoires (desc) > diff sets (desc) > diff jeux (desc) > nom (asc)
+    function computeClassement(pouleId) {
+        var eqs = equipes.filter(function (e) { return e.poule_id === pouleId; });
+        var stats = {};
+        eqs.forEach(function (e) {
+            stats[e.id] = { id: e.id, nom: e.nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
+        });
+        var fmt = currentTournoi && currentTournoi.format_score;
+        var rule = FORMAT_RULES[fmt] || FORMAT_RULES.libre;
+
+        var matchsPoule = matchs.filter(function (m) {
+            return m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine';
+        });
+
+        matchsPoule.forEach(function (m) {
+            if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) return;
+            stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
+
+            // Victoire / défaite
+            if (m.vainqueur_id === m.equipe_a_id) { stats[m.equipe_a_id].v++; stats[m.equipe_b_id].d++; }
+            else if (m.vainqueur_id === m.equipe_b_id) { stats[m.equipe_b_id].v++; stats[m.equipe_a_id].d++; }
+
+            // Sets et jeux (si le format les utilise)
+            if (!rule.libre && !rule.superTbOnly) {
+                var sides = parseScoreSides(m.score_a, m.score_b);
+                var n = Math.min(sides.a.length, sides.b.length);
+                for (var i = 0; i < n; i++) {
+                    var aRaw = manche(sides.a[i]);
+                    var bRaw = manche(sides.b[i]);
+                    if (isNaN(aRaw) || isNaN(bRaw)) continue;
+                    stats[m.equipe_a_id].jg += aRaw; stats[m.equipe_a_id].jp += bRaw;
+                    stats[m.equipe_b_id].jg += bRaw; stats[m.equipe_b_id].jp += aRaw;
+                    if (aRaw > bRaw) { stats[m.equipe_a_id].sg++; stats[m.equipe_b_id].sp++; }
+                    else if (bRaw > aRaw) { stats[m.equipe_b_id].sg++; stats[m.equipe_a_id].sp++; }
+                }
+            }
+        });
+
+        var arr = Object.keys(stats).map(function (k) { return stats[k]; });
+        arr.sort(function (a, b) {
+            if (b.v !== a.v) return b.v - a.v;
+            var dsA = a.sg - a.sp, dsB = b.sg - b.sp;
+            if (dsB !== dsA) return dsB - dsA;
+            var djA = a.jg - a.jp, djB = b.jg - b.jp;
+            if (djB !== djA) return djB - djA;
+            return a.nom.localeCompare(b.nom);
+        });
+        // Position
+        arr.forEach(function (s, i) { s.pos = i + 1; });
+        return arr;
+    }
+
     function renderHeader() {
         var card = el('div', { class: 'tournoi-card tournoi-header' });
         var info = el('div');
@@ -743,13 +976,28 @@
                 if (eqs.length === 0) {
                     elist.appendChild(el('p', { class: 'poule-empty' }, 'Dépose une équipe ici'));
                 } else {
-                    eqs.forEach(function (eq) {
+                    // Classement calculé en temps réel
+                    var classement = computeClassement(p.id);
+                    var classementByEq = {};
+                    classement.forEach(function (s) { classementByEq[s.id] = s; });
+                    // Trier les équipes selon le classement (les non classées à la fin)
+                    var eqsOrdonnees = eqs.slice().sort(function (a, b) {
+                        var sa = classementByEq[a.id], sb = classementByEq[b.id];
+                        return (sa ? sa.pos : 999) - (sb ? sb.pos : 999);
+                    });
+                    eqsOrdonnees.forEach(function (eq) {
+                        var s = classementByEq[eq.id];
                         var row = el('div', { class: 'poule-equipe-item equipe-item--draggable' });
                         row.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
+                        if (s && s.mj > 0) {
+                            row.appendChild(el('span', { class: 'poule-pos-badge', title: 'Position calculée' }, '#' + s.pos));
+                        }
                         row.appendChild(el('span', { class: 'equipe-nom' }, eq.nom));
-                        // Classement input
-                        var classInp = el('input', { type: 'number', min: '1', max: eqs.length, value: eq.classement_poule || '', class: 'tournoi-input tournoi-input--mini', placeholder: 'pos', title: 'Classement final dans la poule', onchange: function (e) { setClassementPoule(eq.id, parseInt(e.target.value)); } });
-                        row.appendChild(classInp);
+                        if (s && s.mj > 0) {
+                            row.appendChild(el('span', { class: 'poule-stats', title: 'V-D · diff sets · diff jeux' },
+                                s.v + '-' + s.d + ' · ' + ((s.sg - s.sp) >= 0 ? '+' : '') + (s.sg - s.sp)
+                            ));
+                        }
                         makeDraggableEquipe(row, eq);
                         elist.appendChild(row);
                     });
@@ -773,6 +1021,14 @@
     function renderMatchsSection() {
         var card = el('div', { class: 'tournoi-card' });
         card.appendChild(el('h3', { class: 'tournoi-section-title' }, '🎮 Matchs (' + matchs.length + ')'));
+
+        // Bandeau rappel du format
+        var fmt = currentTournoi.format_score || 'libre';
+        var banner = el('div', { class: 'format-banner' });
+        banner.appendChild(el('span', { class: 'format-banner-label' }, '🎾 ' + formatShortLabel(fmt) + (currentTournoi.no_ad ? ' · No-ad' : '')));
+        var ex = formatExample(fmt);
+        if (ex) banner.appendChild(el('span', { class: 'format-banner-example' }, ex));
+        card.appendChild(banner);
 
         if (matchs.length === 0) {
             card.appendChild(el('p', { class: 'tournoi-empty' }, 'Aucun match. Génère les matchs depuis la section "Poules".'));
