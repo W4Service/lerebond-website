@@ -148,24 +148,25 @@
         var duree = m * 60 + s;
 
         if (duree === 0 && (!chronoState || chronoState.status !== 'paused')) {
-            alert('Définis une durée d\'abord !');
+            showToast('Définis une durée d\'abord !', 'error');
             return;
         }
 
+        var update;
         if (chronoState && chronoState.status === 'paused') {
             // Reprise : on calcule un started_at à partir du remaining
             var pausedRem = chronoState.paused_remaining || 0;
             var newStartedAt = new Date(Date.now() - (chronoState.duree_secondes - pausedRem) * 1000);
-            await supa.from('chronos').update({
+            update = {
                 status: 'running',
                 started_at: newStartedAt.toISOString(),
                 paused_remaining: null,
                 paused_at: null,
                 nom: inputNom.value || 'Chrono',
                 updated_at: new Date().toISOString()
-            }).eq('id', 'main');
+            };
         } else {
-            await supa.from('chronos').update({
+            update = {
                 status: 'running',
                 duree_secondes: duree,
                 started_at: new Date().toISOString(),
@@ -173,7 +174,22 @@
                 paused_at: null,
                 nom: inputNom.value || 'Chrono',
                 updated_at: new Date().toISOString()
-            }).eq('id', 'main');
+            };
+        }
+
+        console.log('[Chrono] Start update:', update);
+        var res = await supa.from('chronos').update(update).eq('id', 'main').select();
+        console.log('[Chrono] Start response:', res);
+
+        if (res.error) {
+            showToast('Erreur Supabase : ' + res.error.message, 'error');
+            console.error('Supabase error:', res.error);
+        } else if (!res.data || res.data.length === 0) {
+            showToast('Aucune ligne mise à jour (vérifie RLS / id=main)', 'error');
+        } else {
+            // Mise à jour locale immédiate au cas où realtime traîne
+            chronoState = res.data[0];
+            render();
         }
     }
 
@@ -181,29 +197,33 @@
         if (!chronoState || chronoState.status !== 'running') return;
         var calc = computeRemaining();
         var remaining = Math.max(0, Math.floor(calc.remaining));
-        await supa.from('chronos').update({
+        var res = await supa.from('chronos').update({
             status: 'paused',
             paused_at: new Date().toISOString(),
             paused_remaining: remaining,
             updated_at: new Date().toISOString()
-        }).eq('id', 'main');
+        }).eq('id', 'main').select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); }
+        else if (res.data && res.data[0]) { chronoState = res.data[0]; render(); }
     }
 
     async function resetChrono() {
-        await supa.from('chronos').update({
+        var res = await supa.from('chronos').update({
             status: 'idle',
             started_at: null,
             paused_at: null,
             paused_remaining: null,
             updated_at: new Date().toISOString()
-        }).eq('id', 'main');
+        }).eq('id', 'main').select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); }
+        else if (res.data && res.data[0]) { chronoState = res.data[0]; render(); showToast('Chrono réinitialisé', 'ok'); }
     }
 
     async function applySettings() {
         var m = parseInt(inputMin.value) || 0;
         var s = parseInt(inputSec.value) || 0;
         var duree = m * 60 + s;
-        await supa.from('chronos').update({
+        var res = await supa.from('chronos').update({
             duree_secondes: duree,
             nom: inputNom.value || 'Chrono',
             status: 'idle',
@@ -211,7 +231,27 @@
             paused_at: null,
             paused_remaining: null,
             updated_at: new Date().toISOString()
-        }).eq('id', 'main');
+        }).eq('id', 'main').select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); }
+        else if (res.data && res.data[0]) { chronoState = res.data[0]; render(); showToast('Configuration appliquée', 'ok'); }
+    }
+
+    // Toast simple
+    function showToast(message, type) {
+        var existing = document.getElementById('live-toast');
+        if (existing) existing.remove();
+        var el = document.createElement('div');
+        el.id = 'live-toast';
+        el.textContent = message;
+        el.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:9999;' +
+            'padding:0.9rem 1.5rem;border-radius:12px;font-family:Kanit,sans-serif;font-weight:600;' +
+            'font-size:0.95rem;color:#1a1a1a;box-shadow:0 8px 30px rgba(0,0,0,0.3);' +
+            'background:' + (type === 'error' ? '#ea1a15' : '#f4c941') + ';' +
+            'animation:slideUp 0.3s ease;';
+        if (type === 'error') el.style.color = '#fff';
+        document.body.appendChild(el);
+        setTimeout(function () { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; }, 3000);
+        setTimeout(function () { el.remove(); }, 3500);
     }
 
     btnStart.addEventListener('click', startChrono);

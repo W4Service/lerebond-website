@@ -6,8 +6,12 @@
     background: linear-gradient(135deg, #680920 0%, #4d061a 100%);
     color: #f4f0e6;
     min-height: 100vh;
-    overflow: hidden;
     user-select: none;
+}
+
+/* Body sans scroll uniquement pour la page client publique */
+body.live-body.live-body--client {
+    overflow: hidden;
 }
 
 .live-body::before {
@@ -116,7 +120,7 @@
     transition: color 0.3s ease;
     font-variant-numeric: tabular-nums;
 }
-.display.idle { color: rgba(244, 240, 230, 0.5); }
+.display.idle { color: rgba(244, 240, 230, 0.85); }
 .display.warning {
     color: #f4c941;
     animation: pulse-warn 1s ease-in-out infinite;
@@ -230,11 +234,12 @@
     width: 100%;
     max-width: 800px;
     margin-top: 1rem;
-    padding: 1.5rem;
-    background: rgba(244, 240, 230, 0.06);
-    border: 1px solid rgba(244, 240, 230, 0.15);
+    padding: 2rem;
+    background: rgba(244, 240, 230, 0.1);
+    border: 1px solid rgba(244, 240, 230, 0.25);
     border-radius: 16px;
     backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .admin-panel h2 {
@@ -259,10 +264,15 @@
 .input-group {
     display: flex;
     align-items: center;
-    background: rgba(244, 240, 230, 0.08);
-    border: 1px solid rgba(244, 240, 230, 0.18);
+    background: rgba(244, 240, 230, 0.14);
+    border: 1px solid rgba(244, 240, 230, 0.3);
     border-radius: 12px;
     padding: 0.5rem 0.9rem;
+    transition: border-color 0.2s;
+}
+.input-group:focus-within {
+    border-color: #f4c941;
+    background: rgba(244, 240, 230, 0.18);
 }
 .input-group input {
     background: transparent;
@@ -298,14 +308,14 @@
     margin-bottom: 1.5rem;
 }
 .preset-btn {
-    background: rgba(244, 240, 230, 0.08);
+    background: rgba(244, 240, 230, 0.14);
     color: #f4f0e6;
-    border: 1px solid rgba(244, 240, 230, 0.18);
+    border: 1px solid rgba(244, 240, 230, 0.3);
     border-radius: 8px;
-    padding: 0.5rem 1rem;
+    padding: 0.55rem 1.1rem;
     font-family: 'Kanit', sans-serif;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 }
