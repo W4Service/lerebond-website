@@ -4,6 +4,7 @@ Allow: /
 # Pages techniques à ne pas indexer
 Disallow: /admin/
 Disallow: /annulation/
+Disallow: /live/admin/
 
 # Fichiers techniques
 Disallow: /data/

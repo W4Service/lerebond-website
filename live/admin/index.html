@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Live — Le Rebond</title>
+<meta name="robots" content="noindex, nofollow">
+<meta content="#680920" name="theme-color">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+
+<style>
+@font-face { font-family: 'Turret Road'; src: url('fonts/TurretRoad-ExtraBold.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
+</style>
+<link rel="stylesheet" href="css/live.css">
+</head>
+<body class="live-body">
+
+<button class="fullscreen-btn" id="fullscreen-btn" title="Plein écran" style="display:none">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="15 3 21 3 21 9"></polyline>
+<polyline points="9 21 3 21 3 15"></polyline>
+<line x1="21" y1="3" x2="14" y2="10"></line>
+<line x1="3" y1="21" x2="10" y2="14"></line>
+</svg>
+</button>
+
+<!-- LOGIN VIEW -->
+<div class="live-wrap" id="login-view">
+<img src="img/logo-blanc.webp" alt="Le Rebond" class="live-logo" onerror="this.src='img/logo-8.webp'">
+<div class="live-title">Admin Live</div>
+<div class="live-subtitle">Connectez-vous pour piloter le chrono</div>
+
+<form id="login-form">
+<h2>Connexion</h2>
+<div class="field">
+<label for="login-email">Email</label>
+<input type="email" id="login-email" required autocomplete="username">
+</div>
+<div class="field">
+<label for="login-password">Mot de passe</label>
+<input type="password" id="login-password" required autocomplete="current-password">
+</div>
+<div id="login-error"></div>
+<div style="margin-top:1rem">
+<button type="submit" class="btn-live btn-live--primary" style="width:100%">Se connecter</button>
+</div>
+</form>
+</div>
+
+<!-- ADMIN VIEW -->
+<div class="live-wrap" id="admin-view" style="display:none">
+
+<div class="admin-header">
+<span class="user-pill">👤 <span id="user-email">…</span></span>
+<button class="btn-logout" id="btn-logout">Déconnexion</button>
+</div>
+
+<img src="img/logo-blanc.webp" alt="Le Rebond" class="live-logo" onerror="this.src='img/logo-8.webp'">
+
+<div class="live-title">Pilote du Chrono</div>
+<div id="chrono-nom" style="display:none">—</div>
+<div id="status">Chargement…</div>
+
+<div class="display idle" id="display">--:--</div>
+
+<div class="progress-container">
+<div class="progress-bar" id="progress"></div>
+</div>
+
+<div class="admin-panel">
+<h2>⚙️ Configuration</h2>
+
+<div class="setup-row">
+<div class="input-group">
+<input type="text" id="input-nom" placeholder="Nom du chrono" value="Chrono">
+</div>
+</div>
+
+<div class="setup-row">
+<div class="input-group">
+<input type="number" id="input-min" value="5" min="0" max="999" inputmode="numeric">
+<label>min</label>
+</div>
+<div class="input-group">
+<input type="number" id="input-sec" value="0" min="0" max="59" inputmode="numeric">
+<label>sec</label>
+</div>
+<button type="button" class="btn-live btn-live--outline" id="btn-apply">Appliquer</button>
+</div>
+
+<div class="presets">
+<button type="button" class="preset-btn" data-min="1" data-sec="0" data-nom="1 min">1 min</button>
+<button type="button" class="preset-btn" data-min="3" data-sec="0" data-nom="3 min">3 min</button>
+<button type="button" class="preset-btn" data-min="5" data-sec="0" data-nom="5 min">5 min</button>
+<button type="button" class="preset-btn" data-min="7" data-sec="0" data-nom="Match - 7 min">7 min (match)</button>
+<button type="button" class="preset-btn" data-min="10" data-sec="0" data-nom="10 min">10 min</button>
+<button type="button" class="preset-btn" data-min="15" data-sec="0" data-nom="15 min">15 min</button>
+<button type="button" class="preset-btn" data-min="30" data-sec="0" data-nom="30 min">30 min</button>
+</div>
+
+<div class="controls">
+<button type="button" class="btn-live btn-live--primary" id="btn-start">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+Démarrer
+</button>
+<button type="button" class="btn-live btn-live--outline" id="btn-pause" disabled>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+Pause
+</button>
+<button type="button" class="btn-live btn-live--danger" id="btn-reset">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+Réinitialiser
+</button>
+</div>
+
+<p style="margin-top:1.5rem;font-size:0.85rem;text-align:center;color:rgba(244,240,230,0.5)">
+Les changements sont visibles instantanément sur <a href="live/" target="_blank" style="color:#f4c941;text-decoration:none">le-rebond.fr/live</a>
+</p>
+</div>
+
+</div>
+
+<script src="js/vendor/supabase.min.js"></script>
+<script src="js/resa-config.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/chrono-admin.js"></script>
+</body>
+</html>
