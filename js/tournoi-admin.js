@@ -104,9 +104,10 @@
         var nbTerrains = parseInt(els.tTerrains.value) || 1;
         var date = els.tDate.value || null;
         var format = els.tFormat.value || 'libre';
+        var noAd = els.tNoAd ? !!els.tNoAd.checked : false;
 
         var res = await supa.from('tournois').insert({
-            nom: nom, nb_terrains: nbTerrains, date: date, format_score: format,
+            nom: nom, nb_terrains: nbTerrains, date: date, format_score: format, no_ad: noAd,
             phase: 'preparation', status: 'actif'
         }).select().single();
 
@@ -517,9 +518,25 @@
         // Description du format choisi (défaut: B, le plus courant en FFT)
         var formatHint = el('p', { class: 'format-hint' }, getFormatHint('format_b'));
         form.appendChild(formatHint);
-        selectFormat.addEventListener('change', function () {
-            formatHint.textContent = getFormatHint(selectFormat.value);
-        });
+
+        // Checkbox no-ad (point décisif à 40-40)
+        var noAdInput = el('input', { type: 'checkbox', id: 'tournoi-no-ad' });
+        var noAdLabel = el('label', { class: 'checkbox-row', for: 'tournoi-no-ad' });
+        noAdLabel.appendChild(noAdInput);
+        noAdLabel.appendChild(el('span', { class: 'checkbox-text' }, 'Point décisif à 40-40 (no-ad)'));
+        noAdLabel.appendChild(el('span', { class: 'checkbox-hint' }, 'À 40-40, un seul point décide du jeu — pas d\'avantage. Format plus rapide.'));
+        form.appendChild(noAdLabel);
+
+        function updateFormatUI() {
+            var v = selectFormat.value;
+            formatHint.textContent = getFormatHint(v);
+            // No-ad ne s'applique pas à E (super TB), Americano, Libre
+            var hideNoAd = (v === 'format_e' || v === 'americano' || v === 'libre');
+            noAdLabel.style.display = hideNoAd ? 'none' : '';
+            if (hideNoAd) noAdInput.checked = false;
+        }
+        selectFormat.addEventListener('change', updateFormatUI);
+        updateFormatUI();
 
         var btn = el('button', { class: 'btn-live btn-live--primary', style: 'margin-top:1.5rem;width:100%', onclick: createTournoi }, 'Créer le tournoi');
         form.appendChild(btn);
@@ -530,6 +547,7 @@
         els.tDate = inputDate;
         els.tTerrains = inputTerrains;
         els.tFormat = selectFormat;
+        els.tNoAd = noAdInput;
 
         wrap.appendChild(card);
         if (archivedTournois.length > 0) {
@@ -549,6 +567,7 @@
             var meta = [];
             if (t.date) meta.push('📅 ' + t.date);
             if (t.format_score) meta.push('🎾 ' + t.format_score);
+            if (t.no_ad) meta.push('No-ad');
             if (meta.length > 0) info.appendChild(el('div', { class: 'archived-meta' }, meta.join(' · ')));
             row.appendChild(info);
             var actions = el('div', { class: 'archived-actions' });
@@ -596,7 +615,8 @@
         var meta = el('p', { class: 'tournoi-subtitle' });
         meta.innerHTML = (currentTournoi.date ? '📅 ' + currentTournoi.date + ' · ' : '') +
             '🏟️ ' + currentTournoi.nb_terrains + ' terrain' + (currentTournoi.nb_terrains > 1 ? 's' : '') + ' · ' +
-            'Phase : <strong>' + currentTournoi.phase + '</strong>';
+            'Phase : <strong>' + currentTournoi.phase + '</strong>' +
+            (currentTournoi.no_ad ? ' · <strong>No-ad</strong>' : '');
         info.appendChild(meta);
         card.appendChild(info);
 
