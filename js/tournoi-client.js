@@ -115,9 +115,24 @@
         return arr;
     }
 
-    function placeholderLabel(sourceOrdre, sourceType) {
-        if (sourceOrdre == null || !sourceType) return '?';
-        return (sourceType === 'gagnant' ? 'GM' : 'PM') + (sourceOrdre + 1);
+    function placeholderLabel(sourceOrdre, sourceType, sourcePouleId) {
+        if (!sourceType) return '?';
+        if (sourceType === 'gagnant' || sourceType === 'perdant') {
+            if (sourceOrdre == null) return '?';
+            return (sourceType === 'gagnant' ? 'GM' : 'PM') + (sourceOrdre + 1);
+        }
+        if (sourceType === 'rang_poule') {
+            var rangs = { 1: '1er', 2: '2e', 3: '3e', 4: '4e', 5: '5e' };
+            var nomP = '?';
+            if (sourcePouleId) {
+                var p = findPoule(sourcePouleId);
+                if (p) nomP = p.nom;
+            }
+            return (rangs[sourceOrdre] || (sourceOrdre + 'e')) + ' ' + nomP;
+        }
+        if (sourceType === 'meilleur_2e') return 'Meilleur 2e';
+        if (sourceType === 'autres_2es') return 'Autre 2e';
+        return '?';
     }
     function equipeNomFromMatch(m, side) {
         var id = side === 'a' ? m.equipe_a_id : m.equipe_b_id;
@@ -127,7 +142,8 @@
         }
         var sOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
         var sType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
-        return placeholderLabel(sOrdre, sType);
+        var sPouleId = side === 'a' ? m.equipe_a_source_poule_id : m.equipe_b_source_poule_id;
+        return placeholderLabel(sOrdre, sType, sPouleId);
     }
 
     function formatLabel(f) {
