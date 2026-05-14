@@ -913,6 +913,53 @@ select.tournoi-input option {
     padding: 0.5rem;
 }
 
+/* Classement final (admin + client) */
+.classement-final-card,
+.classement-final-live {
+    background: rgba(244, 201, 65, 0.06);
+    border: 1px solid rgba(244, 201, 65, 0.3);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.classement-final-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+.classement-final-table td {
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.08);
+}
+.classement-final-table tr:last-child td {
+    border-bottom: none;
+}
+.place-rank {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #efa707;
+    width: 90px;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+}
+.place-row:nth-child(1) .place-rank,
+.place-row:nth-child(2) .place-rank,
+.place-row:nth-child(3) .place-rank {
+    color: #f4c941;
+    font-size: 1.05rem;
+}
+.place-equipe {
+    color: #f4f0e6;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.place-row--pending .place-equipe {
+    color: rgba(244, 240, 230, 0.4);
+    font-style: italic;
+    font-weight: 400;
+}
+
 /* Phase finale live */
 
 .finale-live-section {

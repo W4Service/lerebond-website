@@ -1220,6 +1220,12 @@
         if (res.data.phase === 'poule') {
             await propagateRangPoule();
         }
+        // Auto-générer le tour suivant en phase finale si le round courant est complet
+        if (res.data.phase === 'finale' && res.data.bracket) {
+            if (bracketTourComplet(res.data.bracket)) {
+                try { await genererTourSuivant(res.data.bracket); } catch (err) { console.error(err); }
+            }
+        }
         render();
         showToast('Score enregistré', 'ok');
     }
@@ -1889,6 +1895,79 @@
         return card;
     }
 
+    // === Classement final (places 1-12 du mode maison) ===
+    // Renvoie un tableau ordonné de { place, equipe_id, nom } ; certains slots peuvent être null si non encore résolus.
+    function computeClassementFinal() {
+        var byBracket = {};
+        matchs.filter(function (m) { return m.phase === 'finale'; }).forEach(function (m) {
+            (byBracket[m.bracket] = byBracket[m.bracket] || []).push(m);
+        });
+        Object.keys(byBracket).forEach(function (k) {
+            byBracket[k].sort(function (a, b) { return a.ordre - b.ordre; });
+        });
+
+        var nomFor = function (id) {
+            if (!id) return null;
+            var e = equipes.find(function (x) { return x.id === id; });
+            return e ? e.nom : null;
+        };
+        var winnerOf = function (m) {
+            if (!m || m.status !== 'termine' || !m.vainqueur_id) return null;
+            return m.vainqueur_id;
+        };
+        var loserOf = function (m) {
+            if (!m || m.status !== 'termine' || !m.vainqueur_id) return null;
+            return m.vainqueur_id === m.equipe_a_id ? m.equipe_b_id : m.equipe_a_id;
+        };
+
+        var places = [];
+
+        // === Tableau principal ===
+        // En mode maison : 2 demis (ordre 0, 1), puis finale + 3e/4e (ordre 2, 3)
+        var principal = byBracket['principal'] || [];
+        if (principal.length >= 4) {
+            // Convention dans genererTourSuivant : ordre 2 = finale, ordre 3 = 3e/4e
+            // Mais il faut identifier laquelle. La finale oppose les 2 gagnants des demis. La petite finale les 2 perdants.
+            var demi1 = principal[0], demi2 = principal[1];
+            // Identifier finale et petite finale par la composition des équipes
+            var finaleMatch = null, petiteFinale = null;
+            for (var i = 2; i < principal.length; i++) {
+                var m = principal[i];
+                var hasWinners = m.equipe_a_id && m.equipe_b_id && demi1.vainqueur_id && demi2.vainqueur_id
+                    && (m.equipe_a_id === demi1.vainqueur_id || m.equipe_a_id === demi2.vainqueur_id)
+                    && (m.equipe_b_id === demi1.vainqueur_id || m.equipe_b_id === demi2.vainqueur_id);
+                if (hasWinners) finaleMatch = m;
+                else petiteFinale = m;
+            }
+            places[0] = { place: 1, equipe_id: winnerOf(finaleMatch), nom: nomFor(winnerOf(finaleMatch)) };
+            places[1] = { place: 2, equipe_id: loserOf(finaleMatch), nom: nomFor(loserOf(finaleMatch)) };
+            places[2] = { place: 3, equipe_id: winnerOf(petiteFinale), nom: nomFor(winnerOf(petiteFinale)) };
+            places[3] = { place: 4, equipe_id: loserOf(petiteFinale), nom: nomFor(loserOf(petiteFinale)) };
+        } else if (principal.length >= 1) {
+            // Avant les finales : on ne connaît pas les places 1-4
+            places[0] = { place: 1, equipe_id: null, nom: null };
+            places[1] = { place: 2, equipe_id: null, nom: null };
+            places[2] = { place: 3, equipe_id: null, nom: null };
+            places[3] = { place: 4, equipe_id: null, nom: null };
+        }
+
+        // === Brackets de classement direct (1 match chacun) ===
+        var addSinglePair = function (bracketKey, placeWin, placeLose) {
+            var b = byBracket[bracketKey];
+            var m = b && b[0];
+            places.push({ place: placeWin, equipe_id: winnerOf(m), nom: nomFor(winnerOf(m)) });
+            places.push({ place: placeLose, equipe_id: loserOf(m), nom: nomFor(loserOf(m)) });
+        };
+        if (byBracket['places_5_6']) addSinglePair('places_5_6', 5, 6);
+        if (byBracket['places_7_8']) addSinglePair('places_7_8', 7, 8);
+        if (byBracket['places_9_10']) addSinglePair('places_9_10', 9, 10);
+        if (byBracket['places_11_12']) addSinglePair('places_11_12', 11, 12);
+
+        // Trier par place
+        places.sort(function (a, b) { return a.place - b.place; });
+        return places;
+    }
+
     function bracketLabel(b) {
         if (b === 'principal') return '🏆 Tableau principal';
         if (b === 'rang_2') return '🥈 Places 5-6';
@@ -2003,8 +2082,29 @@
                 });
 
             card.appendChild(finaleSection);
+
+            // Tableau final (classement des places)
+            var classementFinal = computeClassementFinal();
+            if (classementFinal.length > 0) {
+                card.appendChild(renderClassementFinal(classementFinal));
+            }
         }
 
+        return card;
+    }
+
+    function renderClassementFinal(places) {
+        var card = el('div', { class: 'classement-final-card' });
+        card.appendChild(el('h4', { class: 'phase-section-title' }, '🥇 Classement final'));
+        var table = el('table', { class: 'classement-final-table' });
+        var medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+        places.forEach(function (p) {
+            var row = el('tr', { class: p.equipe_id ? 'place-row' : 'place-row place-row--pending' });
+            row.appendChild(el('td', { class: 'place-rank' }, (medals[p.place] || '') + ' ' + p.place + (p.place === 1 ? 'er' : 'e')));
+            row.appendChild(el('td', { class: 'place-equipe' }, p.nom || '— en attente —'));
+            table.appendChild(row);
+        });
+        card.appendChild(table);
         return card;
     }
 
