@@ -466,8 +466,33 @@
     }
 
     async function saveScore(matchId) {
-        var scoreA = document.getElementById('score-a-' + matchId).value.trim();
-        var scoreB = document.getElementById('score-b-' + matchId).value.trim();
+        var scoreA = '', scoreB = '';
+        var legacyA = document.getElementById('score-a-' + matchId);
+        var legacyB = document.getElementById('score-b-' + matchId);
+        if (legacyA && legacyB) {
+            // Mode libre / americano : un seul champ par équipe
+            scoreA = legacyA.value.trim();
+            scoreB = legacyB.value.trim();
+        } else {
+            // Mode multi-sets : on agrège les inputs par index
+            var grid = document.querySelector('.sets-grid[data-match="' + matchId + '"]');
+            if (grid) {
+                var nb = parseInt(grid.getAttribute('data-nb'), 10) || 0;
+                var aVals = [], bVals = [];
+                for (var i = 0; i < nb; i++) {
+                    var a = grid.querySelector('.set-input-a[data-idx="' + i + '"]');
+                    var b = grid.querySelector('.set-input-b[data-idx="' + i + '"]');
+                    var va = a ? a.value.trim() : '';
+                    var vb = b ? b.value.trim() : '';
+                    // Ne pas pousser une manche vide (ex: 3e set non joué)
+                    if (va === '' && vb === '') continue;
+                    aVals.push(va === '' ? '0' : va);
+                    bVals.push(vb === '' ? '0' : vb);
+                }
+                scoreA = aVals.join(' ');
+                scoreB = bVals.join(' ');
+            }
+        }
         var vainqueurSel = document.getElementById('vainqueur-' + matchId);
         var vainqueurId = vainqueurSel ? vainqueurSel.value || null : null;
 
@@ -1192,16 +1217,41 @@
         return placeholderLabel(sOrdre, sType);
     }
 
+    // Combien d'inputs de score afficher selon le format
+    // Renvoie { nbSets, labels, hasSuperTb } ou { libre: true }
+    function scoreInputsForFormat(format) {
+        switch (format) {
+            case 'format_a': // 3 sets gagnants, donc max 5 mais on en montre 3 par défaut (2 + éventuel 3e)
+                return { nbSets: 3, labels: ['Set 1', 'Set 2', 'Set 3'], hasSuperTb: false };
+            case 'format_b':
+                return { nbSets: 3, labels: ['Set 1', 'Set 2', 'Super TB'], hasSuperTb: true };
+            case 'format_c':
+                return { nbSets: 3, labels: ['Set 1', 'Set 2', 'Super TB'], hasSuperTb: true };
+            case 'format_d':
+                return { nbSets: 1, labels: ['Set unique'], hasSuperTb: false };
+            case 'format_e':
+                return { nbSets: 1, labels: ['Super TB'], hasSuperTb: true };
+            case 'americano':
+            case 'libre':
+            default:
+                return { libre: true };
+        }
+    }
+
     function renderMatchAdmin(m) {
         var eqA = equipes.find(function (e) { return e.id === m.equipe_a_id; });
         var eqB = equipes.find(function (e) { return e.id === m.equipe_b_id; });
         var poule = poules.find(function (p) { return p.id === m.poule_id; });
         var ready = !!(m.equipe_a_id && m.equipe_b_id);
+        var fmt = currentTournoi && currentTournoi.format_score;
+        var fmtInputs = scoreInputsForFormat(fmt);
 
         var card = el('div', { class: 'match-item match-item--' + m.status + (ready ? '' : ' match-item--pending-dep') });
 
         var header = el('div', { class: 'match-header' });
         header.appendChild(el('span', { class: 'match-meta' }, (poule ? poule.nom + ' · ' : '') + 'Match ' + (m.ordre + 1) + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent')));
+        // Rappel du format directement dans la carte du match
+        header.appendChild(el('span', { class: 'match-format-tag' }, '🎾 ' + formatShortLabel(fmt) + (currentTournoi && currentTournoi.no_ad ? ' · No-ad' : '')));
         card.appendChild(header);
 
         var body = el('div', { class: 'match-body' });
@@ -1210,9 +1260,49 @@
         // Si terminé : affiche le score, sinon inputs
         if (m.status === 'en_cours' || m.status === 'termine') {
             var scoreInputs = el('div', { class: 'match-score-inputs' });
-            scoreInputs.appendChild(el('input', { type: 'text', id: 'score-a-' + m.id, value: m.score_a || '', class: 'tournoi-input score-input', placeholder: 'A' }));
-            scoreInputs.appendChild(el('span', { class: 'match-vs' }, '–'));
-            scoreInputs.appendChild(el('input', { type: 'text', id: 'score-b-' + m.id, value: m.score_b || '', class: 'tournoi-input score-input', placeholder: 'B' }));
+            if (fmtInputs.libre) {
+                // Champ texte unique par équipe
+                scoreInputs.appendChild(el('input', {
+                    type: 'text', id: 'score-a-' + m.id,
+                    value: m.score_a || '',
+                    class: 'tournoi-input score-input', placeholder: 'Score A'
+                }));
+                scoreInputs.appendChild(el('span', { class: 'match-vs' }, '–'));
+                scoreInputs.appendChild(el('input', {
+                    type: 'text', id: 'score-b-' + m.id,
+                    value: m.score_b || '',
+                    class: 'tournoi-input score-input', placeholder: 'Score B'
+                }));
+            } else {
+                // N paires d'inputs, une par set/manche
+                var splitter = /[\s,/;]+/;
+                var aArr = (m.score_a || '').trim().split(splitter).filter(Boolean);
+                var bArr = (m.score_b || '').trim().split(splitter).filter(Boolean);
+                var grid = el('div', { class: 'sets-grid', 'data-match': m.id, 'data-nb': fmtInputs.nbSets });
+                for (var i = 0; i < fmtInputs.nbSets; i++) {
+                    var col = el('div', { class: 'set-col' });
+                    col.appendChild(el('span', { class: 'set-label' }, fmtInputs.labels[i]));
+                    var pair = el('div', { class: 'set-pair' });
+                    pair.appendChild(el('input', {
+                        type: 'number', min: '0',
+                        class: 'tournoi-input score-input score-input--set set-input-a',
+                        'data-idx': i,
+                        value: aArr[i] || '',
+                        placeholder: '–'
+                    }));
+                    pair.appendChild(el('span', { class: 'set-sep' }, '–'));
+                    pair.appendChild(el('input', {
+                        type: 'number', min: '0',
+                        class: 'tournoi-input score-input score-input--set set-input-b',
+                        'data-idx': i,
+                        value: bArr[i] || '',
+                        placeholder: '–'
+                    }));
+                    col.appendChild(pair);
+                    grid.appendChild(col);
+                }
+                scoreInputs.appendChild(grid);
+            }
             body.appendChild(scoreInputs);
         } else {
             body.appendChild(el('span', { class: 'match-vs' }, 'vs'));
