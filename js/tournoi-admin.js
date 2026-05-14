@@ -13,6 +13,7 @@
     var equipes = [];
     var matchs = [];
     var archivedTournois = [];
+    var closedTournois = [];
 
     // Elements (sera initialisé après login)
     var els = {};
@@ -37,11 +38,13 @@
     // ===== Chargement des données =====
 
     async function loadActiveTournoi() {
-        var [resActif, resArchivés] = await Promise.all([
+        var [resActif, resArchivés, resCloses] = await Promise.all([
             supa.from('tournois').select('*').eq('status', 'actif').order('created_at', { ascending: false }).limit(1),
-            supa.from('tournois').select('*').eq('status', 'archive').order('updated_at', { ascending: false })
+            supa.from('tournois').select('*').eq('status', 'archive').order('updated_at', { ascending: false }),
+            supa.from('tournois').select('*').eq('status', 'cloture').order('updated_at', { ascending: false })
         ]);
         archivedTournois = resArchivés.data || [];
+        closedTournois = resCloses.data || [];
         if (resActif.data && resActif.data.length > 0) {
             currentTournoi = resActif.data[0];
             await loadDetails();
@@ -120,10 +123,49 @@
         showToast('Tournoi créé', 'ok');
     }
 
+    function isReadOnly() {
+        return currentTournoi && currentTournoi.status === 'cloture';
+    }
+    function guardReadOnly() {
+        if (isReadOnly()) {
+            showToast('Tournoi clôturé : rouvre-le pour modifier.', 'error');
+            return true;
+        }
+        return false;
+    }
+
     async function archiveTournoi() {
         if (!currentTournoi) return;
         if (!confirm('Archiver ce tournoi ? Il ne sera plus visible côté client.')) return;
         var res = await supa.from('tournois').update({ status: 'archive', updated_at: new Date().toISOString() }).eq('id', currentTournoi.id);
+        if (res.error) { showToast('Erreur', 'error'); console.error(res.error); return; }
+        await loadActiveTournoi();
+        showToast('Tournoi archivé', 'ok');
+    }
+
+    async function cloturerTournoi() {
+        if (!currentTournoi) return;
+        if (!confirm('Clôturer ce tournoi ?\n\nIl ne sera plus modifiable, mais restera visible côté client dans l\'historique. Tu pourras le rouvrir ou l\'archiver plus tard.')) return;
+        var res = await supa.from('tournois').update({ status: 'cloture', updated_at: new Date().toISOString() }).eq('id', currentTournoi.id);
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        await loadActiveTournoi();
+        showToast('Tournoi clôturé', 'ok');
+    }
+
+    async function rouvrirTournoi(id) {
+        if (!confirm('Rouvrir ce tournoi en actif ?\n\nIl redevient modifiable. Si un autre tournoi est déjà actif, il sera clôturé.')) return;
+        if (currentTournoi) {
+            await supa.from('tournois').update({ status: 'cloture', updated_at: new Date().toISOString() }).eq('id', currentTournoi.id);
+        }
+        var res = await supa.from('tournois').update({ status: 'actif', updated_at: new Date().toISOString() }).eq('id', id);
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        await loadActiveTournoi();
+        showToast('Tournoi rouvert', 'ok');
+    }
+
+    async function archiverDepuisCloture(id) {
+        if (!confirm('Archiver ce tournoi clôturé ? Il sera retiré de l\'historique public.')) return;
+        var res = await supa.from('tournois').update({ status: 'archive', updated_at: new Date().toISOString() }).eq('id', id);
         if (res.error) { showToast('Erreur', 'error'); console.error(res.error); return; }
         await loadActiveTournoi();
         showToast('Tournoi archivé', 'ok');
@@ -139,7 +181,7 @@
 
     // ===== Équipes =====
 
-    async function addEquipe() {
+    async function addEquipe() { if (guardReadOnly()) return;
         var nom = els.eqNom.value.trim();
         if (!nom) { showToast('Saisir un nom d\'équipe', 'error'); return; }
         var res = await supa.from('equipes').insert({ tournoi_id: currentTournoi.id, nom: nom }).select().single();
@@ -150,7 +192,7 @@
         render();
     }
 
-    async function deleteEquipe(id) {
+    async function deleteEquipe(id) { if (guardReadOnly()) return;
         if (!confirm('Supprimer cette équipe ? Les matchs liés seront perdus.')) return;
         var res = await supa.from('equipes').delete().eq('id', id);
         if (res.error) { showToast('Erreur', 'error'); console.error(res.error); return; }
@@ -200,6 +242,7 @@
     // ===== Répartition automatique par niveau =====
 
     async function repartirParNiveau() {
+        if (guardReadOnly()) return;
         if (poules.length === 0) { showToast('Crée au moins une poule avant de répartir.', 'error'); return; }
         if (equipes.length === 0) { showToast('Ajoute au moins une équipe.', 'error'); return; }
         var modeFFT = currentTournoi && currentTournoi.mode_classement === 'fft';
@@ -276,6 +319,7 @@
     // ===== Poules =====
 
     async function addPoule() {
+        if (guardReadOnly()) return;
         var nom = els.pNom.value.trim();
         var terrain = parseInt(els.pTerrain.value) || null;
         if (!nom) { showToast('Saisir un nom de poule', 'error'); return; }
@@ -287,7 +331,7 @@
         render();
     }
 
-    async function deletePoule(id) {
+    async function deletePoule(id) { if (guardReadOnly()) return;
         if (!confirm('Supprimer cette poule ? Les équipes et matchs liés seront détachés.')) return;
         var res = await supa.from('poules').delete().eq('id', id);
         if (res.error) { showToast('Erreur', 'error'); console.error(res.error); return; }
@@ -359,7 +403,7 @@
         return out;
     }
 
-    async function genererMatchsPoules() {
+    async function genererMatchsPoules() { if (guardReadOnly()) return;
         // Pour chaque poule, demander le format (si 4 équipes, proposer croisé)
         var formatsParPoule = {};
         for (var i = 0; i < poules.length; i++) {
@@ -782,6 +826,7 @@
     }
 
     async function genererPhaseFinale() {
+        if (guardReadOnly()) return;
         if (!poulesToutesTerminees()) {
             showToast('Toutes les poules doivent être terminées avant la phase finale.', 'error');
             return;
@@ -1151,6 +1196,7 @@
     // ===== Match : actions admin =====
 
     async function startMatch(matchId) {
+        if (guardReadOnly()) return;
         // Arrêter les autres matchs en cours sur le même terrain
         var match = matchs.find(function (m) { return m.id === matchId; });
         if (!match) return;
@@ -1169,6 +1215,7 @@
     }
 
     async function saveScore(matchId) {
+        if (guardReadOnly()) return;
         var scoreA = '', scoreB = '';
         var legacyA = document.getElementById('score-a-' + matchId);
         var legacyB = document.getElementById('score-b-' + matchId);
@@ -1256,6 +1303,7 @@
     }
 
     async function resetMatch(matchId) {
+        if (guardReadOnly()) return;
         if (!confirm('Réinitialiser ce match (effacer le score) ?\n\n⚠️ Les matchs dépendants de ce résultat seront aussi réinitialisés.')) return;
         var match = matchs.find(function (m) { return m.id === matchId; });
         var res = await supa.from('matchs').update({
@@ -1465,10 +1513,47 @@
         els.tModeClassement = selectMode;
 
         wrap.appendChild(card);
+        if (closedTournois.length > 0) {
+            wrap.appendChild(renderClosedSection());
+        }
         if (archivedTournois.length > 0) {
             wrap.appendChild(renderArchivedSection());
         }
         return wrap;
+    }
+
+    function renderClosedSection() {
+        var card = el('div', { class: 'tournoi-card tournoi-card--archived' });
+        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '🔒 Tournois clôturés (' + closedTournois.length + ')'));
+        card.appendChild(el('p', { class: 'tournoi-hint' }, 'Visibles côté client en historique. Tu peux les rouvrir si tu veux les modifier, ou les archiver pour les masquer.'));
+        var list = el('div', { class: 'archived-list' });
+        closedTournois.forEach(function (t) {
+            var row = el('div', { class: 'archived-item' });
+            var info = el('div', { class: 'archived-info' });
+            info.appendChild(el('div', { class: 'archived-nom' }, t.nom));
+            var meta = [];
+            if (t.date) meta.push('📅 ' + t.date);
+            if (t.format_score) meta.push('🎾 ' + t.format_score);
+            if (t.no_ad) meta.push('No-ad');
+            if (t.mode_classement === 'fft') meta.push('🏅 FFT');
+            if (meta.length > 0) info.appendChild(el('div', { class: 'archived-meta' }, meta.join(' · ')));
+            row.appendChild(info);
+            var actions = el('div', { class: 'archived-actions' });
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small',
+                onclick: function () { rouvrirTournoi(t.id); },
+                title: 'Repasser en actif'
+            }, '↺ Rouvrir'));
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--danger btn-live--small',
+                onclick: function () { archiverDepuisCloture(t.id); },
+                title: 'Retirer de l\'historique public'
+            }, '📦 Archiver'));
+            row.appendChild(actions);
+            list.appendChild(row);
+        });
+        card.appendChild(list);
+        return card;
     }
 
     function renderArchivedSection() {
@@ -1744,12 +1829,14 @@
         if (fmtLabel) parts.push('🎾 <strong>' + fmtLabel + '</strong>');
         if (currentTournoi.no_ad) parts.push('<strong>No-ad</strong>');
         if (currentTournoi.mode_classement === 'fft') parts.push('🏅 <strong>FFT</strong>');
+        if (currentTournoi.status === 'cloture') parts.push('<strong class="readonly-badge">🔒 Clôturé</strong>');
         meta.innerHTML = parts.join(' · ');
         info.appendChild(meta);
         card.appendChild(info);
 
         var actions = el('div', { class: 'tournoi-actions' });
         actions.appendChild(el('button', { class: 'btn-live btn-live--outline btn-live--small', onclick: function () { window.open('live/tournoi/', '_blank'); } }, '👀 Vue client'));
+        actions.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: cloturerTournoi, title: 'Verrouiller le tournoi (visible côté client en historique)' }, '🔒 Clôturer'));
         actions.appendChild(el('button', { class: 'btn-live btn-live--danger btn-live--small', onclick: archiveTournoi }, 'Archiver'));
         card.appendChild(actions);
 
