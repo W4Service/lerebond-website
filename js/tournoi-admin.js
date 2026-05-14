@@ -1688,10 +1688,14 @@
         var info = el('div');
         info.appendChild(el('h2', { class: 'tournoi-title' }, currentTournoi.nom));
         var meta = el('p', { class: 'tournoi-subtitle' });
-        meta.innerHTML = (currentTournoi.date ? '📅 ' + currentTournoi.date + ' · ' : '') +
-            '🏟️ ' + currentTournoi.nb_terrains + ' terrain' + (currentTournoi.nb_terrains > 1 ? 's' : '') + ' · ' +
-            'Phase : <strong>' + currentTournoi.phase + '</strong>' +
-            (currentTournoi.no_ad ? ' · <strong>No-ad</strong>' : '');
+        var fmtLabel = currentTournoi.format_score ? formatShortLabel(currentTournoi.format_score) : null;
+        var parts = [];
+        if (currentTournoi.date) parts.push('📅 ' + currentTournoi.date);
+        parts.push('🏟️ ' + currentTournoi.nb_terrains + ' terrain' + (currentTournoi.nb_terrains > 1 ? 's' : ''));
+        parts.push('Phase : <strong>' + currentTournoi.phase + '</strong>');
+        if (fmtLabel) parts.push('🎾 <strong>' + fmtLabel + '</strong>');
+        if (currentTournoi.no_ad) parts.push('<strong>No-ad</strong>');
+        meta.innerHTML = parts.join(' · ');
         info.appendChild(meta);
         card.appendChild(info);
 
