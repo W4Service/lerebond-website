@@ -882,6 +882,26 @@ select.tournoi-input option {
     margin-left: auto;
 }
 
+/* Input niveau d'équipe (1-10) */
+.niveau-input {
+    width: 3.2rem;
+    text-align: center;
+    font-weight: 700;
+    color: #f4c941;
+    font-family: 'Turret Road', sans-serif;
+    background: rgba(244, 201, 65, 0.08) !important;
+    border-color: rgba(244, 201, 65, 0.3) !important;
+}
+.niveau-input:focus {
+    border-color: #f4c941 !important;
+    outline: none;
+}
+.niveau-input::-webkit-inner-spin-button,
+.niveau-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* État vide */
 .live-empty {
     text-align: center;

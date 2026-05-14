@@ -165,6 +165,89 @@
         render();
     }
 
+    async function setEquipeNiveau(equipeId, niveau) {
+        var n = (niveau === '' || niveau == null) ? null : Math.max(1, Math.min(10, parseInt(niveau, 10)));
+        if (n !== null && isNaN(n)) return;
+        var res = await supa.from('equipes').update({ niveau: n }).eq('id', equipeId).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        var i = equipes.findIndex(function (e) { return e.id === equipeId; });
+        if (i >= 0) equipes[i] = res.data;
+        // pas de re-render complet — juste l'input qui a déjà changé
+    }
+
+    // ===== Répartition automatique par niveau =====
+
+    async function repartirParNiveau() {
+        if (poules.length === 0) { showToast('Crée au moins une poule avant de répartir.', 'error'); return; }
+        if (equipes.length === 0) { showToast('Ajoute au moins une équipe.', 'error'); return; }
+        var sansNiveau = equipes.filter(function (e) { return e.niveau == null; });
+        if (sansNiveau.length > 0) {
+            if (!confirm(sansNiveau.length + ' équipe(s) n\'ont pas de niveau et seront ignorées (ou placées en bas).\n\nContinuer quand même ?')) return;
+        }
+
+        var mode = prompt(
+            'Choisis la stratégie de répartition :\n\n' +
+            '  1 — Poules homogènes (la Poule A regroupe les plus forts, la Poule B les suivants, etc.)\n' +
+            '  2 — Poules équilibrées (méthode serpentin : chaque poule contient un mix de niveaux)\n\n' +
+            'Tape 1 ou 2 :',
+            '1'
+        );
+        if (mode == null) return;
+        mode = String(mode).trim();
+        if (mode !== '1' && mode !== '2') { showToast('Choix invalide', 'error'); return; }
+
+        if (!confirm('Cette action va RÉASSIGNER toutes les équipes dans les poules. Confirmer ?')) return;
+
+        // Tri : niveau desc (10 = plus fort en premier), puis nom
+        var sorted = equipes.slice().sort(function (a, b) {
+            var na = (a.niveau == null) ? -1 : a.niveau;
+            var nb = (b.niveau == null) ? -1 : b.niveau;
+            if (nb !== na) return nb - na;
+            return a.nom.localeCompare(b.nom);
+        });
+
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var nbPoules = poulesOrdonnees.length;
+        var assignments = {};
+
+        if (mode === '1') {
+            // Homogène : on découpe en blocs séquentiels. Taille par poule = ceil/floor.
+            var nbEquipes = sorted.length;
+            var perPoule = Math.ceil(nbEquipes / nbPoules);
+            sorted.forEach(function (eq, i) {
+                var idx = Math.min(Math.floor(i / perPoule), nbPoules - 1);
+                assignments[eq.id] = poulesOrdonnees[idx].id;
+            });
+        } else {
+            // Serpentin : 0,1,2,3,3,2,1,0,0,1,2,3...
+            sorted.forEach(function (eq, i) {
+                var cycle = Math.floor(i / nbPoules);
+                var pos = i % nbPoules;
+                var idx = (cycle % 2 === 0) ? pos : (nbPoules - 1 - pos);
+                assignments[eq.id] = poulesOrdonnees[idx].id;
+            });
+        }
+
+        // Push en DB en parallèle
+        var updates = Object.keys(assignments).map(function (eqId) {
+            return supa.from('equipes').update({ poule_id: assignments[eqId] }).eq('id', eqId).select().single();
+        });
+        var results = await Promise.all(updates);
+        var errors = results.filter(function (r) { return r.error; });
+        if (errors.length > 0) {
+            console.error(errors);
+            showToast(errors.length + ' erreur(s) lors de la répartition', 'error');
+        }
+        results.forEach(function (r) {
+            if (!r.data) return;
+            var i = equipes.findIndex(function (e) { return e.id === r.data.id; });
+            if (i >= 0) equipes[i] = r.data;
+        });
+
+        render();
+        showToast('Équipes réparties (' + (mode === '1' ? 'homogène' : 'serpentin') + ')', 'ok');
+    }
+
     // ===== Poules =====
 
     async function addPoule() {
@@ -896,11 +979,26 @@
         });
     }
 
+    function makeNiveauInput(eq) {
+        var input = el('input', {
+            type: 'number', min: '1', max: '10',
+            class: 'tournoi-input tournoi-input--mini niveau-input',
+            value: eq.niveau != null ? eq.niveau : '',
+            placeholder: '–',
+            title: 'Niveau padel 1 → 10 (10 = expert)',
+            onchange: function (e) { setEquipeNiveau(eq.id, e.target.value); }
+        });
+        // Empêche le drag depuis l'input (sinon on glisse l'équipe en éditant le niveau)
+        input.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+        input.setAttribute('draggable', 'false');
+        return input;
+    }
+
     function renderEquipesSection() {
         var card = el('div', { class: 'tournoi-card tournoi-card--equipes' });
         var unassigned = equipes.filter(function (e) { return !e.poule_id; });
         card.appendChild(el('h3', { class: 'tournoi-section-title' }, '👥 Équipes (' + equipes.length + ')'));
-        card.appendChild(el('p', { class: 'tournoi-hint' }, '💡 Glisse une équipe sur une poule à droite pour l\'assigner.'));
+        card.appendChild(el('p', { class: 'tournoi-hint' }, '💡 Saisis un niveau (1-10) pour chaque équipe puis clique « Répartir » pour créer les poules automatiquement. Tu peux aussi glisser-déposer.'));
 
         // Form ajout équipe
         var addForm = el('div', { class: 'setup-row' });
@@ -910,6 +1008,16 @@
         addForm.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: addEquipe }, '+ Ajouter'));
         card.appendChild(addForm);
         els.eqNom = inputEq;
+
+        // Bouton répartir par niveau (visible dès qu'il y a au moins une poule)
+        if (poules.length > 0 && equipes.length > 0) {
+            card.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small',
+                style: 'margin-top:0.75rem;width:100%',
+                onclick: repartirParNiveau,
+                title: 'Répartir automatiquement les équipes dans les poules selon leur niveau'
+            }, '🎯 Répartir par niveau'));
+        }
 
         // Sous-titre + zone de dépôt pour "désassigner"
         var sub = el('div', { class: 'equipes-sub-head' });
@@ -924,10 +1032,18 @@
                 ? 'Aucune équipe. Ajoute-en ci-dessus.'
                 : 'Toutes les équipes sont assignées. Dépose ici pour retirer d\'une poule.'));
         } else {
-            unassigned.forEach(function (eq) {
+            // Tri par niveau desc pour mettre les plus forts en haut
+            var sortedUnassigned = unassigned.slice().sort(function (a, b) {
+                var na = a.niveau == null ? -1 : a.niveau;
+                var nb = b.niveau == null ? -1 : b.niveau;
+                if (nb !== na) return nb - na;
+                return a.nom.localeCompare(b.nom);
+            });
+            sortedUnassigned.forEach(function (eq) {
                 var item = el('div', { class: 'equipe-item equipe-item--draggable' });
                 item.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
                 item.appendChild(el('span', { class: 'equipe-nom' }, eq.nom));
+                item.appendChild(makeNiveauInput(eq));
                 item.appendChild(el('button', { class: 'icon-btn icon-btn--danger', onclick: function () { deleteEquipe(eq.id); }, title: 'Supprimer' }, '🗑'));
                 makeDraggableEquipe(item, eq);
                 unassignedZone.appendChild(item);
@@ -997,6 +1113,8 @@
                             row.appendChild(el('span', { class: 'poule-stats', title: 'V-D · diff sets · diff jeux' },
                                 s.v + '-' + s.d + ' · ' + ((s.sg - s.sp) >= 0 ? '+' : '') + (s.sg - s.sp)
                             ));
+                        } else {
+                            row.appendChild(makeNiveauInput(eq));
                         }
                         makeDraggableEquipe(row, eq);
                         elist.appendChild(row);
