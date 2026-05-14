@@ -244,6 +244,13 @@
                 if (b === 'rang_2') return '🥈 Places 5-6';
                 if (b === 'rang_3') return '🥉 Places 7-9';
                 if (b === 'rang_4') return '🎾 Places 10-12';
+                if (b === 'places_5_6') return '🥈 Places 5-6';
+                if (b === 'places_7_8') return '🥉 Places 7-8';
+                if (b === 'places_9_10') return '🎾 Places 9-10';
+                if (b === 'places_11_12') return '🎾 Places 11-12';
+                if (b && b.indexOf('places_') === 0) {
+                    return '🎾 Places ' + b.replace('places_', '').split('_').join('-');
+                }
                 return 'Bracket ' + b;
             };
             Object.keys(byBracket).sort(function (a, b) { return order(a) - order(b); }).forEach(function (bk) {

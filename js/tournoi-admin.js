@@ -480,15 +480,147 @@
         return matchsBracket;
     }
 
+    // Génération phase finale "maison" pour 3 poules de 4 équipes.
+    // Brackets créés :
+    //   - 'principal' (4 équipes : 3 premiers + meilleur 2e) → demi×2 + finale + 3e/4e
+    //   - 'places_5_6' (les 2 autres 2es) → 1 match
+    //   - 'places_7_8' (3e poule 1 vs 3e poule 2) → 1 match
+    //   - 'places_9_10' (4e poule 1 vs 3e poule 3) → 1 match
+    //   - 'places_11_12' (les 2 restants : 4e poule 2 et 4e poule 3) → 1 match
+    async function genererPhaseFinaleMaison3x4() {
+        // Poules triées par ordre (P1, P2, P3)
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        // Pour chaque poule, classement final
+        var rangs = poulesOrdonnees.map(function (p) {
+            var c = computeClassement(p.id);
+            return c; // c[0] = 1er, c[1] = 2e, c[2] = 3e, c[3] = 4e
+        });
+
+        // Vérif : 3 poules de 4 avec classement complet
+        if (rangs.length !== 3 || !rangs.every(function (c) { return c.length === 4; })) {
+            showToast('Format maison : il faut exactement 3 poules de 4 équipes.', 'error');
+            return;
+        }
+
+        var premiers = [
+            { equipe_id: rangs[0][0].id, poule_id: poulesOrdonnees[0].id, stats: rangs[0][0] },
+            { equipe_id: rangs[1][0].id, poule_id: poulesOrdonnees[1].id, stats: rangs[1][0] },
+            { equipe_id: rangs[2][0].id, poule_id: poulesOrdonnees[2].id, stats: rangs[2][0] }
+        ];
+        var deuxiemes = [
+            { equipe_id: rangs[0][1].id, poule_id: poulesOrdonnees[0].id, stats: rangs[0][1] },
+            { equipe_id: rangs[1][1].id, poule_id: poulesOrdonnees[1].id, stats: rangs[1][1] },
+            { equipe_id: rangs[2][1].id, poule_id: poulesOrdonnees[2].id, stats: rangs[2][1] }
+        ];
+        var troisiemes = [rangs[0][2], rangs[1][2], rangs[2][2]];
+        var quatriemes = [rangs[0][3], rangs[1][3], rangs[2][3]];
+
+        // Trier 2es par stats pour identifier le meilleur
+        var deuxiemesTries = trierParStats(deuxiemes);
+        var meilleur2e = deuxiemesTries[0];
+        var autres2es = deuxiemesTries.slice(1); // 2 équipes
+
+        // Tableau principal : 3 premiers + meilleur 2e
+        var principal = trierParStats(premiers).concat([meilleur2e]);
+        // Réordonner pour seeding : 1 vs 4, 2 vs 3
+        // (premier des stats vs dernier)
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var newMatchs = [];
+        var ordre = 0;
+
+        // === Tableau principal : demi 1, demi 2, finale (avec deps), 3e/4e (avec deps) ===
+        // Demi 1 : seed 1 vs seed 4 ; Demi 2 : seed 2 vs seed 3
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: principal[0].equipe_id, equipe_b_id: principal[3].equipe_id
+        }); ordre++;
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: principal[1].equipe_id, equipe_b_id: principal[2].equipe_id
+        }); ordre++;
+
+        // === Bracket places 5-6 : les 2 autres 2es ===
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_5_6',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: autres2es[0].equipe_id, equipe_b_id: autres2es[1].equipe_id
+        }); ordre++;
+
+        // === Bracket places 7-8 : 3e P1 vs 3e P2 ===
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_7_8',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: troisiemes[0].id, equipe_b_id: troisiemes[1].id
+        }); ordre++;
+
+        // === Bracket places 9-10 : 4e P1 vs 3e P3 ===
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_9_10',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: quatriemes[0].id, equipe_b_id: troisiemes[2].id
+        }); ordre++;
+
+        // === Bracket places 11-12 : 4e P2 vs 4e P3 ===
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_11_12',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: quatriemes[1].id, equipe_b_id: quatriemes[2].id
+        }); ordre++;
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await updateTournoi({ phase: 'finale' });
+        render();
+        showToast('Phase finale (maison 3p×4) générée : ' + res.data.length + ' matchs', 'ok');
+    }
+
+    // Est-on dans la config exacte 3 poules de 4 équipes (12 équipes) ?
+    function isConfig3p4() {
+        if (poules.length !== 3) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        return tailles.every(function (n) { return n === 4; });
+    }
+
     async function genererPhaseFinale() {
         if (!poulesToutesTerminees()) {
             showToast('Toutes les poules doivent être terminées avant la phase finale.', 'error');
             return;
         }
+
+        // Choix du mode
+        var modeMaisonDispo = isConfig3p4();
+        var mode;
+        if (modeMaisonDispo) {
+            var choix = prompt(
+                'Choisis le format de phase finale :\n\n' +
+                '  1 — Générique (seeding standard, bracket adapté à la taille)\n' +
+                '  2 — Maison 3p×4 (demi+finale+3/4 + match 5-6, 7-8, 9-10, 11-12)\n\n' +
+                'Tape 1 ou 2 :',
+                '2'
+            );
+            if (choix == null) return;
+            choix = String(choix).trim();
+            if (choix !== '1' && choix !== '2') { showToast('Choix invalide', 'error'); return; }
+            mode = choix === '2' ? 'maison_3x4' : 'generique';
+        } else {
+            mode = 'generique';
+        }
+
         if (matchs.some(function (m) { return m.phase === 'finale'; })) {
             if (!confirm('Des matchs de phase finale existent déjà. Tout regénérer (les scores existants seront perdus) ?')) return;
             await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'finale');
             matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
+        }
+
+        if (mode === 'maison_3x4') {
+            return await genererPhaseFinaleMaison3x4();
         }
 
         // 1. Calculer le classement global
@@ -719,14 +851,12 @@
     function bracketEstFini(bracket) {
         var b = matchs.filter(function (m) { return m.phase === 'finale' && m.bracket === bracket; });
         if (b.length === 0) return false;
-        // Pour principal : 4 matchs = quarts seuls (pas fini), 6 = quarts+demi (à voir), 8 = complet (quarts+demi+finale+3e/4e)
-        // Pour bracket 2 équipes : 1 match = fini
-        // Pour bracket 3 équipes : 2 matchs = fini
-        // Pour bracket 4 équipes principal : 4 matchs = fini (demi+finale+3e/4e)
-        // Pour bracket 4 équipes secondaire : 3 matchs = fini (demi+finale, pas 3e/4e)
-        // Trop de cas : on se base sur le fait qu'aucun match n'est en attente d'être créé
-        // Méthode simple : on retourne false si on peut encore générer un tour. Sinon true.
-        // Pour éviter récursion : on s'appuie sur des compteurs explicites
+
+        // Brackets "places_X_Y" du mode maison : 1 seul match attendu, fini dès qu'il est joué
+        if (bracket.indexOf('places_') === 0) {
+            return b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
         var rows = classementGlobal();
         var rangCible = bracket === 'principal' ? null
             : bracket.indexOf('rang_') === 0 ? parseInt(bracket.split('_')[1], 10) : null;
@@ -1546,6 +1676,15 @@
         if (b === 'rang_2') return '🥈 Places 5-6';
         if (b === 'rang_3') return '🥉 Places 7-9';
         if (b === 'rang_4') return '🎾 Places 10-12';
+        // Mode maison
+        if (b === 'places_5_6') return '🥈 Match places 5-6';
+        if (b === 'places_7_8') return '🥉 Match places 7-8';
+        if (b === 'places_9_10') return '🎾 Match places 9-10';
+        if (b === 'places_11_12') return '🎾 Match places 11-12';
+        if (b && b.indexOf('places_') === 0) {
+            var parts = b.replace('places_', '').split('_');
+            return '🎾 Match places ' + parts.join('-');
+        }
         if (!b) return 'Phase finale';
         var n = parseInt((b.split('_')[1] || '0'), 10);
         return '🎾 Places ' + (n * 3 + 1) + '+'; // approximation
@@ -1689,6 +1828,96 @@
         }
     }
 
+    async function updateMatchTerrain(matchId, terrain) {
+        var t = parseInt(terrain, 10);
+        if (isNaN(t) || t < 1) t = null;
+        var res = await supa.from('matchs').update({ terrain: t, updated_at: new Date().toISOString() }).eq('id', matchId).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        var i = matchs.findIndex(function (m) { return m.id === matchId; });
+        if (i >= 0) matchs[i] = res.data;
+        render();
+    }
+
+    // Met à jour une équipe sur une face d'un match (utilisé par drag & drop phase finale)
+    async function updateMatchEquipeSide(matchId, side, newEquipeId) {
+        var patch = {};
+        patch[side === 'a' ? 'equipe_a_id' : 'equipe_b_id'] = newEquipeId;
+        patch.updated_at = new Date().toISOString();
+        var res = await supa.from('matchs').update(patch).eq('id', matchId).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return false; }
+        var i = matchs.findIndex(function (m) { return m.id === matchId; });
+        if (i >= 0) matchs[i] = res.data;
+        return true;
+    }
+
+    // Swap d'équipes entre deux matchs (drag depuis un match vers une face d'un autre match)
+    async function swapEquipesEntreMatchs(srcMatchId, srcSide, dstMatchId, dstSide) {
+        if (srcMatchId === dstMatchId && srcSide === dstSide) return;
+        var src = matchs.find(function (m) { return m.id === srcMatchId; });
+        var dst = matchs.find(function (m) { return m.id === dstMatchId; });
+        if (!src || !dst) return;
+        var srcEqId = srcSide === 'a' ? src.equipe_a_id : src.equipe_b_id;
+        var dstEqId = dstSide === 'a' ? dst.equipe_a_id : dst.equipe_b_id;
+        if (!srcEqId && !dstEqId) return;
+
+        if (srcMatchId === dstMatchId) {
+            // Swap A/B au sein du même match
+            await supa.from('matchs').update({
+                equipe_a_id: dst.equipe_b_id, equipe_b_id: dst.equipe_a_id,
+                updated_at: new Date().toISOString()
+            }).eq('id', dstMatchId);
+            var idx = matchs.findIndex(function (m) { return m.id === dstMatchId; });
+            if (idx >= 0) { var tmp = matchs[idx].equipe_a_id; matchs[idx].equipe_a_id = matchs[idx].equipe_b_id; matchs[idx].equipe_b_id = tmp; }
+            render();
+            showToast('Équipes interverties', 'ok');
+            return;
+        }
+
+        // Cross-match swap
+        await Promise.all([
+            updateMatchEquipeSide(srcMatchId, srcSide, dstEqId),
+            updateMatchEquipeSide(dstMatchId, dstSide, srcEqId)
+        ]);
+        render();
+        showToast('Équipes interverties entre matchs', 'ok');
+    }
+
+    function makeMatchEquipeDraggable(span, matchId, side) {
+        var eqId = (function () {
+            var m = matchs.find(function (m) { return m.id === matchId; });
+            if (!m) return null;
+            return side === 'a' ? m.equipe_a_id : m.equipe_b_id;
+        })();
+        if (!eqId) return; // Rien à drag si pas d'équipe assignée
+
+        span.setAttribute('draggable', 'true');
+        span.dataset.matchId = matchId;
+        span.dataset.side = side;
+        span.classList.add('match-equipe--draggable');
+
+        span.addEventListener('dragstart', function (e) {
+            e.dataTransfer.setData('text/plain', JSON.stringify({ matchId: matchId, side: side }));
+            e.dataTransfer.effectAllowed = 'move';
+            span.classList.add('dragging');
+        });
+        span.addEventListener('dragend', function () { span.classList.remove('dragging'); });
+
+        span.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            span.classList.add('drop-target');
+        });
+        span.addEventListener('dragleave', function () { span.classList.remove('drop-target'); });
+        span.addEventListener('drop', function (e) {
+            e.preventDefault();
+            span.classList.remove('drop-target');
+            var data;
+            try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
+            if (!data || !data.matchId) return;
+            swapEquipesEntreMatchs(data.matchId, data.side, matchId, side);
+        });
+    }
+
     function renderMatchAdmin(m) {
         var eqA = equipes.find(function (e) { return e.id === m.equipe_a_id; });
         var eqB = equipes.find(function (e) { return e.id === m.equipe_b_id; });
@@ -1696,17 +1925,36 @@
         var ready = !!(m.equipe_a_id && m.equipe_b_id);
         var fmt = currentTournoi && currentTournoi.format_score;
         var fmtInputs = scoreInputsForFormat(fmt);
+        var isFinale = m.phase === 'finale';
 
         var card = el('div', { class: 'match-item match-item--' + m.status + (ready ? '' : ' match-item--pending-dep') });
 
         var header = el('div', { class: 'match-header' });
-        header.appendChild(el('span', { class: 'match-meta' }, (poule ? poule.nom + ' · ' : '') + 'Match ' + (m.ordre + 1) + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent')));
+        var metaText = (poule ? poule.nom + ' · ' : '') + (isFinale ? bracketLabel(m.bracket) + ' · ' : '') + 'Match ' + (m.ordre + 1) + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent');
+        header.appendChild(el('span', { class: 'match-meta' }, metaText));
         // Rappel du format directement dans la carte du match
         header.appendChild(el('span', { class: 'match-format-tag' }, '🎾 ' + formatShortLabel(fmt) + (currentTournoi && currentTournoi.no_ad ? ' · No-ad' : '')));
+
+        // Dropdown terrain (modifiable sur tous les matchs)
+        var nbT = currentTournoi.nb_terrains || 1;
+        var terrainSel = el('select', {
+            class: 'tournoi-input tournoi-input--mini match-terrain-select',
+            title: 'Changer le terrain',
+            onchange: function (e) { updateMatchTerrain(m.id, e.target.value); }
+        });
+        terrainSel.appendChild(el('option', { value: '' }, '🏟️ –'));
+        for (var t = 1; t <= nbT; t++) {
+            var opt = el('option', { value: t }, '🏟️ T' + t);
+            if (m.terrain === t) opt.selected = true;
+            terrainSel.appendChild(opt);
+        }
+        header.appendChild(terrainSel);
         card.appendChild(header);
 
         var body = el('div', { class: 'match-body' });
-        body.appendChild(el('span', { class: 'match-equipe' + (eqA ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'a')));
+        var spanA = el('span', { class: 'match-equipe' + (eqA ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'a'));
+        if (isFinale) makeMatchEquipeDraggable(spanA, m.id, 'a');
+        body.appendChild(spanA);
 
         // Si terminé : affiche le score, sinon inputs
         if (m.status === 'en_cours' || m.status === 'termine') {
@@ -1759,7 +2007,9 @@
             body.appendChild(el('span', { class: 'match-vs' }, 'vs'));
         }
 
-        body.appendChild(el('span', { class: 'match-equipe' + (eqB ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'b')));
+        var spanB = el('span', { class: 'match-equipe' + (eqB ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'b'));
+        if (isFinale) makeMatchEquipeDraggable(spanB, m.id, 'b');
+        body.appendChild(spanB);
         card.appendChild(body);
 
         // Actions
