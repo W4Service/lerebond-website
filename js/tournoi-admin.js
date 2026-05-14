@@ -371,8 +371,176 @@
         matchs = matchs.concat(res.data);
 
         await updateTournoi({ phase: 'poules' });
+
+        // Si config 3p×4 et qu'on n'a pas déjà un squelette de phase finale, proposer de le générer
+        if (isConfig3p4() && !matchs.some(function (m) { return m.phase === 'finale'; })) {
+            var ouiSquelette = confirm('Config 3 poules × 4 détectée.\n\nVeux-tu pré-générer le squelette de la phase finale maintenant ?\n\nLes matchs apparaîtront avec des placeholders (\"1er Poule A\", \"2e Poule B\"...) et se rempliront automatiquement au fur et à mesure que les poules avancent.');
+            if (ouiSquelette) {
+                await genererSqueletteMaison3x4();
+            }
+        }
+
         showToast(newMatchs.length + ' matchs de poule générés', 'ok');
         render();
+    }
+
+    // Génère le squelette de phase finale maison 3p×4 avec des placeholders rang_poule.
+    // Les vraies équipes seront résolues par propagateRangPoule() au fil des matchs de poule.
+    async function genererSqueletteMaison3x4() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        if (poulesOrdonnees.length !== 3) return;
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var base = function (bracket, ordre) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+        // Placeholder helpers
+        var rangP = function (pouleId, rang) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: rang, equipe_a_source_type: 'rang_poule'
+            };
+        };
+        var rangP_b = function (pouleId, rang) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: rang, equipe_b_source_type: 'rang_poule'
+            };
+        };
+        // meilleur_2e : ne dépend pas d'une poule précise, l'ordre est ignoré
+        var best2eA = {
+            equipe_a_id: null,
+            equipe_a_source_poule_id: null, equipe_a_source_ordre: null, equipe_a_source_type: 'meilleur_2e'
+        };
+        var best2eB = {
+            equipe_b_id: null,
+            equipe_b_source_poule_id: null, equipe_b_source_ordre: null, equipe_b_source_type: 'meilleur_2e'
+        };
+        // autres_2es : les 2 autres 2es (pas le meilleur). Ordre 1 ou 2 pour distinguer dans le match 5-6
+        var autres2eA = function (slot) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: null, equipe_a_source_ordre: slot, equipe_a_source_type: 'autres_2es'
+            };
+        };
+        var autres2eB = function (slot) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: null, equipe_b_source_ordre: slot, equipe_b_source_type: 'autres_2es'
+            };
+        };
+
+        var P1 = poulesOrdonnees[0].id;
+        var P2 = poulesOrdonnees[1].id;
+        var P3 = poulesOrdonnees[2].id;
+        var ordre = 0;
+        var newMatchs = [];
+
+        // === Tableau principal ===
+        // Demi 1 : 1er Poule A vs meilleur 2e
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P1, 1), best2eB));
+        // Demi 2 : 1er Poule B vs 1er Poule C
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P2, 1), rangP_b(P3, 1)));
+
+        // === Places 5-6 : les 2 autres 2es (slot 1 et 2 dans le pool "autres_2es") ===
+        newMatchs.push(Object.assign({}, base('places_5_6', ordre++), autres2eA(1), autres2eB(2)));
+
+        // === Places 7-8 : 3e P1 vs 3e P2 ===
+        newMatchs.push(Object.assign({}, base('places_7_8', ordre++), rangP(P1, 3), rangP_b(P2, 3)));
+
+        // === Places 9-10 : 4e P1 vs 3e P3 ===
+        newMatchs.push(Object.assign({}, base('places_9_10', ordre++), rangP(P1, 4), rangP_b(P3, 3)));
+
+        // === Places 11-12 : 4e P2 vs 4e P3 ===
+        newMatchs.push(Object.assign({}, base('places_11_12', ordre++), rangP(P2, 4), rangP_b(P3, 4)));
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        // Tente une 1re résolution au cas où certaines poules sont déjà avancées
+        await propagateRangPoule();
+    }
+
+    // Résout les placeholders rang_poule / meilleur_2e / autres_2es sur les matchs en_attente
+    // selon l'état courant des classements de poule.
+    async function propagateRangPoule() {
+        var matchsFinale = matchs.filter(function (m) {
+            return m.phase === 'finale' && m.status === 'en_attente';
+        });
+        if (matchsFinale.length === 0) return;
+
+        // Calculer les classements de toutes les poules une seule fois
+        var classements = {};
+        poules.forEach(function (p) {
+            classements[p.id] = computeClassement(p.id);
+        });
+
+        // Identifier le meilleur 2e et les autres 2es
+        var deuxiemes = [];
+        poules.forEach(function (p) {
+            var c = classements[p.id];
+            if (c[1]) deuxiemes.push({ equipe_id: c[1].id, poule_id: p.id, stats: c[1] });
+        });
+        var deuxiemesTries = trierParStats(deuxiemes);
+        var meilleur2eId = deuxiemesTries.length > 0 ? deuxiemesTries[0].equipe_id : null;
+        var autres2esIds = deuxiemesTries.slice(1).map(function (d) { return d.equipe_id; });
+
+        var resolveSide = function (m, side) {
+            var srcType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
+            var srcOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
+            var srcPouleId = side === 'a' ? m.equipe_a_source_poule_id : m.equipe_b_source_poule_id;
+            if (!srcType) return null;
+            if (srcType === 'rang_poule') {
+                if (!srcPouleId || !srcOrdre) return null;
+                var c = classements[srcPouleId];
+                if (!c) return null;
+                var entry = c[srcOrdre - 1];
+                // Ne résoudre que si la poule a tous ses matchs terminés (sinon ordre instable)
+                var matchsPouleNonTermine = matchs.some(function (mm) {
+                    return mm.phase === 'poule' && mm.poule_id === srcPouleId && mm.status !== 'termine';
+                });
+                if (matchsPouleNonTermine) return null;
+                return entry ? entry.id : null;
+            }
+            if (srcType === 'meilleur_2e') {
+                // On résout seulement quand toutes les poules sont terminées (pour comparer les 2es)
+                if (!poulesToutesTerminees()) return null;
+                return meilleur2eId;
+            }
+            if (srcType === 'autres_2es') {
+                if (!poulesToutesTerminees()) return null;
+                var idx = (srcOrdre || 1) - 1;
+                return autres2esIds[idx] || null;
+            }
+            return null;
+        };
+
+        var updates = [];
+        matchsFinale.forEach(function (m) {
+            var patch = {};
+            if (!m.equipe_a_id) {
+                var idA = resolveSide(m, 'a');
+                if (idA) patch.equipe_a_id = idA;
+            }
+            if (!m.equipe_b_id) {
+                var idB = resolveSide(m, 'b');
+                if (idB) patch.equipe_b_id = idB;
+            }
+            if (Object.keys(patch).length > 0) updates.push({ id: m.id, patch: patch });
+        });
+
+        for (var i = 0; i < updates.length; i++) {
+            var u = updates[i];
+            var res = await supa.from('matchs').update(u.patch).eq('id', u.id).select().single();
+            if (!res.error) {
+                var idx = matchs.findIndex(function (mm) { return mm.id === u.id; });
+                if (idx >= 0) matchs[idx] = res.data;
+            }
+        }
     }
 
     // ===== Phase finale =====
@@ -1048,6 +1216,10 @@
         if (vainqueurId && res.data.poule_id) {
             await propagateDependencies(res.data.poule_id);
         }
+        // Propager aussi vers le squelette de phase finale si présent
+        if (res.data.phase === 'poule') {
+            await propagateRangPoule();
+        }
         render();
         showToast('Score enregistré', 'ok');
     }
@@ -1068,7 +1240,53 @@
         if (match && match.poule_id != null) {
             await cascadeReset(match.poule_id, match.ordre);
         }
+        // Si on a reset un match de poule, invalider les résolutions de phase finale qui
+        // dépendaient potentiellement de cette poule, puis recalculer.
+        if (match && match.phase === 'poule') {
+            await unresolvePhaseFinale(match.poule_id);
+            await propagateRangPoule();
+        }
         render();
+    }
+
+    // Quand un match de poule est reset, on efface les equipe_*_id des matchs de phase finale
+    // en_attente dont la source est cette poule (rang_poule) ou globale (meilleur_2e/autres_2es)
+    // si la poule n'est plus complète. Ne touche pas aux matchs déjà démarrés.
+    async function unresolvePhaseFinale(pouleIdReset) {
+        var pouleEncoreComplete = !matchs.some(function (m) {
+            return m.phase === 'poule' && m.poule_id === pouleIdReset && m.status !== 'termine';
+        });
+        var pouleToujoursOK = pouleEncoreComplete; // si tjs complète, pas de reset
+
+        var matchsFinale = matchs.filter(function (m) {
+            return m.phase === 'finale' && m.status === 'en_attente';
+        });
+        var updates = [];
+        matchsFinale.forEach(function (m) {
+            var patch = {};
+            // Side A
+            if (m.equipe_a_id) {
+                var tA = m.equipe_a_source_type;
+                var pA = m.equipe_a_source_poule_id;
+                if (tA === 'rang_poule' && pA === pouleIdReset && !pouleToujoursOK) patch.equipe_a_id = null;
+                if ((tA === 'meilleur_2e' || tA === 'autres_2es')) patch.equipe_a_id = null;
+            }
+            if (m.equipe_b_id) {
+                var tB = m.equipe_b_source_type;
+                var pB = m.equipe_b_source_poule_id;
+                if (tB === 'rang_poule' && pB === pouleIdReset && !pouleToujoursOK) patch.equipe_b_id = null;
+                if ((tB === 'meilleur_2e' || tB === 'autres_2es')) patch.equipe_b_id = null;
+            }
+            if (Object.keys(patch).length > 0) updates.push({ id: m.id, patch: patch });
+        });
+        for (var i = 0; i < updates.length; i++) {
+            var u = updates[i];
+            var res = await supa.from('matchs').update(u.patch).eq('id', u.id).select().single();
+            if (!res.error) {
+                var idx = matchs.findIndex(function (mm) { return mm.id === u.id; });
+                if (idx >= 0) matchs[idx] = res.data;
+            }
+        }
     }
 
     // ===== Classement manuel =====
@@ -1790,10 +2008,24 @@
         return card;
     }
 
-    function placeholderLabel(sourceOrdre, sourceType) {
-        if (sourceOrdre == null || !sourceType) return '?';
-        var prefix = sourceType === 'gagnant' ? 'GM' : 'PM';
-        return prefix + (sourceOrdre + 1);
+    function placeholderLabel(sourceOrdre, sourceType, sourcePouleId) {
+        if (!sourceType) return '?';
+        if (sourceType === 'gagnant' || sourceType === 'perdant') {
+            if (sourceOrdre == null) return '?';
+            return (sourceType === 'gagnant' ? 'GM' : 'PM') + (sourceOrdre + 1);
+        }
+        if (sourceType === 'rang_poule') {
+            var rangs = { 1: '1er', 2: '2e', 3: '3e', 4: '4e', 5: '5e' };
+            var nomP = '?';
+            if (sourcePouleId) {
+                var p = poules.find(function (x) { return x.id === sourcePouleId; });
+                if (p) nomP = p.nom;
+            }
+            return (rangs[sourceOrdre] || (sourceOrdre + 'e')) + ' ' + nomP;
+        }
+        if (sourceType === 'meilleur_2e') return 'Meilleur 2e';
+        if (sourceType === 'autres_2es') return 'Autre 2e';
+        return '?';
     }
 
     function equipeLabel(m, side) {
@@ -1804,7 +2036,8 @@
         }
         var sOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
         var sType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
-        return placeholderLabel(sOrdre, sType);
+        var sPouleId = side === 'a' ? m.equipe_a_source_poule_id : m.equipe_b_source_poule_id;
+        return placeholderLabel(sOrdre, sType, sPouleId);
     }
 
     // Combien d'inputs de score afficher selon le format
