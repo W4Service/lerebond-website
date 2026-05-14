@@ -1090,6 +1090,38 @@ select.tournoi-input option {
     margin-left: auto;
 }
 
+/* Widget points FFT (J1 + J2 + badge poids) */
+.fft-points-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.fft-points-input {
+    width: 4rem !important;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem !important;
+    padding: 0.3rem !important;
+}
+.fft-points-input::-webkit-inner-spin-button,
+.fft-points-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.fft-poids-badge {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    background: rgba(244, 201, 65, 0.12);
+    border: 1px solid rgba(244, 201, 65, 0.3);
+    border-radius: 6px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    min-width: 2.2rem;
+    text-align: center;
+}
+
 /* Input niveau d'équipe (1-10) */
 .niveau-input {
     width: 3.2rem;
