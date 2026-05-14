@@ -9,16 +9,42 @@
     var poules = [];
     var equipes = [];
     var matchs = [];
+    var closedTournois = []; // historique des tournois clôturés
+
+    // Si le hash contient #t=<id>, on charge ce tournoi-là (clôturé) au lieu de l'actif.
+    function tournoiIdFromHash() {
+        var h = window.location.hash || '';
+        var m = h.match(/[#&]t=([^&]+)/);
+        return m ? decodeURIComponent(m[1]) : null;
+    }
 
     async function loadAll() {
-        var resT = await supa.from('tournois').select('*').eq('status', 'actif').order('created_at', { ascending: false }).limit(1);
-        if (!resT.data || resT.data.length === 0) {
+        var [resActif, resCloses] = await Promise.all([
+            supa.from('tournois').select('*').eq('status', 'actif').order('created_at', { ascending: false }).limit(1),
+            supa.from('tournois').select('*').eq('status', 'cloture').order('updated_at', { ascending: false })
+        ]);
+        closedTournois = resCloses.data || [];
+
+        var wantedId = tournoiIdFromHash();
+        var chosen = null;
+        if (wantedId) {
+            chosen = closedTournois.find(function (t) { return t.id === wantedId; });
+            if (!chosen && resActif.data && resActif.data[0] && resActif.data[0].id === wantedId) {
+                chosen = resActif.data[0];
+            }
+        }
+        if (!chosen && resActif.data && resActif.data.length > 0) {
+            chosen = resActif.data[0];
+        }
+
+        if (!chosen) {
             currentTournoi = null;
+            poules = []; equipes = []; matchs = [];
             render();
             return;
         }
-        currentTournoi = resT.data[0];
 
+        currentTournoi = chosen;
         var [resP, resE, resM] = await Promise.all([
             supa.from('poules').select('*').eq('tournoi_id', currentTournoi.id).order('ordre'),
             supa.from('equipes').select('*').eq('tournoi_id', currentTournoi.id).order('nom'),
@@ -29,6 +55,8 @@
         matchs = resM.data || [];
         render();
     }
+
+    window.addEventListener('hashchange', loadAll);
 
     function subscribe() {
         supa.channel('tournoi-realtime')
@@ -237,7 +265,20 @@
                 el('h2', { class: 'live-empty-title' }, 'Aucun tournoi en cours'),
                 el('p', { class: 'live-empty-text' }, 'Restez connectés, le prochain tournoi sera bientôt annoncé !')
             ]));
+            // Même sans tournoi actif, montrer l'historique
+            if (closedTournois.length > 0) root.appendChild(renderHistorique());
             return;
+        }
+
+        var isClosed = currentTournoi.status === 'cloture';
+
+        // Bandeau historique si on visualise un tournoi clôturé
+        if (isClosed) {
+            var back = el('a', {
+                href: '#', class: 'historique-back',
+                onclick: function (e) { e.preventDefault(); window.location.hash = ''; }
+            }, '← Revenir au tournoi en cours');
+            root.appendChild(back);
         }
 
         // Header
@@ -248,6 +289,7 @@
         var fmt = formatLabel(currentTournoi.format_score);
         if (fmt) sub += (sub ? ' · ' : '') + '🎾 ' + fmt;
         if (currentTournoi.no_ad) sub += (sub ? ' · ' : '') + 'No-ad';
+        if (isClosed) sub += (sub ? ' · ' : '') + '🔒 Terminé';
         if (sub) header.appendChild(el('p', { class: 'tournoi-live-subtitle' }, sub));
         root.appendChild(header);
 
@@ -366,6 +408,40 @@
             pouleSection.appendChild(grid);
             root.appendChild(pouleSection);
         }
+
+        // Historique : tournois clôturés (en bas)
+        if (closedTournois.length > 0) {
+            var historique = renderHistorique();
+            if (historique) root.appendChild(historique);
+        }
+    }
+
+    function renderHistorique() {
+        var others = closedTournois.filter(function (t) {
+            return !currentTournoi || t.id !== currentTournoi.id;
+        });
+        if (others.length === 0) return null;
+        var section = el('div', { class: 'historique-section' });
+        section.appendChild(el('h2', { class: 'live-section-title' }, '📚 Tournois précédents'));
+        var list = el('div', { class: 'historique-list' });
+        others.forEach(function (t) {
+            var card = el('a', {
+                href: '#t=' + t.id,
+                class: 'historique-card',
+                onclick: function (e) {
+                    // laisser le navigateur changer le hash, hashchange déclenchera loadAll
+                }
+            });
+            card.appendChild(el('div', { class: 'historique-card-nom' }, t.nom));
+            var meta = [];
+            if (t.date) meta.push('📅 ' + t.date);
+            var fmtLabel = formatLabel(t.format_score);
+            if (fmtLabel) meta.push('🎾 ' + fmtLabel);
+            if (meta.length > 0) card.appendChild(el('div', { class: 'historique-card-meta' }, meta.join(' · ')));
+            list.appendChild(card);
+        });
+        section.appendChild(list);
+        return section;
     }
 
     function renderLiveMatch(m) {

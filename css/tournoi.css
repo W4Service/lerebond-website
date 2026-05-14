@@ -960,6 +960,65 @@ select.tournoi-input option {
     font-weight: 400;
 }
 
+/* Historique des tournois clôturés (vue client) */
+.historique-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(244, 240, 230, 0.12);
+}
+.historique-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.8rem;
+}
+.historique-card {
+    background: rgba(244, 240, 230, 0.05);
+    border: 1px solid rgba(244, 240, 230, 0.12);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.historique-card:hover {
+    background: rgba(244, 201, 65, 0.08);
+    border-color: rgba(244, 201, 65, 0.4);
+    transform: translateY(-2px);
+}
+.historique-card-nom {
+    font-weight: 700;
+    color: #f4f0e6;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+}
+.historique-card-meta {
+    font-size: 0.82rem;
+    color: rgba(244, 240, 230, 0.6);
+}
+.historique-back {
+    display: inline-block;
+    color: rgba(244, 240, 230, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(244, 240, 230, 0.15);
+}
+.historique-back:hover {
+    color: #f4c941;
+    border-color: rgba(244, 201, 65, 0.4);
+}
+
+/* Badge "Clôturé" dans le header admin */
+.readonly-badge {
+    color: #f4c941;
+    background: rgba(244, 201, 65, 0.12);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+}
+
 /* Phase finale live */
 
 .finale-live-section {
