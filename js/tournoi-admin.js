@@ -105,9 +105,11 @@
         var date = els.tDate.value || null;
         var format = els.tFormat.value || 'libre';
         var noAd = els.tNoAd ? !!els.tNoAd.checked : false;
+        var modeClassement = (els.tModeClassement && els.tModeClassement.value) || 'niveau';
 
         var res = await supa.from('tournois').insert({
             nom: nom, nb_terrains: nbTerrains, date: date, format_score: format, no_ad: noAd,
+            mode_classement: modeClassement,
             phase: 'preparation', status: 'actif'
         }).select().single();
 
@@ -175,14 +177,36 @@
         // pas de re-render complet — juste l'input qui a déjà changé
     }
 
+    // Met à jour les points FFT d'un joueur (points_j1 ou points_j2). Renvoie l'équipe mise à jour pour rafraîchir l'affichage du poids.
+    async function setEquipePoints(equipeId, joueurKey, points) {
+        var n = (points === '' || points == null) ? null : Math.max(0, parseInt(points, 10));
+        if (n !== null && isNaN(n)) return;
+        var patch = {}; patch[joueurKey] = n;
+        var res = await supa.from('equipes').update(patch).eq('id', equipeId).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        var i = equipes.findIndex(function (e) { return e.id === equipeId; });
+        if (i >= 0) equipes[i] = res.data;
+    }
+
+    // Renvoie le poids d'une équipe : niveau (mode niveau) ou points_j1+points_j2 (mode FFT). null si pas saisi.
+    function equipePoids(eq) {
+        if (currentTournoi && currentTournoi.mode_classement === 'fft') {
+            if (eq.points_j1 == null && eq.points_j2 == null) return null;
+            return (eq.points_j1 || 0) + (eq.points_j2 || 0);
+        }
+        return eq.niveau == null ? null : eq.niveau;
+    }
+
     // ===== Répartition automatique par niveau =====
 
     async function repartirParNiveau() {
         if (poules.length === 0) { showToast('Crée au moins une poule avant de répartir.', 'error'); return; }
         if (equipes.length === 0) { showToast('Ajoute au moins une équipe.', 'error'); return; }
-        var sansNiveau = equipes.filter(function (e) { return e.niveau == null; });
-        if (sansNiveau.length > 0) {
-            if (!confirm(sansNiveau.length + ' équipe(s) n\'ont pas de niveau et seront ignorées (ou placées en bas).\n\nContinuer quand même ?')) return;
+        var modeFFT = currentTournoi && currentTournoi.mode_classement === 'fft';
+        var sansPoids = equipes.filter(function (e) { return equipePoids(e) == null; });
+        if (sansPoids.length > 0) {
+            var label = modeFFT ? 'points FFT' : 'niveau';
+            if (!confirm(sansPoids.length + ' équipe(s) n\'ont pas de ' + label + ' et seront placées en bas.\n\nContinuer quand même ?')) return;
         }
 
         var mode = prompt(
@@ -198,10 +222,11 @@
 
         if (!confirm('Cette action va RÉASSIGNER toutes les équipes dans les poules. Confirmer ?')) return;
 
-        // Tri : niveau desc (10 = plus fort en premier), puis nom
+        // Tri : poids desc (plus fort en premier), puis nom
         var sorted = equipes.slice().sort(function (a, b) {
-            var na = (a.niveau == null) ? -1 : a.niveau;
-            var nb = (b.niveau == null) ? -1 : b.niveau;
+            var pa = equipePoids(a); var pb = equipePoids(b);
+            var na = (pa == null) ? -1 : pa;
+            var nb = (pb == null) ? -1 : pb;
             if (nb !== na) return nb - na;
             return a.nom.localeCompare(b.nom);
         });
@@ -1405,6 +1430,28 @@
         selectFormat.addEventListener('change', updateFormatUI);
         updateFormatUI();
 
+        // Mode de classement des équipes
+        form.appendChild(el('label', { class: 'control-label', style: 'margin-top:1rem' }, 'Mode de classement des équipes'));
+        var selectMode = el('select', { class: 'tournoi-input' });
+        [
+            { v: 'niveau', label: 'Niveau 1-10 (simple)' },
+            { v: 'fft', label: 'Points FFT padel (par joueur)' }
+        ].forEach(function (m) {
+            selectMode.appendChild(el('option', { value: m.v }, m.label));
+        });
+        form.appendChild(el('div', { class: 'input-group input-group--full' }, selectMode));
+        var modeHint = el('p', { class: 'format-hint' }, '');
+        form.appendChild(modeHint);
+        function updateModeUI() {
+            if (selectMode.value === 'fft') {
+                modeHint.textContent = 'Tu saisis les points FFT des 2 joueurs par équipe. Le poids de paire (somme) sert à la répartition automatique dans les poules.';
+            } else {
+                modeHint.textContent = 'Tu saisis un niveau simple 1-10 par équipe (10 = expert). Aucun classement officiel requis.';
+            }
+        }
+        selectMode.addEventListener('change', updateModeUI);
+        updateModeUI();
+
         var btn = el('button', { class: 'btn-live btn-live--primary', style: 'margin-top:1.5rem;width:100%', onclick: createTournoi }, 'Créer le tournoi');
         form.appendChild(btn);
         card.appendChild(form);
@@ -1415,6 +1462,7 @@
         els.tTerrains = inputTerrains;
         els.tFormat = selectFormat;
         els.tNoAd = noAdInput;
+        els.tModeClassement = selectMode;
 
         wrap.appendChild(card);
         if (archivedTournois.length > 0) {
@@ -1695,6 +1743,7 @@
         parts.push('Phase : <strong>' + currentTournoi.phase + '</strong>');
         if (fmtLabel) parts.push('🎾 <strong>' + fmtLabel + '</strong>');
         if (currentTournoi.no_ad) parts.push('<strong>No-ad</strong>');
+        if (currentTournoi.mode_classement === 'fft') parts.push('🏅 <strong>FFT</strong>');
         meta.innerHTML = parts.join(' · ');
         info.appendChild(meta);
         card.appendChild(info);
@@ -1743,6 +1792,10 @@
     }
 
     function makeNiveauInput(eq) {
+        // En mode FFT, on rend un widget à 2 inputs (J1+J2) + un badge de poids
+        if (currentTournoi && currentTournoi.mode_classement === 'fft') {
+            return makeFFTInputs(eq);
+        }
         var input = el('input', {
             type: 'number', min: '1', max: '10',
             class: 'tournoi-input tournoi-input--mini niveau-input',
@@ -1755,6 +1808,44 @@
         input.addEventListener('mousedown', function (e) { e.stopPropagation(); });
         input.setAttribute('draggable', 'false');
         return input;
+    }
+
+    function makeFFTInputs(eq) {
+        var wrap = el('div', { class: 'fft-points-wrap' });
+        var inp1 = el('input', {
+            type: 'number', min: '0',
+            class: 'tournoi-input tournoi-input--mini fft-points-input',
+            value: eq.points_j1 != null ? eq.points_j1 : '',
+            placeholder: 'J1',
+            title: 'Points FFT joueur 1',
+            onchange: function (e) {
+                setEquipePoints(eq.id, 'points_j1', e.target.value).then(function () { updateBadge(); });
+            }
+        });
+        var inp2 = el('input', {
+            type: 'number', min: '0',
+            class: 'tournoi-input tournoi-input--mini fft-points-input',
+            value: eq.points_j2 != null ? eq.points_j2 : '',
+            placeholder: 'J2',
+            title: 'Points FFT joueur 2',
+            onchange: function (e) {
+                setEquipePoints(eq.id, 'points_j2', e.target.value).then(function () { updateBadge(); });
+            }
+        });
+        var badge = el('span', { class: 'fft-poids-badge', title: 'Poids de paire (somme)' }, '');
+        function updateBadge() {
+            var eqMaj = equipes.find(function (e2) { return e2.id === eq.id; }) || eq;
+            var p = equipePoids(eqMaj);
+            badge.textContent = p == null ? '–' : String(p);
+        }
+        updateBadge();
+        [inp1, inp2].forEach(function (i) {
+            i.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+            i.setAttribute('draggable', 'false');
+            wrap.appendChild(i);
+        });
+        wrap.appendChild(badge);
+        return wrap;
     }
 
     function renderEquipesSection() {
