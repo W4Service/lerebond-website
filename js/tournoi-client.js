@@ -115,6 +115,65 @@
         return arr;
     }
 
+    // Classement final côté client (même logique que côté admin)
+    function computeClassementFinal() {
+        var byBracket = {};
+        matchs.filter(function (m) { return m.phase === 'finale'; }).forEach(function (m) {
+            (byBracket[m.bracket] = byBracket[m.bracket] || []).push(m);
+        });
+        Object.keys(byBracket).forEach(function (k) {
+            byBracket[k].sort(function (a, b) { return a.ordre - b.ordre; });
+        });
+        var nomFor = function (id) {
+            if (!id) return null;
+            var e = findEq(id);
+            return e ? e.nom : null;
+        };
+        var winnerOf = function (m) {
+            if (!m || m.status !== 'termine' || !m.vainqueur_id) return null;
+            return m.vainqueur_id;
+        };
+        var loserOf = function (m) {
+            if (!m || m.status !== 'termine' || !m.vainqueur_id) return null;
+            return m.vainqueur_id === m.equipe_a_id ? m.equipe_b_id : m.equipe_a_id;
+        };
+        var places = [];
+        var principal = byBracket['principal'] || [];
+        if (principal.length >= 4) {
+            var demi1 = principal[0], demi2 = principal[1];
+            var finaleMatch = null, petiteFinale = null;
+            for (var i = 2; i < principal.length; i++) {
+                var m = principal[i];
+                var hasWinners = m.equipe_a_id && m.equipe_b_id && demi1.vainqueur_id && demi2.vainqueur_id
+                    && (m.equipe_a_id === demi1.vainqueur_id || m.equipe_a_id === demi2.vainqueur_id)
+                    && (m.equipe_b_id === demi1.vainqueur_id || m.equipe_b_id === demi2.vainqueur_id);
+                if (hasWinners) finaleMatch = m;
+                else petiteFinale = m;
+            }
+            places[0] = { place: 1, equipe_id: winnerOf(finaleMatch), nom: nomFor(winnerOf(finaleMatch)) };
+            places[1] = { place: 2, equipe_id: loserOf(finaleMatch), nom: nomFor(loserOf(finaleMatch)) };
+            places[2] = { place: 3, equipe_id: winnerOf(petiteFinale), nom: nomFor(winnerOf(petiteFinale)) };
+            places[3] = { place: 4, equipe_id: loserOf(petiteFinale), nom: nomFor(loserOf(petiteFinale)) };
+        } else if (principal.length >= 1) {
+            places[0] = { place: 1, equipe_id: null, nom: null };
+            places[1] = { place: 2, equipe_id: null, nom: null };
+            places[2] = { place: 3, equipe_id: null, nom: null };
+            places[3] = { place: 4, equipe_id: null, nom: null };
+        }
+        var addSinglePair = function (bracketKey, placeWin, placeLose) {
+            var b = byBracket[bracketKey];
+            var mm = b && b[0];
+            places.push({ place: placeWin, equipe_id: winnerOf(mm), nom: nomFor(winnerOf(mm)) });
+            places.push({ place: placeLose, equipe_id: loserOf(mm), nom: nomFor(loserOf(mm)) });
+        };
+        if (byBracket['places_5_6']) addSinglePair('places_5_6', 5, 6);
+        if (byBracket['places_7_8']) addSinglePair('places_7_8', 7, 8);
+        if (byBracket['places_9_10']) addSinglePair('places_9_10', 9, 10);
+        if (byBracket['places_11_12']) addSinglePair('places_11_12', 11, 12);
+        places.sort(function (a, b) { return a.place - b.place; });
+        return places;
+    }
+
     function placeholderLabel(sourceOrdre, sourceType, sourcePouleId) {
         if (!sourceType) return '?';
         if (sourceType === 'gagnant' || sourceType === 'perdant') {
@@ -279,6 +338,23 @@
                 finaleSection.appendChild(bcard);
             });
             root.appendChild(finaleSection);
+
+            // Tableau final
+            var classementFinal = computeClassementFinal();
+            if (classementFinal.length > 0) {
+                var cfSection = el('div', { class: 'classement-final-live' });
+                cfSection.appendChild(el('h2', { class: 'live-section-title' }, '🥇 Classement final'));
+                var table = el('table', { class: 'classement-final-table' });
+                var medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+                classementFinal.forEach(function (p) {
+                    var row = el('tr', { class: p.equipe_id ? 'place-row' : 'place-row place-row--pending' });
+                    row.appendChild(el('td', { class: 'place-rank' }, (medals[p.place] || '') + ' ' + p.place + (p.place === 1 ? 'er' : 'e')));
+                    row.appendChild(el('td', { class: 'place-equipe' }, p.nom || '— en attente —'));
+                    table.appendChild(row);
+                });
+                cfSection.appendChild(table);
+                root.appendChild(cfSection);
+            }
         }
 
         // Poules : classement + composition
