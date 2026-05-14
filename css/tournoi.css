@@ -430,6 +430,55 @@ select.tournoi-input option {
 
 /* Matchs admin */
 
+.phase-section {
+    margin-top: 1.5rem;
+}
+.phase-section:first-of-type {
+    margin-top: 0;
+}
+.phase-section-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #f4c941;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(244, 201, 65, 0.25);
+}
+.phase-section--finale .phase-section-title {
+    color: #efa707;
+    border-bottom-color: rgba(239, 167, 7, 0.4);
+}
+
+.bracket-card {
+    background: rgba(244, 240, 230, 0.04);
+    border: 1px solid rgba(239, 167, 7, 0.25);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.bracket-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #efa707;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(239, 167, 7, 0.15);
+}
+.bracket-done {
+    text-align: center;
+    color: #f4c941;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+}
+
 .format-banner {
     display: flex;
     align-items: center;
@@ -831,6 +880,30 @@ select.tournoi-input option {
     font-size: 0.85rem;
     text-align: center;
     padding: 0.5rem;
+}
+
+/* Phase finale live */
+
+.finale-live-section {
+    margin-bottom: 2rem;
+}
+.bracket-live-card {
+    background: rgba(239, 167, 7, 0.06);
+    border: 1px solid rgba(239, 167, 7, 0.3);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+.bracket-live-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #efa707;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(239, 167, 7, 0.2);
 }
 
 /* Poules live */

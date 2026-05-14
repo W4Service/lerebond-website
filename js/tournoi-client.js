@@ -223,6 +223,41 @@
         });
         root.appendChild(terrainsSection);
 
+        // Phase finale : brackets si la phase est démarrée
+        var matchsFinale = matchs.filter(function (m) { return m.phase === 'finale'; });
+        if (matchsFinale.length > 0) {
+            var finaleSection = el('div', { class: 'finale-live-section' });
+            finaleSection.appendChild(el('h2', { class: 'live-section-title' }, '🏆 Phase finale'));
+
+            var byBracket = {};
+            matchsFinale.forEach(function (m) {
+                var b = m.bracket || 'autre';
+                (byBracket[b] = byBracket[b] || []).push(m);
+            });
+            var order = function (b) {
+                if (b === 'principal') return 0;
+                if (b.indexOf('rang_') === 0) return parseInt(b.split('_')[1], 10);
+                return 99;
+            };
+            var label = function (b) {
+                if (b === 'principal') return '🏆 Tableau principal';
+                if (b === 'rang_2') return '🥈 Places 5-6';
+                if (b === 'rang_3') return '🥉 Places 7-9';
+                if (b === 'rang_4') return '🎾 Places 10-12';
+                return 'Bracket ' + b;
+            };
+            Object.keys(byBracket).sort(function (a, b) { return order(a) - order(b); }).forEach(function (bk) {
+                var bcard = el('div', { class: 'bracket-live-card' });
+                bcard.appendChild(el('h3', { class: 'bracket-live-title' }, label(bk)));
+                var list = el('div', { class: 'matchs-mini-list' });
+                byBracket[bk].sort(function (a, b) { return a.ordre - b.ordre; })
+                    .forEach(function (m) { list.appendChild(renderMatchMini(m)); });
+                bcard.appendChild(list);
+                finaleSection.appendChild(bcard);
+            });
+            root.appendChild(finaleSection);
+        }
+
         // Poules : classement + composition
         if (poules.length > 0) {
             var pouleSection = el('div', { class: 'poules-live-section' });
