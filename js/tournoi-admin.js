@@ -2310,7 +2310,7 @@
             card.appendChild(pouleSection);
         }
 
-        // === Bouton : générer la phase finale ===
+        // === Bouton : générer la phase finale manuellement (utile hors config 3p×4) ===
         if (matchsFinale.length === 0 && poulesToutesTerminees()) {
             card.appendChild(el('button', {
                 class: 'btn-live btn-live--primary',
@@ -2318,9 +2318,6 @@
                 onclick: genererPhaseFinale,
                 title: 'Générer le tableau principal + brackets de classement'
             }, '🏆 Générer la phase finale'));
-        } else if (matchsFinale.length === 0 && matchsPoule.length > 0) {
-            card.appendChild(el('p', { class: 'tournoi-hint' },
-                '⏳ Termine tous les matchs de poule pour générer la phase finale.'));
         }
 
         // === Section Phase finale ===
