@@ -451,15 +451,42 @@
 
         await updateTournoi({ phase: 'poules' });
 
-        // En config 3p×4, on génère automatiquement le squelette de phase finale.
-        // Les placeholders ("1er Poule A", "Meilleur 2e"...) se rempliront en temps réel
-        // au fur et à mesure que les matchs de poule avancent.
-        if (isConfig3p4() && !matchs.some(function (m) { return m.phase === 'finale'; })) {
-            await genererSqueletteMaison3x4();
+        // Pré-génère le squelette de phase finale dès maintenant (les placeholders se rempliront
+        // au fur et à mesure des résultats de poule via propagateRangPoule).
+        if (!matchs.some(function (m) { return m.phase === 'finale'; })) {
+            await squeletteAutoSelonConfig();
         }
 
         showToast(newMatchs.length + ' matchs de poule générés', 'ok');
         render();
+    }
+
+    // Demande à l'admin quel format de phase finale pré-générer, et appelle la bonne fonction.
+    async function squeletteAutoSelonConfig() {
+        if (guardReadOnly()) return;
+        var maisonDispo = isConfig3p4();
+        var nbPoules = poules.length;
+        if (nbPoules < 2) {
+            showToast('Il faut au moins 2 poules pour une phase finale.', 'error');
+            return;
+        }
+
+        var menu = 'Choisis le format de phase finale à pré-générer :\n\n' +
+            '  1 — Top 1 de chaque poule (les ' + nbPoules + ' 1ers s\'affrontent)\n' +
+            '  2 — Top 1 + meilleur 2e (' + (nbPoules + 1) + ' équipes au principal)\n';
+        if (maisonDispo) {
+            menu += '  3 — Maison 3p×4 (demi + finale + 3/4 + matchs 5-6, 7-8, 9-10, 11-12)\n';
+        }
+        menu += '  4 — Ne rien générer maintenant\n\nTape 1, 2' + (maisonDispo ? ', 3' : '') + ' ou 4 :';
+
+        var choix = prompt(menu, maisonDispo ? '3' : '2');
+        if (choix == null) return;
+        choix = String(choix).trim();
+        if (choix === '4') return;
+        if (choix === '1') return await genererSqueletteGenerique('top1');
+        if (choix === '2') return await genererSqueletteGenerique('top1_plus_best2');
+        if (choix === '3' && maisonDispo) return await genererSqueletteMaison3x4();
+        showToast('Choix invalide', 'error');
     }
 
     // Génère le squelette de phase finale maison 3p×4 avec des placeholders rang_poule.
@@ -541,6 +568,239 @@
         matchs = matchs.concat(res.data);
         // Tente une 1re résolution au cas où certaines poules sont déjà avancées
         await propagateRangPoule();
+    }
+
+    // === Squelette générique de phase finale ===
+    // format: 'top1' (1er de chaque poule) ou 'top1_plus_best2' (1ers + meilleur 2e)
+    // Construit :
+    //   - 'principal' : seeding standard 1vN, 2v(N-1) avec placeholders rang_poule / meilleur_2e
+    //   - 'rang_2'    : tous les 2es (sauf le meilleur si format top1_plus_best2) → autres_2es
+    //   - 'rang_3'    : tous les 3es → rang_poule
+    //   - 'rang_4'    : tous les 4es → rang_poule
+    //   - 'rang_N'    : pour les poules de plus de 4 équipes
+    async function genererSqueletteGenerique(format) {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        if (poulesOrdonnees.length === 0) {
+            showToast('Aucune poule pour générer la phase finale.', 'error');
+            return;
+        }
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var newMatchs = [];
+        var ordre = 0;
+
+        // Construit un placeholder rang_poule pour une face A ou B
+        var placeholderRang = function (pouleId, rang, side) {
+            var p = {};
+            p['equipe_' + side + '_id'] = null;
+            p['equipe_' + side + '_source_poule_id'] = pouleId;
+            p['equipe_' + side + '_source_ordre'] = rang;
+            p['equipe_' + side + '_source_type'] = 'rang_poule';
+            return p;
+        };
+        // Placeholder meilleur_2e
+        var placeholderMeilleur2e = function (side) {
+            var p = {};
+            p['equipe_' + side + '_id'] = null;
+            p['equipe_' + side + '_source_poule_id'] = null;
+            p['equipe_' + side + '_source_ordre'] = null;
+            p['equipe_' + side + '_source_type'] = 'meilleur_2e';
+            return p;
+        };
+        // Placeholder autres_2es (slot 1..N)
+        var placeholderAutres2es = function (slot, side) {
+            var p = {};
+            p['equipe_' + side + '_id'] = null;
+            p['equipe_' + side + '_source_poule_id'] = null;
+            p['equipe_' + side + '_source_ordre'] = slot;
+            p['equipe_' + side + '_source_type'] = 'autres_2es';
+            return p;
+        };
+
+        var base = function (bracket) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+
+        // === Tableau principal ===
+        // Liste des "entrants" du principal : un slot par 1er de poule, plus 'meilleur_2e' si applicable
+        // Représenté par un tableau de descripteurs : { kind: 'rang_poule'|'meilleur_2e', pouleId?, rang? }
+        var principalEntrants = poulesOrdonnees.map(function (p) {
+            return { kind: 'rang_poule', pouleId: p.id, rang: 1 };
+        });
+        if (format === 'top1_plus_best2') {
+            principalEntrants.push({ kind: 'meilleur_2e' });
+        }
+
+        var n = principalEntrants.length;
+        if (n >= 2) {
+            // Seeding standard : 1 vs n, 2 vs n-1...
+            // (avec n impair, on s'arrête au milieu — le seed du milieu n'a pas de match initial)
+            // Placeholder pour le slot N-1, etc. : les entrants[i] sont déjà ordonnés "seed".
+            var slotToPlaceholder = function (entry, side) {
+                if (entry.kind === 'meilleur_2e') return placeholderMeilleur2e(side);
+                return placeholderRang(entry.pouleId, entry.rang, side);
+            };
+            // Cas spéciaux courants :
+            if (n === 2) {
+                // Finale directe : 1 match
+                newMatchs.push(Object.assign({}, base('principal'),
+                    slotToPlaceholder(principalEntrants[0], 'a'),
+                    slotToPlaceholder(principalEntrants[1], 'b')));
+                ordre++;
+            } else if (n === 3) {
+                // Barrage + finale (l'exempté est le seed 1)
+                // Match 1 : seed 2 vs seed 3
+                newMatchs.push(Object.assign({}, base('principal'),
+                    slotToPlaceholder(principalEntrants[1], 'a'),
+                    slotToPlaceholder(principalEntrants[2], 'b')));
+                ordre++;
+                // Match 2 (finale) : créé après que le barrage soit joué — on le laisse à genererTourSuivant
+            } else if (n === 4) {
+                // Demi 1 : seed 1 vs seed 4
+                newMatchs.push(Object.assign({}, base('principal'),
+                    slotToPlaceholder(principalEntrants[0], 'a'),
+                    slotToPlaceholder(principalEntrants[3], 'b')));
+                ordre++;
+                // Demi 2 : seed 2 vs seed 3
+                newMatchs.push(Object.assign({}, base('principal'),
+                    slotToPlaceholder(principalEntrants[1], 'a'),
+                    slotToPlaceholder(principalEntrants[2], 'b')));
+                ordre++;
+            } else if (n === 8) {
+                // Quarts seedés
+                var pairs = [[0,7],[3,4],[1,6],[2,5]];
+                pairs.forEach(function (pair) {
+                    newMatchs.push(Object.assign({}, base('principal'),
+                        slotToPlaceholder(principalEntrants[pair[0]], 'a'),
+                        slotToPlaceholder(principalEntrants[pair[1]], 'b')));
+                    ordre++;
+                });
+            } else {
+                // Fallback : seeding générique 1vN, 2v(N-1)...
+                for (var i = 0; i < Math.floor(n / 2); i++) {
+                    newMatchs.push(Object.assign({}, base('principal'),
+                        slotToPlaceholder(principalEntrants[i], 'a'),
+                        slotToPlaceholder(principalEntrants[n - 1 - i], 'b')));
+                    ordre++;
+                }
+            }
+        }
+
+        // === Bracket des 2es (sauf le meilleur si top1_plus_best2) ===
+        if (format === 'top1_plus_best2') {
+            // autres_2es : slot 1..N-1 (le meilleur 2e étant qualifié au principal)
+            var nbAutres2es = poulesOrdonnees.length - 1;
+            newMatchs = newMatchs.concat(buildPlaceholderBracket(nbAutres2es, 'rang_2', function (slot, side) {
+                return placeholderAutres2es(slot, side);
+            }, ordre, pickT));
+            ordre += matchsRecentsCount(newMatchs);
+        } else {
+            // format 'top1' : tous les 2es jouent un bracket dédié, placeholders rang_poule
+            var nbDeuxiemes = poulesOrdonnees.length;
+            newMatchs = newMatchs.concat(buildPlaceholderBracketFromPoules(nbDeuxiemes, 'rang_2', 2, poulesOrdonnees, placeholderRang, ordre, pickT));
+            ordre += matchsRecentsCount(newMatchs);
+        }
+
+        // === Brackets pour les rangs 3, 4, 5+ ===
+        // On regarde la taille de poule max pour savoir combien de rangs il y a
+        var nbEqMaxParPoule = 0;
+        poulesOrdonnees.forEach(function (p) {
+            var n = equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+            if (n > nbEqMaxParPoule) nbEqMaxParPoule = n;
+        });
+        for (var rang = 3; rang <= nbEqMaxParPoule; rang++) {
+            // Combien de poules ont une équipe à ce rang ?
+            var nbAuRang = poulesOrdonnees.filter(function (p) {
+                return equipes.filter(function (e) { return e.poule_id === p.id; }).length >= rang;
+            }).length;
+            if (nbAuRang < 2) continue;
+            // Bracket dédié pour ce rang
+            var poulesCeRang = poulesOrdonnees.filter(function (p) {
+                return equipes.filter(function (e) { return e.poule_id === p.id; }).length >= rang;
+            });
+            newMatchs = newMatchs.concat(buildPlaceholderBracketFromPoules(nbAuRang, 'rang_' + rang, rang, poulesCeRang, placeholderRang, ordre, pickT));
+            ordre = ordre + Math.floor(nbAuRang / 2) + (nbAuRang === 3 ? 1 : 0); // heuristique
+        }
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
+    function matchsRecentsCount(arr) {
+        // Compte les matchs ajoutés au dernier batch — utilisé pour incrémenter `ordre`
+        // (ici on retourne 0 car on incrémente nous-mêmes via pickT). Simple stub.
+        return 0;
+    }
+
+    // Construit un mini-bracket de N placeholders avec une fonction qui crée le placeholder à partir d'un slot
+    function buildPlaceholderBracket(n, bracket, makePlaceholder, ordreStart, pickT) {
+        var out = [];
+        var ordre = ordreStart;
+        var baseObj = function () {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+        if (n === 2) {
+            out.push(Object.assign(baseObj(), makePlaceholder(1, 'a'), makePlaceholder(2, 'b')));
+        } else if (n === 3) {
+            out.push(Object.assign(baseObj(), makePlaceholder(2, 'a'), makePlaceholder(3, 'b')));
+        } else if (n === 4) {
+            out.push(Object.assign(baseObj(), makePlaceholder(1, 'a'), makePlaceholder(4, 'b')));
+            ordre++;
+            out.push(Object.assign(baseObj(), makePlaceholder(2, 'a'), makePlaceholder(3, 'b')));
+        } else if (n >= 5) {
+            for (var i = 0; i < Math.floor(n / 2); i++) {
+                out.push(Object.assign(baseObj(), makePlaceholder(i + 1, 'a'), makePlaceholder(n - i, 'b')));
+                ordre++;
+            }
+        }
+        return out;
+    }
+
+    // Construit un mini-bracket à partir d'une liste de poules à un rang donné.
+    // Crée les paires avec placeholderRang(pouleId, rang) en alternant les poules.
+    function buildPlaceholderBracketFromPoules(n, bracket, rang, poulesList, placeholderRang, ordreStart, pickT) {
+        var out = [];
+        var ordre = ordreStart;
+        if (n < 2) return out;
+        if (n === 2) {
+            out.push(Object.assign({
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            }, placeholderRang(poulesList[0].id, rang, 'a'), placeholderRang(poulesList[1].id, rang, 'b')));
+        } else if (n === 3) {
+            // Barrage : poule 2 vs poule 3 (la poule 1 exemptée)
+            out.push(Object.assign({
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            }, placeholderRang(poulesList[1].id, rang, 'a'), placeholderRang(poulesList[2].id, rang, 'b')));
+        } else if (n === 4) {
+            out.push(Object.assign({
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre++, terrain: pickT(ordre)
+            }, placeholderRang(poulesList[0].id, rang, 'a'), placeholderRang(poulesList[3].id, rang, 'b')));
+            out.push(Object.assign({
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            }, placeholderRang(poulesList[1].id, rang, 'a'), placeholderRang(poulesList[2].id, rang, 'b')));
+        } else {
+            // Générique : 1vN, 2v(N-1)...
+            for (var i = 0; i < Math.floor(n / 2); i++) {
+                out.push(Object.assign({
+                    tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                    status: 'en_attente', ordre: ordre++, terrain: pickT(ordre)
+                }, placeholderRang(poulesList[i].id, rang, 'a'), placeholderRang(poulesList[n - 1 - i].id, rang, 'b')));
+            }
+        }
+        return out;
     }
 
     // Résout les placeholders rang_poule / meilleur_2e / autres_2es sur les matchs en_attente
@@ -2310,30 +2570,18 @@
             card.appendChild(pouleSection);
         }
 
-        // === Pré-générer le squelette maison 3p×4 dès maintenant (utile pour rattraper
-        // un tournoi créé avant l'auto-génération, ou si la config 3p×4 a été obtenue après) ===
-        if (matchsFinale.length === 0 && isConfig3p4() && matchsPoule.length > 0) {
+        // === Pré-générer le squelette dès maintenant (placeholders qui se rempliront au fil des résultats) ===
+        if (matchsFinale.length === 0 && matchsPoule.length > 0 && poules.length >= 2) {
             card.appendChild(el('button', {
                 class: 'btn-live btn-live--primary',
                 style: 'width:100%;margin-top:1rem',
                 onclick: async function () {
                     if (guardReadOnly()) return;
-                    await genererSqueletteMaison3x4();
+                    await squeletteAutoSelonConfig();
                     render();
-                    showToast('Squelette de phase finale créé', 'ok');
                 },
-                title: 'Crée le squelette (demi/finale + matchs 5-6, 7-8, 9-10, 11-12) avec placeholders'
-            }, '🏆 Pré-générer la phase finale (3p×4)'));
-        }
-
-        // === Bouton : générer la phase finale manuellement (utile hors config 3p×4) ===
-        if (matchsFinale.length === 0 && !isConfig3p4() && poulesToutesTerminees()) {
-            card.appendChild(el('button', {
-                class: 'btn-live btn-live--primary',
-                style: 'width:100%;margin-top:1rem',
-                onclick: genererPhaseFinale,
-                title: 'Générer le tableau principal + brackets de classement'
-            }, '🏆 Générer la phase finale'));
+                title: 'Crée le squelette de phase finale avec placeholders (qui se rempliront automatiquement)'
+            }, '🏆 Pré-générer la phase finale'));
         }
 
         // === Section Phase finale ===
