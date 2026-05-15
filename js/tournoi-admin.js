@@ -2310,8 +2310,24 @@
             card.appendChild(pouleSection);
         }
 
+        // === Pré-générer le squelette maison 3p×4 dès maintenant (utile pour rattraper
+        // un tournoi créé avant l'auto-génération, ou si la config 3p×4 a été obtenue après) ===
+        if (matchsFinale.length === 0 && isConfig3p4() && matchsPoule.length > 0) {
+            card.appendChild(el('button', {
+                class: 'btn-live btn-live--primary',
+                style: 'width:100%;margin-top:1rem',
+                onclick: async function () {
+                    if (guardReadOnly()) return;
+                    await genererSqueletteMaison3x4();
+                    render();
+                    showToast('Squelette de phase finale créé', 'ok');
+                },
+                title: 'Crée le squelette (demi/finale + matchs 5-6, 7-8, 9-10, 11-12) avec placeholders'
+            }, '🏆 Pré-générer la phase finale (3p×4)'));
+        }
+
         // === Bouton : générer la phase finale manuellement (utile hors config 3p×4) ===
-        if (matchsFinale.length === 0 && poulesToutesTerminees()) {
+        if (matchsFinale.length === 0 && !isConfig3p4() && poulesToutesTerminees()) {
             card.appendChild(el('button', {
                 class: 'btn-live btn-live--primary',
                 style: 'width:100%;margin-top:1rem',
