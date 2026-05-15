@@ -451,12 +451,11 @@
 
         await updateTournoi({ phase: 'poules' });
 
-        // Si config 3p×4 et qu'on n'a pas déjà un squelette de phase finale, proposer de le générer
+        // En config 3p×4, on génère automatiquement le squelette de phase finale.
+        // Les placeholders ("1er Poule A", "Meilleur 2e"...) se rempliront en temps réel
+        // au fur et à mesure que les matchs de poule avancent.
         if (isConfig3p4() && !matchs.some(function (m) { return m.phase === 'finale'; })) {
-            var ouiSquelette = confirm('Config 3 poules × 4 détectée.\n\nVeux-tu pré-générer le squelette de la phase finale maintenant ?\n\nLes matchs apparaîtront avec des placeholders (\"1er Poule A\", \"2e Poule B\"...) et se rempliront automatiquement au fur et à mesure que les poules avancent.');
-            if (ouiSquelette) {
-                await genererSqueletteMaison3x4();
-            }
+            await genererSqueletteMaison3x4();
         }
 
         showToast(newMatchs.length + ' matchs de poule générés', 'ok');
@@ -568,6 +567,13 @@
         var meilleur2eId = deuxiemesTries.length > 0 ? deuxiemesTries[0].equipe_id : null;
         var autres2esIds = deuxiemesTries.slice(1).map(function (d) { return d.equipe_id; });
 
+        // Le classement provisoire est utilisable dès qu'au moins un match de la poule est joué.
+        var pouleAuMoinsUnMatchJoue = function (pouleId) {
+            return matchs.some(function (mm) {
+                return mm.phase === 'poule' && mm.poule_id === pouleId && mm.status === 'termine';
+            });
+        };
+
         var resolveSide = function (m, side) {
             var srcType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
             var srcOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
@@ -577,38 +583,32 @@
                 if (!srcPouleId || !srcOrdre) return null;
                 var c = classements[srcPouleId];
                 if (!c) return null;
+                // On résout dès qu'au moins un match de la poule est joué : classement provisoire.
+                if (!pouleAuMoinsUnMatchJoue(srcPouleId)) return null;
                 var entry = c[srcOrdre - 1];
-                // Ne résoudre que si la poule a tous ses matchs terminés (sinon ordre instable)
-                var matchsPouleNonTermine = matchs.some(function (mm) {
-                    return mm.phase === 'poule' && mm.poule_id === srcPouleId && mm.status !== 'termine';
-                });
-                if (matchsPouleNonTermine) return null;
                 return entry ? entry.id : null;
             }
             if (srcType === 'meilleur_2e') {
-                // On résout seulement quand toutes les poules sont terminées (pour comparer les 2es)
-                if (!poulesToutesTerminees()) return null;
+                // On résout dès qu'on a au moins un 2e provisoire (= au moins une poule a un match joué)
                 return meilleur2eId;
             }
             if (srcType === 'autres_2es') {
-                if (!poulesToutesTerminees()) return null;
                 var idx = (srcOrdre || 1) - 1;
                 return autres2esIds[idx] || null;
             }
             return null;
         };
 
+        // On réécrit systématiquement les équipes des matchs en_attente pour refléter le classement courant
+        // (même si une équipe était déjà assignée, car le rang peut avoir changé).
         var updates = [];
         matchsFinale.forEach(function (m) {
             var patch = {};
-            if (!m.equipe_a_id) {
-                var idA = resolveSide(m, 'a');
-                if (idA) patch.equipe_a_id = idA;
-            }
-            if (!m.equipe_b_id) {
-                var idB = resolveSide(m, 'b');
-                if (idB) patch.equipe_b_id = idB;
-            }
+            var idA = resolveSide(m, 'a');
+            var idB = resolveSide(m, 'b');
+            // Ne pas écrire si l'équipe n'a pas pu être résolue ET que rien n'était assigné avant
+            if (m.equipe_a_source_type && idA !== m.equipe_a_id) patch.equipe_a_id = idA;
+            if (m.equipe_b_source_type && idB !== m.equipe_b_id) patch.equipe_b_id = idB;
             if (Object.keys(patch).length > 0) updates.push({ id: m.id, patch: patch });
         });
 
@@ -2457,6 +2457,16 @@
     async function updateMatchEquipeSide(matchId, side, newEquipeId) {
         var patch = {};
         patch[side === 'a' ? 'equipe_a_id' : 'equipe_b_id'] = newEquipeId;
+        // Drag manuel : on neutralise les placeholders pour ne pas être réécrasé par le résolveur auto
+        if (side === 'a') {
+            patch.equipe_a_source_type = null;
+            patch.equipe_a_source_ordre = null;
+            patch.equipe_a_source_poule_id = null;
+        } else {
+            patch.equipe_b_source_type = null;
+            patch.equipe_b_source_ordre = null;
+            patch.equipe_b_source_poule_id = null;
+        }
         patch.updated_at = new Date().toISOString();
         var res = await supa.from('matchs').update(patch).eq('id', matchId).select().single();
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return false; }
@@ -2476,13 +2486,16 @@
         if (!srcEqId && !dstEqId) return;
 
         if (srcMatchId === dstMatchId) {
-            // Swap A/B au sein du même match
+            // Swap A/B au sein du même match — neutralise les placeholders auto pour figer le choix manuel
             await supa.from('matchs').update({
                 equipe_a_id: dst.equipe_b_id, equipe_b_id: dst.equipe_a_id,
+                equipe_a_source_type: null, equipe_a_source_ordre: null, equipe_a_source_poule_id: null,
+                equipe_b_source_type: null, equipe_b_source_ordre: null, equipe_b_source_poule_id: null,
                 updated_at: new Date().toISOString()
             }).eq('id', dstMatchId);
+            var res2 = await supa.from('matchs').select('*').eq('id', dstMatchId).single();
             var idx = matchs.findIndex(function (m) { return m.id === dstMatchId; });
-            if (idx >= 0) { var tmp = matchs[idx].equipe_a_id; matchs[idx].equipe_a_id = matchs[idx].equipe_b_id; matchs[idx].equipe_b_id = tmp; }
+            if (idx >= 0 && res2.data) matchs[idx] = res2.data;
             render();
             showToast('Équipes interverties', 'ok');
             return;
