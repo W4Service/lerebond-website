@@ -14,6 +14,7 @@
     var matchs = [];
     var archivedTournois = [];
     var closedTournois = [];
+    var activeTab = 'matchs'; // 'matchs' | 'pointage'
 
     // Elements (sera initialisé après login)
     var els = {};
@@ -224,6 +225,15 @@
         var n = (points === '' || points == null) ? null : Math.max(0, parseInt(points, 10));
         if (n !== null && isNaN(n)) return;
         var patch = {}; patch[joueurKey] = n;
+        var res = await supa.from('equipes').update(patch).eq('id', equipeId).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        var i = equipes.findIndex(function (e) { return e.id === equipeId; });
+        if (i >= 0) equipes[i] = res.data;
+    }
+
+    async function setEquipeFlag(equipeId, flag, value) {
+        if (guardReadOnly()) return;
+        var patch = {}; patch[flag] = !!value;
         var res = await supa.from('equipes').update(patch).eq('id', equipeId).select().single();
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         var i = equipes.findIndex(function (e) { return e.id === equipeId; });
@@ -1410,12 +1420,102 @@
             root.appendChild(renderCreate());
         } else {
             root.appendChild(renderHeader());
-            var setup = el('div', { class: 'tournoi-setup-grid' });
-            setup.appendChild(renderEquipesSection());
-            setup.appendChild(renderPoulesSection());
-            root.appendChild(setup);
-            root.appendChild(renderMatchsSection());
+            root.appendChild(renderTabsBar());
+            if (activeTab === 'pointage') {
+                root.appendChild(renderPointageSection());
+            } else {
+                var setup = el('div', { class: 'tournoi-setup-grid' });
+                setup.appendChild(renderEquipesSection());
+                setup.appendChild(renderPoulesSection());
+                root.appendChild(setup);
+                root.appendChild(renderMatchsSection());
+            }
         }
+    }
+
+    function renderTabsBar() {
+        var bar = el('div', { class: 'tournoi-tabs' });
+        var tabs = [
+            { id: 'matchs', label: '🎮 Matchs & poules' },
+            { id: 'pointage', label: '📋 Pointage' }
+        ];
+        tabs.forEach(function (t) {
+            var btn = el('button', {
+                class: 'tournoi-tab' + (activeTab === t.id ? ' tournoi-tab--active' : ''),
+                onclick: function () { activeTab = t.id; render(); }
+            }, t.label);
+            bar.appendChild(btn);
+        });
+        // Bouton imprimer à droite
+        var spacer = el('div', { class: 'tournoi-tabs-spacer' });
+        bar.appendChild(spacer);
+        var printBtn = el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: function () { window.open('live/tournoi/print/?t=' + currentTournoi.id, '_blank'); },
+            title: 'Ouvre une page imprimable (poules + matchs)'
+        }, '🖨️ Imprimer / PDF');
+        bar.appendChild(printBtn);
+        return bar;
+    }
+
+    function renderPointageSection() {
+        var card = el('div', { class: 'tournoi-card' });
+        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '📋 Pointage des équipes'));
+
+        var nbTotal = equipes.length;
+        var nbPresent = equipes.filter(function (e) { return e.present; }).length;
+        var nbPaye = equipes.filter(function (e) { return e.paye; }).length;
+
+        var stats = el('div', { class: 'pointage-stats' });
+        stats.appendChild(el('div', { class: 'pointage-stat' }, [
+            el('span', { class: 'pointage-stat-label' }, 'Présents'),
+            el('span', { class: 'pointage-stat-value' }, nbPresent + ' / ' + nbTotal)
+        ]));
+        stats.appendChild(el('div', { class: 'pointage-stat' }, [
+            el('span', { class: 'pointage-stat-label' }, 'Payés'),
+            el('span', { class: 'pointage-stat-value' }, nbPaye + ' / ' + nbTotal)
+        ]));
+        card.appendChild(stats);
+
+        if (equipes.length === 0) {
+            card.appendChild(el('p', { class: 'tournoi-empty' }, 'Aucune équipe inscrite.'));
+            return card;
+        }
+
+        // Liste : équipes triées par nom, avec leur poule
+        var sorted = equipes.slice().sort(function (a, b) { return a.nom.localeCompare(b.nom); });
+        var list = el('div', { class: 'pointage-list' });
+        sorted.forEach(function (eq) {
+            var p = poules.find(function (po) { return po.id === eq.poule_id; });
+            var row = el('div', { class: 'pointage-row' + (eq.present ? ' pointage-row--present' : '') + (eq.paye ? ' pointage-row--paye' : '') });
+            var infoCol = el('div', { class: 'pointage-info' });
+            infoCol.appendChild(el('div', { class: 'pointage-nom' }, eq.nom));
+            if (p) infoCol.appendChild(el('div', { class: 'pointage-poule' }, p.nom));
+            row.appendChild(infoCol);
+
+            var toggles = el('div', { class: 'pointage-toggles' });
+            toggles.appendChild(renderToggle(eq, 'present', '✅', 'Présent'));
+            toggles.appendChild(renderToggle(eq, 'paye', '💰', 'Payé'));
+            row.appendChild(toggles);
+
+            list.appendChild(row);
+        });
+        card.appendChild(list);
+
+        return card;
+    }
+
+    function renderToggle(eq, flag, icon, label) {
+        var on = !!eq[flag];
+        var btn = el('button', {
+            class: 'toggle-btn' + (on ? ' toggle-btn--on' : ''),
+            onclick: function () {
+                setEquipeFlag(eq.id, flag, !on).then(function () { render(); });
+            }
+        });
+        btn.appendChild(el('span', { class: 'toggle-icon' }, icon));
+        btn.appendChild(el('span', { class: 'toggle-label' }, label));
+        return btn;
     }
 
     function renderCreate() {

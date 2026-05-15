@@ -97,6 +97,137 @@
     text-align: left;
 }
 
+/* Onglets de la vue tournoi admin */
+.tournoi-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.1);
+    padding-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+.tournoi-tab {
+    background: transparent;
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    color: rgba(244, 240, 230, 0.7);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: all 0.15s;
+}
+.tournoi-tab:hover {
+    color: #f4f0e6;
+    border-color: rgba(244, 201, 65, 0.4);
+}
+.tournoi-tab--active {
+    background: rgba(244, 201, 65, 0.12);
+    border-color: rgba(244, 201, 65, 0.5);
+    color: #f4c941;
+}
+.tournoi-tabs-spacer { flex: 1; }
+
+/* Pointage : stats + liste */
+.pointage-stats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.pointage-stat {
+    flex: 1;
+    min-width: 140px;
+    background: rgba(244, 201, 65, 0.08);
+    border: 1px solid rgba(244, 201, 65, 0.25);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.pointage-stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(244, 240, 230, 0.6);
+    font-weight: 700;
+}
+.pointage-stat-value {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 1.4rem;
+    letter-spacing: 0.04em;
+}
+
+.pointage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.pointage-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.7rem 0.9rem;
+    background: rgba(244, 240, 230, 0.04);
+    border: 1px solid rgba(244, 240, 230, 0.1);
+    border-radius: 10px;
+    transition: background 0.15s, border-color 0.15s;
+}
+.pointage-row--present { background: rgba(244, 201, 65, 0.05); }
+.pointage-row--paye    { border-color: rgba(72, 187, 120, 0.4); }
+.pointage-info { min-width: 0; }
+.pointage-nom {
+    font-weight: 700;
+    color: #f4f0e6;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pointage-poule {
+    font-size: 0.75rem;
+    color: rgba(244, 240, 230, 0.55);
+    margin-top: 0.15rem;
+}
+.pointage-toggles {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+}
+
+.toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(244, 240, 230, 0.18);
+    background: rgba(244, 240, 230, 0.04);
+    color: rgba(244, 240, 230, 0.5);
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    transition: all 0.15s;
+}
+.toggle-btn:hover {
+    background: rgba(244, 240, 230, 0.08);
+    color: #f4f0e6;
+}
+.toggle-btn--on {
+    background: rgba(72, 187, 120, 0.15);
+    border-color: rgba(72, 187, 120, 0.5);
+    color: #6ee7a7;
+}
+.toggle-icon { font-size: 1rem; line-height: 1; }
+.toggle-label { letter-spacing: 0.02em; }
+
 /* Checkbox dans le formulaire de création */
 .checkbox-row {
     display: grid;
