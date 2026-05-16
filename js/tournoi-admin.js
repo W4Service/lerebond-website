@@ -1718,22 +1718,34 @@
         return bar;
     }
 
+    // Split "Dupont / Martin" en ["Dupont", "Martin"]. Fallback : "Joueur 1" / "Joueur 2".
+    function nomsJoueurs(eq) {
+        var parts = (eq.nom || '').split('/').map(function (s) { return s.trim(); }).filter(Boolean);
+        var j1 = parts[0] || 'Joueur 1';
+        var j2 = parts[1] || 'Joueur 2';
+        return [j1, j2];
+    }
+
     function renderPointageSection() {
         var card = el('div', { class: 'tournoi-card' });
-        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '📋 Pointage des équipes'));
+        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '📋 Pointage des joueurs'));
 
-        var nbTotal = equipes.length;
-        var nbPresent = equipes.filter(function (e) { return e.present; }).length;
-        var nbPaye = equipes.filter(function (e) { return e.paye; }).length;
+        var nbJoueurs = equipes.length * 2;
+        var nbPresent = equipes.reduce(function (acc, e) {
+            return acc + (e.present_j1 ? 1 : 0) + (e.present_j2 ? 1 : 0);
+        }, 0);
+        var nbPaye = equipes.reduce(function (acc, e) {
+            return acc + (e.paye_j1 ? 1 : 0) + (e.paye_j2 ? 1 : 0);
+        }, 0);
 
         var stats = el('div', { class: 'pointage-stats' });
         stats.appendChild(el('div', { class: 'pointage-stat' }, [
             el('span', { class: 'pointage-stat-label' }, 'Présents'),
-            el('span', { class: 'pointage-stat-value' }, nbPresent + ' / ' + nbTotal)
+            el('span', { class: 'pointage-stat-value' }, nbPresent + ' / ' + nbJoueurs)
         ]));
         stats.appendChild(el('div', { class: 'pointage-stat' }, [
             el('span', { class: 'pointage-stat-label' }, 'Payés'),
-            el('span', { class: 'pointage-stat-value' }, nbPaye + ' / ' + nbTotal)
+            el('span', { class: 'pointage-stat-value' }, nbPaye + ' / ' + nbJoueurs)
         ]));
         card.appendChild(stats);
 
@@ -1742,30 +1754,47 @@
             return card;
         }
 
-        // Liste : équipes triées par nom, avec leur poule
+        // Liste : équipes triées par nom, avec leur poule, et 2 lignes joueurs par carte
         var sorted = equipes.slice().sort(function (a, b) { return a.nom.localeCompare(b.nom); });
         var list = el('div', { class: 'pointage-list' });
         sorted.forEach(function (eq) {
             var p = poules.find(function (po) { return po.id === eq.poule_id; });
-            var row = el('div', { class: 'pointage-row' + (eq.present ? ' pointage-row--present' : '') + (eq.paye ? ' pointage-row--paye' : '') });
-            var infoCol = el('div', { class: 'pointage-info' });
-            infoCol.appendChild(el('div', { class: 'pointage-nom' }, eq.nom));
-            if (p) infoCol.appendChild(el('div', { class: 'pointage-poule' }, p.nom));
-            row.appendChild(infoCol);
+            var noms = nomsJoueurs(eq);
 
-            var toggles = el('div', { class: 'pointage-toggles' });
-            toggles.appendChild(renderToggle(eq, 'present', '✅', 'Présent'));
-            toggles.appendChild(renderToggle(eq, 'paye', '💰', 'Payé'));
-            row.appendChild(toggles);
+            var card2 = el('div', { class: 'pointage-equipe' });
+            var head = el('div', { class: 'pointage-equipe-head' });
+            head.appendChild(el('span', { class: 'pointage-equipe-nom' }, eq.nom));
+            if (p) head.appendChild(el('span', { class: 'pointage-poule' }, p.nom));
+            card2.appendChild(head);
 
-            list.appendChild(row);
+            card2.appendChild(renderJoueurRow(eq, 'j1', noms[0]));
+            card2.appendChild(renderJoueurRow(eq, 'j2', noms[1]));
+
+            list.appendChild(card2);
         });
         card.appendChild(list);
 
         return card;
     }
 
-    function renderToggle(eq, flag, icon, label) {
+    function renderJoueurRow(eq, suffix, nomJoueur) {
+        var presentFlag = 'present_' + suffix;
+        var payeFlag = 'paye_' + suffix;
+        var on1 = !!eq[presentFlag];
+        var on2 = !!eq[payeFlag];
+
+        var row = el('div', { class: 'pointage-joueur' + (on1 ? ' pointage-joueur--present' : '') + (on2 ? ' pointage-joueur--paye' : '') });
+        row.appendChild(el('span', { class: 'pointage-joueur-nom' }, nomJoueur));
+
+        var toggles = el('div', { class: 'pointage-toggles' });
+        toggles.appendChild(renderJoueurToggle(eq, presentFlag, '✅', 'Présent'));
+        toggles.appendChild(renderJoueurToggle(eq, payeFlag, '💰', 'Payé'));
+        row.appendChild(toggles);
+
+        return row;
+    }
+
+    function renderJoueurToggle(eq, flag, icon, label) {
         var on = !!eq[flag];
         var btn = el('button', {
             class: 'toggle-btn' + (on ? ' toggle-btn--on' : ''),
