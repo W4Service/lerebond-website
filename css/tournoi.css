@@ -637,6 +637,31 @@ select.tournoi-input option {
     margin-top: 0.5rem;
 }
 
+/* Classements de poule côté admin */
+.classements-poules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.classement-poule-card {
+    background: rgba(244, 240, 230, 0.05);
+    border: 1px solid rgba(239, 167, 7, 0.3);
+    border-radius: 12px;
+    padding: 1rem;
+}
+.classement-poule-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(244, 240, 230, 0.1);
+}
+
 .format-banner {
     display: flex;
     align-items: center;

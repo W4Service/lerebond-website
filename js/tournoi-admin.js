@@ -2466,8 +2466,59 @@
         return card;
     }
 
-    // === Classement final (places 1-12 du mode maison) ===
-    // Renvoie un tableau ordonné de { place, equipe_id, nom } ; certains slots peuvent être null si non encore résolus.
+    // === Tableau récap des classements de poule (admin) ===
+    function renderClassementsPoulesAdmin() {
+        var fmt = currentTournoi && currentTournoi.format_score;
+        var rule = FORMAT_RULES[fmt] || FORMAT_RULES.libre;
+        var showSets = !rule.libre && !rule.superTbOnly;
+
+        var wrap = el('div', { class: 'phase-section' });
+        wrap.appendChild(el('h4', { class: 'phase-section-title' }, '📊 Classements de poule'));
+        var grid = el('div', { class: 'classements-poules-grid' });
+        poules.slice().sort(function (a, b) { return a.ordre - b.ordre; }).forEach(function (p) {
+            var pcard = el('div', { class: 'classement-poule-card' });
+            pcard.appendChild(el('h5', { class: 'classement-poule-title' }, p.nom));
+            var classement = computeClassement(p.id);
+            if (classement.length === 0) {
+                pcard.appendChild(el('p', { class: 'poule-empty' }, '— aucune équipe —'));
+                grid.appendChild(pcard);
+                return;
+            }
+            var table = el('table', { class: 'poule-live-table' });
+            var thead = el('tr', { class: 'poule-live-thead' });
+            thead.appendChild(el('th', null, '#'));
+            thead.appendChild(el('th', { style: 'text-align:left' }, 'Équipe'));
+            thead.appendChild(el('th', { title: 'Matchs joués' }, 'MJ'));
+            thead.appendChild(el('th', { title: 'Victoires' }, 'V'));
+            if (showSets) thead.appendChild(el('th', { title: 'Diff. sets' }, '±S'));
+            if (showSets) thead.appendChild(el('th', { title: 'Diff. jeux' }, '±J'));
+            table.appendChild(thead);
+            classement.forEach(function (s) {
+                var row = el('tr');
+                row.appendChild(el('td', { class: 'poule-pos' }, s.mj > 0 ? '#' + s.pos : '·'));
+                row.appendChild(el('td', { class: 'poule-eq' }, s.nom));
+                row.appendChild(el('td', { class: 'poule-stat' }, String(s.mj)));
+                row.appendChild(el('td', { class: 'poule-stat poule-stat--v' }, String(s.v)));
+                if (showSets) {
+                    var ds = s.sg - s.sp;
+                    row.appendChild(el('td', { class: 'poule-stat' }, (ds >= 0 ? '+' : '') + ds));
+                }
+                if (showSets) {
+                    var dj = s.jg - s.jp;
+                    row.appendChild(el('td', { class: 'poule-stat' }, (dj >= 0 ? '+' : '') + dj));
+                }
+                table.appendChild(row);
+            });
+            pcard.appendChild(table);
+            grid.appendChild(pcard);
+        });
+        wrap.appendChild(grid);
+        return wrap;
+    }
+
+    // === Classement final générique ===
+    // Reconstruit les places à partir des brackets de phase finale présents.
+    // Renvoie un tableau ordonné de { place, equipe_id, nom }. Slots non résolus = nom null.
     function computeClassementFinal() {
         var byBracket = {};
         matchs.filter(function (m) { return m.phase === 'finale'; }).forEach(function (m) {
@@ -2491,52 +2542,164 @@
             return m.vainqueur_id === m.equipe_a_id ? m.equipe_b_id : m.equipe_a_id;
         };
 
-        var places = [];
+        // Identifie les "entrants distincts" d'un bracket en regardant les matchs du premier round.
+        // Retourne la liste d'ids (ou null pour les slots non résolus) — utilisé pour estimer
+        // combien de places le bracket couvre.
+        var entrantsBracket = function (ms) {
+            var ids = new Set();
+            var hasUnresolved = false;
+            ms.forEach(function (m) {
+                if (m.equipe_a_id) ids.add(m.equipe_a_id); else hasUnresolved = true;
+                if (m.equipe_b_id) ids.add(m.equipe_b_id); else hasUnresolved = true;
+            });
+            // Si tous les matchs ont 2 équipes assignées : on a un compte exact des entrants directs.
+            // Pour un bracket avec finale 'cachée' (round 2), on ne la compte pas.
+            // Heuristique : on regarde le 1er round = matchs sans match précédent qui les alimente.
+            return { count: ids.size + (hasUnresolved ? 0 : 0), hasUnresolved: hasUnresolved };
+        };
 
-        // === Tableau principal ===
-        // En mode maison : 2 demis (ordre 0, 1), puis finale + 3e/4e (ordre 2, 3)
-        var principal = byBracket['principal'] || [];
-        if (principal.length >= 4) {
-            // Convention dans genererTourSuivant : ordre 2 = finale, ordre 3 = 3e/4e
-            // Mais il faut identifier laquelle. La finale oppose les 2 gagnants des demis. La petite finale les 2 perdants.
-            var demi1 = principal[0], demi2 = principal[1];
-            // Identifier finale et petite finale par la composition des équipes
-            var finaleMatch = null, petiteFinale = null;
-            for (var i = 2; i < principal.length; i++) {
-                var m = principal[i];
-                var hasWinners = m.equipe_a_id && m.equipe_b_id && demi1.vainqueur_id && demi2.vainqueur_id
-                    && (m.equipe_a_id === demi1.vainqueur_id || m.equipe_a_id === demi2.vainqueur_id)
-                    && (m.equipe_b_id === demi1.vainqueur_id || m.equipe_b_id === demi2.vainqueur_id);
-                if (hasWinners) finaleMatch = m;
-                else petiteFinale = m;
+        // Place une paire (gagnant/perdant) d'un match unique
+        var pairPlaces = function (m, placeWin, placeLose, into) {
+            into.push({ place: placeWin, equipe_id: winnerOf(m), nom: nomFor(winnerOf(m)) });
+            into.push({ place: placeLose, equipe_id: loserOf(m), nom: nomFor(loserOf(m)) });
+        };
+
+        // Calcule les places couvertes par un bracket de N entrants (4 → 1-4, 3 → 1-3, 2 → 1-2, etc.)
+        // En posant un offset = place de départ.
+        // Retourne un array de { place, equipe_id, nom } pour ce bracket.
+        var placesPourBracket = function (ms, offset, isPrincipal) {
+            var out = [];
+            if (ms.length === 0) return out;
+
+            // Compter les équipes distinctes mentionnées sur les faces (ids + placeholders)
+            // pour estimer la taille du bracket. Avec 2 demis (4 entrants) on a 2 matchs initiaux,
+            // avec 1 barrage (3 entrants) on a 1 match initial, avec 1 finale (2 entrants) on a 1 match initial.
+            // Avec quarts (8 entrants) on a 4 matchs initiaux.
+            // Le 1er round = les matchs avec le plus petit ordre dont les équipes ne viennent pas d'un round précédent.
+            // Approche simple : on prend le nombre de matchs initiaux comme = ceil(nb_entrants/2)
+            // -> ici, on déduit nb_entrants depuis les autres infos.
+            // Pour rester pragmatique on examine la composition.
+
+            var nbMatchs = ms.length;
+
+            // === Cas 1 match (bracket à 2 entrants) ===
+            if (nbMatchs === 1) {
+                pairPlaces(ms[0], offset, offset + 1, out);
+                return out;
             }
-            places[0] = { place: 1, equipe_id: winnerOf(finaleMatch), nom: nomFor(winnerOf(finaleMatch)) };
-            places[1] = { place: 2, equipe_id: loserOf(finaleMatch), nom: nomFor(loserOf(finaleMatch)) };
-            places[2] = { place: 3, equipe_id: winnerOf(petiteFinale), nom: nomFor(winnerOf(petiteFinale)) };
-            places[3] = { place: 4, equipe_id: loserOf(petiteFinale), nom: nomFor(loserOf(petiteFinale)) };
-        } else if (principal.length >= 1) {
-            // Avant les finales : on ne connaît pas les places 1-4
-            places[0] = { place: 1, equipe_id: null, nom: null };
-            places[1] = { place: 2, equipe_id: null, nom: null };
-            places[2] = { place: 3, equipe_id: null, nom: null };
-            places[3] = { place: 4, equipe_id: null, nom: null };
+
+            // === Cas 2 matchs ===
+            // Soit bracket à 3 (barrage + finale)
+            // Soit bracket à 4 sans 3e/4e (demis + finale, génériques rang_K) — donne places offset, offset+1, et les perdants des demis à départager
+            // On ne peut pas trivialement distinguer sans regarder la composition.
+            // Heuristique : si l'un des 2 matchs a UNE équipe en commun avec l'autre → barrage+finale (3 entrants).
+            //               sinon → demis + finale (4 entrants, sans 3e/4e résolu).
+            if (nbMatchs === 2) {
+                var m1 = ms[0], m2 = ms[1];
+                var equipesM1 = [m1.equipe_a_id, m1.equipe_b_id].filter(Boolean);
+                var equipesM2 = [m2.equipe_a_id, m2.equipe_b_id].filter(Boolean);
+                var commune = equipesM1.some(function (id) { return equipesM2.indexOf(id) >= 0; });
+                if (commune) {
+                    // Bracket à 3 : m1 = barrage, m2 = finale
+                    pairPlaces(m2, offset, offset + 1, out); // gagnant finale = 1, perdant = 2
+                    var perdantBarrage = loserOf(m1);
+                    out.push({ place: offset + 2, equipe_id: perdantBarrage, nom: nomFor(perdantBarrage) });
+                } else {
+                    // 2 demis sans finale jouée (ou pas encore générée) : on ne sait pas les places exactes
+                    out.push({ place: offset, equipe_id: null, nom: null });
+                    out.push({ place: offset + 1, equipe_id: null, nom: null });
+                    out.push({ place: offset + 2, equipe_id: loserOf(m1), nom: nomFor(loserOf(m1)) });
+                    out.push({ place: offset + 3, equipe_id: loserOf(m2), nom: nomFor(loserOf(m2)) });
+                }
+                return out;
+            }
+
+            // === Cas 4 matchs (bracket à 4 entrants : 2 demis + finale + 3e/4e) ===
+            if (nbMatchs === 4) {
+                var demi1 = ms[0], demi2 = ms[1];
+                var finaleM = null, petiteF = null;
+                for (var i = 2; i < ms.length; i++) {
+                    var m = ms[i];
+                    var hw = m.equipe_a_id && m.equipe_b_id && demi1.vainqueur_id && demi2.vainqueur_id
+                        && (m.equipe_a_id === demi1.vainqueur_id || m.equipe_a_id === demi2.vainqueur_id)
+                        && (m.equipe_b_id === demi1.vainqueur_id || m.equipe_b_id === demi2.vainqueur_id);
+                    if (hw) finaleM = m; else petiteF = m;
+                }
+                pairPlaces(finaleM, offset, offset + 1, out);
+                pairPlaces(petiteF, offset + 2, offset + 3, out);
+                return out;
+            }
+
+            // === Cas 3 matchs (bracket à 4 entrants : 2 demis + finale sans 3e/4e) ===
+            if (nbMatchs === 3) {
+                var d1 = ms[0], d2 = ms[1], finM = ms[2];
+                pairPlaces(finM, offset, offset + 1, out);
+                // Perdants des demis non départagés
+                out.push({ place: offset + 2, equipe_id: loserOf(d1), nom: nomFor(loserOf(d1)) });
+                out.push({ place: offset + 3, equipe_id: loserOf(d2), nom: nomFor(loserOf(d2)) });
+                return out;
+            }
+
+            // === Fallback générique (bracket plus grand : quarts/demis/finale...) ===
+            // On suppose une élimination directe : nbMatchs = nb_entrants - 1.
+            // Les places sont déduites par le dernier match (finale) et les perdants à chaque round.
+            // Implémentation simplifiée : finaleM est le dernier match.
+            var finalGen = ms[ms.length - 1];
+            pairPlaces(finalGen, offset, offset + 1, out);
+            // Le reste : on liste les perdants en bloc sans hiérarchie fine
+            ms.slice(0, -1).forEach(function (mm, idx) {
+                var l = loserOf(mm);
+                out.push({ place: offset + 2 + idx, equipe_id: l, nom: nomFor(l) });
+            });
+            return out;
+        };
+
+        var places = [];
+        var offset = 1;
+
+        // Tableau principal
+        var principal = byBracket['principal'] || [];
+        if (principal.length > 0) {
+            var partPrincipal = placesPourBracket(principal, offset, true);
+            places = places.concat(partPrincipal);
+            offset += partPrincipal.length;
         }
 
-        // === Brackets de classement direct (1 match chacun) ===
-        var addSinglePair = function (bracketKey, placeWin, placeLose) {
-            var b = byBracket[bracketKey];
-            var m = b && b[0];
-            places.push({ place: placeWin, equipe_id: winnerOf(m), nom: nomFor(winnerOf(m)) });
-            places.push({ place: placeLose, equipe_id: loserOf(m), nom: nomFor(loserOf(m)) });
-        };
-        if (byBracket['places_5_6']) addSinglePair('places_5_6', 5, 6);
-        if (byBracket['places_7_8']) addSinglePair('places_7_8', 7, 8);
-        if (byBracket['places_9_10']) addSinglePair('places_9_10', 9, 10);
-        if (byBracket['places_11_12']) addSinglePair('places_11_12', 11, 12);
+        // Mode maison : brackets places_X_Y (1 match chacun, place déjà encodée dans le nom)
+        var maisonBrackets = [
+            { key: 'places_5_6', w: 5, l: 6 },
+            { key: 'places_7_8', w: 7, l: 8 },
+            { key: 'places_9_10', w: 9, l: 10 },
+            { key: 'places_11_12', w: 11, l: 12 }
+        ];
+        maisonBrackets.forEach(function (b) {
+            if (byBracket[b.key]) {
+                var m = byBracket[b.key][0];
+                places.push({ place: b.w, equipe_id: winnerOf(m), nom: nomFor(winnerOf(m)) });
+                places.push({ place: b.l, equipe_id: loserOf(m), nom: nomFor(loserOf(m)) });
+                offset = Math.max(offset, b.l + 1);
+            }
+        });
 
-        // Trier par place
+        // Brackets génériques rang_K (K=2, 3, 4, ...) — calculer dans l'ordre
+        var rangBrackets = Object.keys(byBracket)
+            .filter(function (k) { return k.indexOf('rang_') === 0; })
+            .map(function (k) { return { key: k, n: parseInt(k.split('_')[1], 10) }; })
+            .sort(function (a, b) { return a.n - b.n; });
+        rangBrackets.forEach(function (rb) {
+            var part = placesPourBracket(byBracket[rb.key], offset, false);
+            places = places.concat(part);
+            offset += part.length;
+        });
+
+        // Trier et dédupliquer par place
         places.sort(function (a, b) { return a.place - b.place; });
-        return places;
+        var seen = {};
+        return places.filter(function (p) {
+            if (seen[p.place]) return false;
+            seen[p.place] = true;
+            return true;
+        });
     }
 
     function bracketLabel(b) {
@@ -2577,6 +2740,11 @@
 
         var matchsPoule = matchs.filter(function (m) { return m.phase === 'poule'; });
         var matchsFinale = matchs.filter(function (m) { return m.phase === 'finale'; });
+
+        // === Classements de poule (tableaux récap) ===
+        if (poules.length > 0 && matchsPoule.length > 0) {
+            card.appendChild(renderClassementsPoulesAdmin());
+        }
 
         // === Section Phase de poule ===
         if (matchsPoule.length > 0) {
