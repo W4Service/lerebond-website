@@ -165,41 +165,100 @@
             if (!m || m.status !== 'termine' || !m.vainqueur_id) return null;
             return m.vainqueur_id === m.equipe_a_id ? m.equipe_b_id : m.equipe_a_id;
         };
-        var places = [];
-        var principal = byBracket['principal'] || [];
-        if (principal.length >= 4) {
-            var demi1 = principal[0], demi2 = principal[1];
-            var finaleMatch = null, petiteFinale = null;
-            for (var i = 2; i < principal.length; i++) {
-                var m = principal[i];
-                var hasWinners = m.equipe_a_id && m.equipe_b_id && demi1.vainqueur_id && demi2.vainqueur_id
-                    && (m.equipe_a_id === demi1.vainqueur_id || m.equipe_a_id === demi2.vainqueur_id)
-                    && (m.equipe_b_id === demi1.vainqueur_id || m.equipe_b_id === demi2.vainqueur_id);
-                if (hasWinners) finaleMatch = m;
-                else petiteFinale = m;
-            }
-            places[0] = { place: 1, equipe_id: winnerOf(finaleMatch), nom: nomFor(winnerOf(finaleMatch)) };
-            places[1] = { place: 2, equipe_id: loserOf(finaleMatch), nom: nomFor(loserOf(finaleMatch)) };
-            places[2] = { place: 3, equipe_id: winnerOf(petiteFinale), nom: nomFor(winnerOf(petiteFinale)) };
-            places[3] = { place: 4, equipe_id: loserOf(petiteFinale), nom: nomFor(loserOf(petiteFinale)) };
-        } else if (principal.length >= 1) {
-            places[0] = { place: 1, equipe_id: null, nom: null };
-            places[1] = { place: 2, equipe_id: null, nom: null };
-            places[2] = { place: 3, equipe_id: null, nom: null };
-            places[3] = { place: 4, equipe_id: null, nom: null };
-        }
-        var addSinglePair = function (bracketKey, placeWin, placeLose) {
-            var b = byBracket[bracketKey];
-            var mm = b && b[0];
-            places.push({ place: placeWin, equipe_id: winnerOf(mm), nom: nomFor(winnerOf(mm)) });
-            places.push({ place: placeLose, equipe_id: loserOf(mm), nom: nomFor(loserOf(mm)) });
+        var pairPlaces = function (m, pw, pl, into) {
+            into.push({ place: pw, equipe_id: winnerOf(m), nom: nomFor(winnerOf(m)) });
+            into.push({ place: pl, equipe_id: loserOf(m), nom: nomFor(loserOf(m)) });
         };
-        if (byBracket['places_5_6']) addSinglePair('places_5_6', 5, 6);
-        if (byBracket['places_7_8']) addSinglePair('places_7_8', 7, 8);
-        if (byBracket['places_9_10']) addSinglePair('places_9_10', 9, 10);
-        if (byBracket['places_11_12']) addSinglePair('places_11_12', 11, 12);
+        var placesPourBracket = function (ms, offset) {
+            var out = [];
+            if (ms.length === 0) return out;
+            var nb = ms.length;
+            if (nb === 1) { pairPlaces(ms[0], offset, offset + 1, out); return out; }
+            if (nb === 2) {
+                var m1 = ms[0], m2 = ms[1];
+                var e1 = [m1.equipe_a_id, m1.equipe_b_id].filter(Boolean);
+                var e2 = [m2.equipe_a_id, m2.equipe_b_id].filter(Boolean);
+                var commune = e1.some(function (id) { return e2.indexOf(id) >= 0; });
+                if (commune) {
+                    pairPlaces(m2, offset, offset + 1, out);
+                    var pb = loserOf(m1);
+                    out.push({ place: offset + 2, equipe_id: pb, nom: nomFor(pb) });
+                } else {
+                    out.push({ place: offset, equipe_id: null, nom: null });
+                    out.push({ place: offset + 1, equipe_id: null, nom: null });
+                    out.push({ place: offset + 2, equipe_id: loserOf(m1), nom: nomFor(loserOf(m1)) });
+                    out.push({ place: offset + 3, equipe_id: loserOf(m2), nom: nomFor(loserOf(m2)) });
+                }
+                return out;
+            }
+            if (nb === 4) {
+                var d1 = ms[0], d2 = ms[1];
+                var fm = null, pf = null;
+                for (var i = 2; i < ms.length; i++) {
+                    var m = ms[i];
+                    var hw = m.equipe_a_id && m.equipe_b_id && d1.vainqueur_id && d2.vainqueur_id
+                        && (m.equipe_a_id === d1.vainqueur_id || m.equipe_a_id === d2.vainqueur_id)
+                        && (m.equipe_b_id === d1.vainqueur_id || m.equipe_b_id === d2.vainqueur_id);
+                    if (hw) fm = m; else pf = m;
+                }
+                pairPlaces(fm, offset, offset + 1, out);
+                pairPlaces(pf, offset + 2, offset + 3, out);
+                return out;
+            }
+            if (nb === 3) {
+                var d3a = ms[0], d3b = ms[1], finM = ms[2];
+                pairPlaces(finM, offset, offset + 1, out);
+                out.push({ place: offset + 2, equipe_id: loserOf(d3a), nom: nomFor(loserOf(d3a)) });
+                out.push({ place: offset + 3, equipe_id: loserOf(d3b), nom: nomFor(loserOf(d3b)) });
+                return out;
+            }
+            var finalGen = ms[ms.length - 1];
+            pairPlaces(finalGen, offset, offset + 1, out);
+            ms.slice(0, -1).forEach(function (mm, idx) {
+                var l = loserOf(mm);
+                out.push({ place: offset + 2 + idx, equipe_id: l, nom: nomFor(l) });
+            });
+            return out;
+        };
+
+        var places = [];
+        var offset = 1;
+        var principal = byBracket['principal'] || [];
+        if (principal.length > 0) {
+            var part = placesPourBracket(principal, offset);
+            places = places.concat(part);
+            offset += part.length;
+        }
+        var maisonBrackets = [
+            { key: 'places_5_6', w: 5, l: 6 },
+            { key: 'places_7_8', w: 7, l: 8 },
+            { key: 'places_9_10', w: 9, l: 10 },
+            { key: 'places_11_12', w: 11, l: 12 }
+        ];
+        maisonBrackets.forEach(function (b) {
+            if (byBracket[b.key]) {
+                var mm = byBracket[b.key][0];
+                places.push({ place: b.w, equipe_id: winnerOf(mm), nom: nomFor(winnerOf(mm)) });
+                places.push({ place: b.l, equipe_id: loserOf(mm), nom: nomFor(loserOf(mm)) });
+                offset = Math.max(offset, b.l + 1);
+            }
+        });
+        var rangBrackets = Object.keys(byBracket)
+            .filter(function (k) { return k.indexOf('rang_') === 0; })
+            .map(function (k) { return { key: k, n: parseInt(k.split('_')[1], 10) }; })
+            .sort(function (a, b) { return a.n - b.n; });
+        rangBrackets.forEach(function (rb) {
+            var part = placesPourBracket(byBracket[rb.key], offset);
+            places = places.concat(part);
+            offset += part.length;
+        });
         places.sort(function (a, b) { return a.place - b.place; });
-        return places;
+        var seen = {};
+        return places.filter(function (p) {
+            if (seen[p.place]) return false;
+            seen[p.place] = true;
+            return true;
+        });
     }
 
     function placeholderLabel(sourceOrdre, sourceType, sourcePouleId) {
