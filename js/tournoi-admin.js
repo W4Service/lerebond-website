@@ -445,13 +445,38 @@
     // Construit les matchs d'une poule selon le format choisi.
     // - 'round_robin' : toutes les paires
     // - 'croise4'     : format 4 équipes avec dépendances (M3=PM2/GM1, M4=GM2/PM1, M5=PM1/PM2, M6=GM1/GM2)
+    // Algo "circle" du round-robin : génère N-1 vagues (ou N pour N pair) où chaque équipe joue
+    // au plus 1 match par vague. Renvoie un tableau de vagues : [ [[a,b], [c,d]], [[a,c], [b,d]], ... ]
+    function roundRobinSchedule(eqs) {
+        var n = eqs.length;
+        if (n < 2) return [];
+        // Si nb impair, on ajoute un "bye" virtuel (équipe qui se repose)
+        var teams = eqs.slice();
+        if (n % 2 === 1) { teams.push(null); n++; }
+        var rounds = [];
+        for (var r = 0; r < n - 1; r++) {
+            var round = [];
+            for (var i = 0; i < n / 2; i++) {
+                var a = teams[i];
+                var b = teams[n - 1 - i];
+                if (a && b) round.push([a, b]);
+            }
+            rounds.push(round);
+            // Rotation : on fixe teams[0], on tourne les autres vers la droite
+            teams = [teams[0]].concat([teams[n - 1]]).concat(teams.slice(1, n - 1));
+        }
+        return rounds;
+    }
+
     function buildMatchsPoule(poule, format) {
         var eqs = equipes.filter(function (e) { return e.poule_id === poule.id; });
-        // S'il n'y a qu'une seule poule pour tout le tournoi, on répartit les matchs sur tous les terrains.
         var nbTerrains = currentTournoi.nb_terrains || 1;
         var seulePoule = poules.length === 1;
+        // S'il n'y a qu'une seule poule, on limite à 2 terrains en parallèle (T1, T2)
+        // et on ordonnance par vagues pour éviter les conflits d'équipes.
+        var nbTerrainsUtilises = seulePoule ? Math.min(2, nbTerrains) : 1;
         var pickTerrain = function (i) {
-            if (seulePoule) return ((i % nbTerrains) + 1);
+            if (seulePoule) return ((i % nbTerrainsUtilises) + 1);
             return poule.terrain;
         };
         var base = { tournoi_id: currentTournoi.id, phase: 'poule', poule_id: poule.id, status: 'en_attente' };
@@ -483,11 +508,27 @@
             return out;
         }
 
-        // Round-robin par défaut
-        for (var i = 0; i < eqs.length; i++) {
-            for (var j = i + 1; j < eqs.length; j++) {
-                out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre), equipe_a_id: eqs[i].id, equipe_b_id: eqs[j].id }));
-                ordre++;
+        // Round-robin : si 1 seule poule, on utilise l'algo circle pour ordonnancer par vagues.
+        // Sinon (plusieurs poules), simple double boucle car les poules sont déjà parallélisées par terrain.
+        if (seulePoule) {
+            var rounds = roundRobinSchedule(eqs);
+            rounds.forEach(function (round) {
+                round.forEach(function (pair, idxDansRound) {
+                    // Dans une même vague, on attribue T1, T2, T1, T2...
+                    var terrain = ((idxDansRound % nbTerrainsUtilises) + 1);
+                    out.push(Object.assign({}, base, {
+                        ordre: ordre, terrain: terrain,
+                        equipe_a_id: pair[0].id, equipe_b_id: pair[1].id
+                    }));
+                    ordre++;
+                });
+            });
+        } else {
+            for (var i = 0; i < eqs.length; i++) {
+                for (var j = i + 1; j < eqs.length; j++) {
+                    out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre), equipe_a_id: eqs[i].id, equipe_b_id: eqs[j].id }));
+                    ordre++;
+                }
             }
         }
         return out;
@@ -1200,29 +1241,28 @@
     }
 
     // Format maison 1 poule de 4 équipes :
-    // - principal/ordre 0 : finale = 1er vs 2e de poule
-    // - places_3_4/ordre 1 : 3e vs 4e
+    // - principal/ordre 0 : finale = 1er vs 2e de poule (sur T1)
+    // - places_3_4/ordre 1 : 3e vs 4e (sur T2)
     async function genererSqueletteMaison1p4() {
         if (poules.length !== 1) return;
         var pouleId = poules[0].id;
         var nbT = currentTournoi.nb_terrains || 1;
-        var pickT = function (i) { return ((i % nbT) + 1); };
         var newMatchs = [];
 
-        // Finale : 1er vs 2e
+        // Finale : 1er vs 2e — T1
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
-            status: 'en_attente', ordre: 0, terrain: pickT(0),
+            status: 'en_attente', ordre: 0, terrain: 1,
             equipe_a_id: null,
             equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: 1, equipe_a_source_type: 'rang_poule',
             equipe_b_id: null,
             equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: 2, equipe_b_source_type: 'rang_poule'
         });
 
-        // Match 3e/4e
+        // Match 3e/4e — T2 (ou T1 s'il n'y a qu'un terrain)
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_3_4',
-            status: 'en_attente', ordre: 1, terrain: pickT(1),
+            status: 'en_attente', ordre: 1, terrain: nbT >= 2 ? 2 : 1,
             equipe_a_id: null,
             equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: 3, equipe_a_source_type: 'rang_poule',
             equipe_b_id: null,
@@ -1244,31 +1284,27 @@
         if (poules.length !== 1) return;
         var pouleId = poules[0].id;
         var nbT = currentTournoi.nb_terrains || 1;
-        var pickT = function (i) { return ((i % nbT) + 1); };
         var newMatchs = [];
-        var ordre = 0;
 
-        // Demi-finale (principal) : 2e vs 3e de la poule
+        // Demi-finale (principal) : 2e vs 3e — T1
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
-            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            status: 'en_attente', ordre: 0, terrain: 1,
             equipe_a_id: null,
             equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: 2, equipe_a_source_type: 'rang_poule',
             equipe_b_id: null,
             equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: 3, equipe_b_source_type: 'rang_poule'
         });
-        ordre++;
 
-        // Match places 4-5 : 4e vs 5e
+        // Match places 4-5 : 4e vs 5e — T2 (en parallèle), ou T1 si pas de 2e terrain
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_4_5',
-            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            status: 'en_attente', ordre: 1, terrain: nbT >= 2 ? 2 : 1,
             equipe_a_id: null,
             equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: 4, equipe_a_source_type: 'rang_poule',
             equipe_b_id: null,
             equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: 5, equipe_b_source_type: 'rang_poule'
         });
-        ordre++;
 
         // La finale (principal/ordre 1) sera créée par genererTourSuivant('principal')
         // automatiquement quand la demi sera terminée (via le hook dans saveScore).
