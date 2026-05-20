@@ -534,6 +534,105 @@
         return out;
     }
 
+    // Tous les matchs de poule aller sont-ils terminés ?
+    function tousMatchsAllerTermines() {
+        var allerMatchs = matchs.filter(function (m) {
+            return m.phase === 'poule' && !m.is_retour;
+        });
+        if (allerMatchs.length === 0) return false;
+        return allerMatchs.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+    }
+
+    // Y a-t-il déjà des matchs retour générés ?
+    function matchsRetourExistent() {
+        return matchs.some(function (m) { return m.phase === 'poule' && m.is_retour; });
+    }
+
+    // Génère les matchs retour : pour chaque match aller, on inverse equipe_a et equipe_b.
+    // Ordonnance les nouveaux matchs en vagues sans conflit, sur T1/T2 (si 1 seule poule).
+    async function genererMatchsRetour() {
+        if (guardReadOnly()) return;
+        if (!tousMatchsAllerTermines()) {
+            showToast('Termine tous les matchs aller avant de lancer les retours.', 'error');
+            return;
+        }
+        if (matchsRetourExistent()) {
+            showToast('Les matchs retour ont déjà été générés.', 'error');
+            return;
+        }
+        if (!confirm('Lancer les matchs retour ?\n\nChaque équipe rejouera contre toutes les autres dans l\'autre sens. Le classement de poule prendra en compte aller + retour.')) return;
+
+        var seulePoule = poules.length === 1;
+        var nbTerrains = currentTournoi.nb_terrains || 1;
+        var nbTerrainsUtilises = seulePoule ? Math.min(2, nbTerrains) : 1;
+
+        // On regroupe les matchs aller par poule
+        var byPoule = {};
+        matchs.filter(function (m) {
+            return m.phase === 'poule' && !m.is_retour && m.equipe_a_id && m.equipe_b_id;
+        }).forEach(function (m) {
+            (byPoule[m.poule_id] = byPoule[m.poule_id] || []).push(m);
+        });
+
+        var newMatchs = [];
+        // L'ordre des nouveaux matchs reprend après le dernier ordre existant
+        var maxOrdre = matchs.reduce(function (acc, m) {
+            return (m.phase === 'poule') ? Math.max(acc, m.ordre) : acc;
+        }, -1);
+        var ordre = maxOrdre + 1;
+
+        Object.keys(byPoule).forEach(function (pouleId) {
+            var poule = poules.find(function (p) { return p.id === pouleId; });
+            if (!poule) return;
+            // Reconstruire les paires d'équipes (sens inversé)
+            var paires = byPoule[pouleId].map(function (m) {
+                return { a: m.equipe_b_id, b: m.equipe_a_id };
+            });
+            // Ordonnancer en vagues pour éviter qu'une équipe joue 2 matchs en parallèle
+            var planifies = [];
+            var restant = paires.slice();
+            while (restant.length > 0) {
+                var vague = [];
+                var equipesVague = {};
+                for (var i = restant.length - 1; i >= 0; i--) {
+                    var p = restant[i];
+                    if (equipesVague[p.a] || equipesVague[p.b]) continue;
+                    if (seulePoule && vague.length >= nbTerrainsUtilises) continue;
+                    equipesVague[p.a] = true;
+                    equipesVague[p.b] = true;
+                    vague.push(p);
+                    restant.splice(i, 1);
+                }
+                planifies.push(vague.reverse());
+            }
+            planifies.forEach(function (vague) {
+                vague.forEach(function (pair, idxDansVague) {
+                    var terrain = seulePoule ? ((idxDansVague % nbTerrainsUtilises) + 1) : poule.terrain;
+                    newMatchs.push({
+                        tournoi_id: currentTournoi.id, phase: 'poule', poule_id: pouleId,
+                        status: 'en_attente',
+                        ordre: ordre, terrain: terrain,
+                        equipe_a_id: pair.a, equipe_b_id: pair.b,
+                        is_retour: true
+                    });
+                    ordre++;
+                });
+            });
+        });
+
+        if (newMatchs.length === 0) {
+            showToast('Aucun match retour à générer.', 'error');
+            return;
+        }
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        // Recalculer aussi les placeholders éventuels de phase finale
+        await propagateRangPoule();
+        render();
+        showToast(res.data.length + ' matchs retour générés', 'ok');
+    }
+
     async function genererMatchsPoules() { if (guardReadOnly()) return;
         // Pour chaque poule, demander le format (si 4 équipes, proposer croisé)
         var formatsParPoule = {};
@@ -3060,6 +3159,16 @@
             card.appendChild(pouleSection);
         }
 
+        // === Bouton "Lancer matchs retour" : visible quand l'aller est terminé et que les retours n'existent pas ===
+        if (tousMatchsAllerTermines() && !matchsRetourExistent()) {
+            card.appendChild(el('button', {
+                class: 'btn-live btn-live--outline',
+                style: 'width:100%;margin-top:1rem',
+                onclick: genererMatchsRetour,
+                title: 'Crée 6 matchs retour (paires inversées). Le classement de poule prendra en compte aller + retour.'
+            }, '🔄 Lancer les matchs retour (optionnel)'));
+        }
+
         // === Pré-générer le squelette dès maintenant (placeholders qui se rempliront au fil des résultats) ===
         if (matchsFinale.length === 0 && matchsPoule.length > 0 && (poules.length >= 2 || isConfig1p5() || isConfig1p4())) {
             card.appendChild(el('button', {
@@ -3309,7 +3418,8 @@
         var card = el('div', { class: 'match-item match-item--' + m.status + (ready ? '' : ' match-item--pending-dep') });
 
         var header = el('div', { class: 'match-header' });
-        var metaText = (poule ? poule.nom + ' · ' : '') + (isFinale ? bracketLabel(m.bracket) + ' · ' : '') + 'Match ' + (m.ordre + 1) + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent');
+        var retourTag = m.is_retour ? ' · 🔄 retour' : '';
+        var metaText = (poule ? poule.nom + ' · ' : '') + (isFinale ? bracketLabel(m.bracket) + ' · ' : '') + 'Match ' + (m.ordre + 1) + retourTag + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent');
         header.appendChild(el('span', { class: 'match-meta' }, metaText));
         // Rappel du format directement dans la carte du match
         header.appendChild(el('span', { class: 'match-format-tag' }, '🎾 ' + formatShortLabel(fmt) + (currentTournoi && currentTournoi.no_ad ? ' · No-ad' : '')));
