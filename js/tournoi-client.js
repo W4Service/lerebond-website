@@ -476,7 +476,7 @@
         // Poules : classement + composition
         if (poules.length > 0) {
             var pouleSection = el('div', { class: 'poules-live-section' });
-            pouleSection.appendChild(el('h2', { class: 'live-section-title' }, '🏊 Poules'));
+            pouleSection.appendChild(el('h2', { class: 'live-section-title' }, '🎾 Poules'));
             var grid = el('div', { class: 'poules-live-grid' });
             poules.forEach(function (p) { grid.appendChild(renderPouleLive(p)); });
             pouleSection.appendChild(grid);

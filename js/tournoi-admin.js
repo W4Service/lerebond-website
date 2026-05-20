@@ -2854,7 +2854,7 @@
 
     function renderPoulesSection() {
         var card = el('div', { class: 'tournoi-card' });
-        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '🏊 Poules (' + poules.length + ')'));
+        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '🎾 Poules (' + poules.length + ')'));
 
         // Form ajout poule
         var addForm = el('div', { class: 'setup-row' });
@@ -3221,7 +3221,7 @@
         // === Section Phase de poule ===
         if (matchsPoule.length > 0) {
             var pouleSection = el('div', { class: 'phase-section' });
-            pouleSection.appendChild(el('h4', { class: 'phase-section-title' }, '🏊 Phase de poule'));
+            pouleSection.appendChild(el('h4', { class: 'phase-section-title' }, '🎾 Phase de poule'));
             var byTerrain = {};
             matchsPoule.forEach(function (m) {
                 var t = m.terrain || 'aucun';
