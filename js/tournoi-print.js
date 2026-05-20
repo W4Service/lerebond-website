@@ -160,8 +160,10 @@
         var c = document.getElementById('content');
         c.innerHTML = '';
 
-        // === En-tête ===
-        c.appendChild(el('h1', null, tournoi.nom));
+        // === En-tête (titre + meta à gauche, QR code à droite) ===
+        var headerRow = el('div', { class: 'header-row' });
+        var headerInfo = el('div', { class: 'header-info' });
+        headerInfo.appendChild(el('h1', null, tournoi.nom));
         var metaParts = [];
         if (tournoi.date) metaParts.push('📅 ' + tournoi.date);
         metaParts.push('🏟️ ' + tournoi.nb_terrains + ' terrain' + (tournoi.nb_terrains > 1 ? 's' : ''));
@@ -169,7 +171,27 @@
         if (f) metaParts.push('🎾 ' + f);
         if (tournoi.no_ad) metaParts.push('No-ad');
         if (tournoi.mode_classement === 'fft') metaParts.push('FFT');
-        c.appendChild(el('p', { class: 'meta' }, metaParts.join(' · ')));
+        headerInfo.appendChild(el('p', { class: 'meta' }, metaParts.join(' · ')));
+        headerRow.appendChild(headerInfo);
+
+        // QR code (si lib disponible)
+        if (window.QRCode) {
+            var qrBlock = el('div', { class: 'qr-block' });
+            var qrImg = el('div', { class: 'qr-img' });
+            qrBlock.appendChild(qrImg);
+            qrBlock.appendChild(el('div', { class: 'qr-caption' }, 'Scanner pour suivre le tournoi en direct'));
+            headerRow.appendChild(qrBlock);
+            try {
+                new QRCode(qrImg, {
+                    text: window.location.origin + '/live/tournoi/',
+                    width: 140, height: 140,
+                    colorDark: '#680920', colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        c.appendChild(headerRow);
 
         // === Poules ===
         if (poules.length > 0) {

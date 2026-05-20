@@ -25,6 +25,12 @@ h3 { font-size: 1rem; margin-bottom: 0.4rem; color: #444; }
 .toolbar button:hover { background: #efa707; color: #fff; border-color: #efa707; }
 .toolbar .hint { color: #666; font-size: 0.85rem; }
 
+.header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; margin-bottom: 1rem; }
+.header-row .header-info { flex: 1; }
+.qr-block { text-align: center; }
+.qr-block .qr-img { background: #fff; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; display: inline-block; }
+.qr-block .qr-caption { font-size: 0.75rem; color: #555; margin-top: 0.3rem; max-width: 140px; }
+
 .poules-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -100,6 +106,7 @@ table.matchs tr.en_cours td { background: #fff8e8; }
 </div>
 
 <script src="js/vendor/supabase.min.js"></script>
+<script src="js/vendor/qrcode.min.js"></script>
 <script src="js/resa-config.min.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/tournoi-print.js"></script>

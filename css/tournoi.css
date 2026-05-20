@@ -1183,6 +1183,25 @@ select.tournoi-input option {
     font-weight: 400;
 }
 
+/* Bouton "Partager" sur la vue client */
+.tournoi-live-share {
+    margin-top: 0.75rem;
+    background: rgba(244, 201, 65, 0.15);
+    border: 1px solid rgba(244, 201, 65, 0.4);
+    color: #f4c941;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: all 0.15s;
+}
+.tournoi-live-share:hover {
+    background: rgba(244, 201, 65, 0.25);
+    border-color: #f4c941;
+}
+
 /* Historique des tournois clôturés (vue client) */
 .historique-section {
     margin-top: 3rem;

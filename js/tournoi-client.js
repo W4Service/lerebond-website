@@ -352,6 +352,19 @@
         if (currentTournoi.no_ad) sub += (sub ? ' · ' : '') + 'No-ad';
         if (isClosed) sub += (sub ? ' · ' : '') + '🔒 Terminé';
         if (sub) header.appendChild(el('p', { class: 'tournoi-live-subtitle' }, sub));
+
+        // Bouton "📱 Partager" : ouvre une popup avec le QR code de la page
+        if (window.TournoiQR && !isClosed) {
+            var btnQR = el('button', {
+                class: 'tournoi-live-share',
+                onclick: function () {
+                    window.TournoiQR.open(window.location.origin + '/live/tournoi/', 'Tournoi : ' + (currentTournoi.nom || ''));
+                },
+                title: 'QR code à partager pour suivre le tournoi'
+            }, '📱 Partager');
+            header.appendChild(btnQR);
+        }
+
         root.appendChild(header);
 
         // Matchs en cours (en haut, mis en avant)
