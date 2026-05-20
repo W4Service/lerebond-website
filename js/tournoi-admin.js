@@ -2562,6 +2562,46 @@
         return arr;
     }
 
+    // Durée moyenne d'un match en minutes selon le format de score
+    function dureeMatchMin(format, noAd) {
+        var base;
+        switch (format) {
+            case 'format_a': base = 50; break;
+            case 'format_b': base = 40; break;
+            case 'format_c': base = 25; break;
+            case 'format_d': base = 30; break;
+            case 'format_e': base = 15; break;
+            case 'americano': base = 30; break;
+            default: base = 30; break;
+        }
+        if (noAd) base = Math.round(base * 0.9); // -10% en no-ad
+        return base;
+    }
+
+    // Estime la durée totale restante en minutes (matchs non terminés × durée / nb terrains utilisables)
+    function dureeTotaleEstimee() {
+        var dureeM = dureeMatchMin(currentTournoi.format_score, currentTournoi.no_ad);
+        var aJouer = matchs.filter(function (m) { return m.status !== 'termine'; });
+        if (aJouer.length === 0) return 0;
+        // Si une seule poule : on est limité à 2 terrains en parallèle au max
+        var seulePoule = poules.length === 1;
+        var nbTerrains = currentTournoi.nb_terrains || 1;
+        var paralleles = seulePoule ? Math.min(2, nbTerrains) : nbTerrains;
+        // Cas dégradé : 0 paralleles → on prend 1
+        if (paralleles < 1) paralleles = 1;
+        // Une "vague" = paralleles matchs en parallèle. Mais on a aussi des dépendances (matchs finale
+        // dépendant des matchs poule). Approche grossière : on suppose qu'on peut paralléliser au max.
+        var vagues = Math.ceil(aJouer.length / paralleles);
+        return vagues * dureeM;
+    }
+
+    function formatDureeMin(min) {
+        if (min < 60) return min + ' min';
+        var h = Math.floor(min / 60);
+        var r = min % 60;
+        return r === 0 ? h + 'h' : h + 'h' + (r < 10 ? '0' + r : r);
+    }
+
     function renderHeader() {
         var card = el('div', { class: 'tournoi-card tournoi-header' });
         var info = el('div');
@@ -2576,6 +2616,11 @@
         if (currentTournoi.no_ad) parts.push('<strong>No-ad</strong>');
         if (currentTournoi.mode_classement === 'fft') parts.push('🏅 <strong>FFT</strong>');
         if (currentTournoi.status === 'cloture') parts.push('<strong class="readonly-badge">🔒 Clôturé</strong>');
+        // Estimation de durée restante (matchs non terminés)
+        var dureeMin = dureeTotaleEstimee();
+        if (dureeMin > 0) {
+            parts.push('⏱️ <strong>~' + formatDureeMin(dureeMin) + '</strong> restantes');
+        }
         meta.innerHTML = parts.join(' · ');
         info.appendChild(meta);
         card.appendChild(info);
