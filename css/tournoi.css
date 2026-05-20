@@ -123,6 +123,20 @@
     font-size: 0.88rem !important;
 }
 
+/* Widget terrain éditable dans le header */
+.tournoi-terrain-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    color: rgba(244, 240, 230, 0.85);
+}
+.tournoi-terrain-edit-label {
+    color: rgba(244, 240, 230, 0.6);
+    font-size: 0.85rem;
+}
+
 /* Onglets de la vue tournoi admin */
 .tournoi-tabs {
     display: flex;

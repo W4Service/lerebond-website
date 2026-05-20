@@ -2602,6 +2602,17 @@
         return r === 0 ? h + 'h' : h + 'h' + (r < 10 ? '0' + r : r);
     }
 
+    async function updateNbTerrains(nouv) {
+        if (guardReadOnly()) return;
+        var n = parseInt(nouv, 10);
+        if (isNaN(n) || n < 1 || n > 10) { showToast('Nb terrains entre 1 et 10', 'error'); return; }
+        var res = await supa.from('tournois').update({ nb_terrains: n, updated_at: new Date().toISOString() }).eq('id', currentTournoi.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+        currentTournoi = res.data;
+        render();
+        showToast('Nb terrains : ' + n, 'ok');
+    }
+
     function renderHeader() {
         var card = el('div', { class: 'tournoi-card tournoi-header' });
         var info = el('div');
@@ -2610,7 +2621,6 @@
         var fmtLabel = currentTournoi.format_score ? formatShortLabel(currentTournoi.format_score) : null;
         var parts = [];
         if (currentTournoi.date) parts.push('📅 ' + currentTournoi.date);
-        parts.push('🏟️ ' + currentTournoi.nb_terrains + ' terrain' + (currentTournoi.nb_terrains > 1 ? 's' : ''));
         parts.push('Phase : <strong>' + currentTournoi.phase + '</strong>');
         if (fmtLabel) parts.push('🎾 <strong>' + fmtLabel + '</strong>');
         if (currentTournoi.no_ad) parts.push('<strong>No-ad</strong>');
@@ -2623,6 +2633,21 @@
         }
         meta.innerHTML = parts.join(' · ');
         info.appendChild(meta);
+
+        // Widget terrain éditable (sur sa propre ligne pour rester lisible)
+        var terrainLine = el('div', { class: 'tournoi-terrain-edit' });
+        terrainLine.appendChild(el('span', null, '🏟️ '));
+        var inpT = el('input', {
+            type: 'number', min: '1', max: '10',
+            value: currentTournoi.nb_terrains,
+            class: 'tournoi-input tournoi-input--mini',
+            style: 'width:4rem',
+            onchange: function (e) { updateNbTerrains(e.target.value); }
+        });
+        terrainLine.appendChild(inpT);
+        terrainLine.appendChild(el('span', { class: 'tournoi-terrain-edit-label' }, 'terrain' + (currentTournoi.nb_terrains > 1 ? 's' : '') + ' disponibles'));
+        info.appendChild(terrainLine);
+
         card.appendChild(info);
 
         var actions = el('div', { class: 'tournoi-actions' });
