@@ -2652,6 +2652,16 @@
 
         var actions = el('div', { class: 'tournoi-actions' });
         actions.appendChild(el('button', { class: 'btn-live btn-live--outline btn-live--small', onclick: function () { window.open('live/tournoi/', '_blank'); } }, '👀 Vue client'));
+        actions.appendChild(el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: function () {
+                if (window.TournoiQR) {
+                    var url = window.location.origin + '/live/tournoi/';
+                    window.TournoiQR.open(url, 'Tournoi : ' + (currentTournoi.nom || ''));
+                }
+            },
+            title: 'QR code à scanner par les joueurs / spectateurs'
+        }, '📱 QR code'));
         actions.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: cloturerTournoi, title: 'Verrouiller le tournoi (visible côté client en historique)' }, '🔒 Clôturer'));
         actions.appendChild(el('button', { class: 'btn-live btn-live--danger btn-live--small', onclick: archiveTournoi }, 'Archiver'));
         card.appendChild(actions);
