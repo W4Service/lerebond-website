@@ -384,8 +384,8 @@
 
             if (prochains.length > 0) {
                 card.appendChild(el('div', { class: 'terrain-subsection' }, [
-                    el('h4', { class: 'terrain-subtitle' }, '⏭️ Prochains matchs'),
-                    el('div', { class: 'matchs-mini-list' }, prochains.slice(0, 3).map(renderMatchMini))
+                    el('h4', { class: 'terrain-subtitle' }, '⏭️ Prochains matchs (' + prochains.length + ')'),
+                    el('div', { class: 'matchs-mini-list' }, prochains.map(renderMatchMini))
                 ]));
             }
             if (resultats.length > 0) {
