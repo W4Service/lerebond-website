@@ -12,6 +12,7 @@
     var poules = [];
     var equipes = [];
     var matchs = [];
+    var joueurs = []; // cache de tous les joueurs (pour autocomplete + résolution)
     var archivedTournois = [];
     var closedTournois = [];
     var activeTab = 'matchs'; // 'matchs' | 'pointage'
@@ -90,14 +91,62 @@
 
     async function loadDetails() {
         if (!currentTournoi) return;
-        var [resP, resE, resM] = await Promise.all([
+        var [resP, resE, resM, resJ] = await Promise.all([
             supa.from('poules').select('*').eq('tournoi_id', currentTournoi.id).order('ordre'),
             supa.from('equipes').select('*').eq('tournoi_id', currentTournoi.id).order('nom'),
-            supa.from('matchs').select('*').eq('tournoi_id', currentTournoi.id).order('ordre')
+            supa.from('matchs').select('*').eq('tournoi_id', currentTournoi.id).order('ordre'),
+            supa.from('joueurs').select('*').order('nom')
         ]);
         poules = resP.data || [];
         equipes = resE.data || [];
         matchs = resM.data || [];
+        joueurs = resJ.data || [];
+    }
+
+    function findJoueur(id) {
+        if (!id) return null;
+        return joueurs.find(function (j) { return j.id === id; }) || null;
+    }
+
+    // Affichage d'une équipe : "Nom1 / Nom2" si liée à des joueurs, sinon fallback sur eq.nom (legacy).
+    function equipeAffichage(eq) {
+        if (!eq) return '?';
+        var j1 = findJoueur(eq.joueur_j1_id);
+        var j2 = findJoueur(eq.joueur_j2_id);
+        if (j1 || j2) {
+            var n1 = j1 ? j1.nom : '?';
+            var n2 = j2 ? j2.nom : '?';
+            return n1 + ' / ' + n2;
+        }
+        return eq.nom || '— sans nom —';
+    }
+
+    // Crée ou retrouve un joueur (nom + prénom). Renvoie l'id.
+    async function upsertJoueur(nom, prenom) {
+        nom = (nom || '').trim();
+        prenom = (prenom || '').trim();
+        if (!nom || !prenom) return null;
+        // Cherche dans le cache local d'abord
+        var match = joueurs.find(function (j) {
+            return j.nom.toLowerCase() === nom.toLowerCase() && j.prenom.toLowerCase() === prenom.toLowerCase();
+        });
+        if (match) return match.id;
+        // Insert
+        var res = await supa.from('joueurs').insert({ nom: nom, prenom: prenom }).select().single();
+        if (res.error) {
+            // Race condition : un autre client l'a peut-être créé entretemps
+            console.error(res.error);
+            // Retry via select
+            var res2 = await supa.from('joueurs').select('*').ilike('nom', nom).ilike('prenom', prenom).limit(1);
+            if (res2.data && res2.data[0]) {
+                if (!joueurs.find(function (j) { return j.id === res2.data[0].id; })) joueurs.push(res2.data[0]);
+                return res2.data[0].id;
+            }
+            showToast('Erreur joueur : ' + res.error.message, 'error');
+            return null;
+        }
+        joueurs.push(res.data);
+        return res.data.id;
     }
 
     // ===== Création tournoi =====
@@ -183,13 +232,36 @@
     // ===== Équipes =====
 
     async function addEquipe() { if (guardReadOnly()) return;
-        var nom = els.eqNom.value.trim();
-        if (!nom) { showToast('Saisir un nom d\'équipe', 'error'); return; }
-        var res = await supa.from('equipes').insert({ tournoi_id: currentTournoi.id, nom: nom }).select().single();
+        var nomJ1 = els.eqNomJ1.value.trim();
+        var prenomJ1 = els.eqPrenomJ1.value.trim();
+        var nomJ2 = els.eqNomJ2.value.trim();
+        var prenomJ2 = els.eqPrenomJ2.value.trim();
+        if (!nomJ1 || !prenomJ1 || !nomJ2 || !prenomJ2) {
+            showToast('Saisir nom + prénom des 2 joueurs', 'error');
+            return;
+        }
+        var j1Id = await upsertJoueur(nomJ1, prenomJ1);
+        var j2Id = await upsertJoueur(nomJ2, prenomJ2);
+        if (!j1Id || !j2Id) return;
+        if (j1Id === j2Id) {
+            showToast('Un joueur ne peut pas être en double dans une équipe', 'error');
+            return;
+        }
+        // On garde un 'nom' équipe pour la rétro-compat des requêtes order('nom'), construit côté serveur
+        var nomEquipe = nomJ1 + ' / ' + nomJ2;
+        var res = await supa.from('equipes').insert({
+            tournoi_id: currentTournoi.id,
+            nom: nomEquipe,
+            joueur_j1_id: j1Id,
+            joueur_j2_id: j2Id
+        }).select().single();
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         equipes.push(res.data);
-        els.eqNom.value = '';
-        els.eqNom.focus();
+        els.eqNomJ1.value = '';
+        els.eqPrenomJ1.value = '';
+        els.eqNomJ2.value = '';
+        els.eqPrenomJ2.value = '';
+        els.eqNomJ1.focus();
         render();
     }
 
@@ -1718,12 +1790,19 @@
         return bar;
     }
 
-    // Split "Dupont / Martin" en ["Dupont", "Martin"]. Fallback : "Joueur 1" / "Joueur 2".
+    // Renvoie ["Affichage J1", "Affichage J2"] pour le pointage.
+    // Si joueurs liés : "Prénom Nom". Sinon fallback split du nom d'équipe sur "/".
     function nomsJoueurs(eq) {
+        var j1 = findJoueur(eq.joueur_j1_id);
+        var j2 = findJoueur(eq.joueur_j2_id);
+        if (j1 || j2) {
+            return [
+                j1 ? (j1.prenom + ' ' + j1.nom) : 'Joueur 1',
+                j2 ? (j2.prenom + ' ' + j2.nom) : 'Joueur 2'
+            ];
+        }
         var parts = (eq.nom || '').split('/').map(function (s) { return s.trim(); }).filter(Boolean);
-        var j1 = parts[0] || 'Joueur 1';
-        var j2 = parts[1] || 'Joueur 2';
-        return [j1, j2];
+        return [parts[0] || 'Joueur 1', parts[1] || 'Joueur 2'];
     }
 
     function renderPointageSection() {
@@ -1763,7 +1842,7 @@
 
             var card2 = el('div', { class: 'pointage-equipe' });
             var head = el('div', { class: 'pointage-equipe-head' });
-            head.appendChild(el('span', { class: 'pointage-equipe-nom' }, eq.nom));
+            head.appendChild(el('span', { class: 'pointage-equipe-nom' }, equipeAffichage(eq)));
             if (p) head.appendChild(el('span', { class: 'pointage-poule' }, p.nom));
             card2.appendChild(head);
 
@@ -2158,7 +2237,7 @@
         var eqs = equipes.filter(function (e) { return e.poule_id === pouleId; });
         var stats = {};
         eqs.forEach(function (e) {
-            stats[e.id] = { id: e.id, nom: e.nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
+            stats[e.id] = { id: e.id, nom: equipeAffichage(e), mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
         });
         var fmt = currentTournoi && currentTournoi.format_score;
         var rule = FORMAT_RULES[fmt] || FORMAT_RULES.libre;
@@ -2330,14 +2409,45 @@
         card.appendChild(el('h3', { class: 'tournoi-section-title' }, '👥 Équipes (' + equipes.length + ')'));
         card.appendChild(el('p', { class: 'tournoi-hint' }, '💡 Saisis un niveau (1-10) pour chaque équipe puis clique « Répartir » pour créer les poules automatiquement. Tu peux aussi glisser-déposer.'));
 
-        // Form ajout équipe
-        var addForm = el('div', { class: 'setup-row' });
-        var inputEq = el('input', { type: 'text', class: 'tournoi-input', placeholder: 'Nom équipe (ex: Dupont / Martin)' });
-        inputEq.addEventListener('keydown', function (e) { if (e.key === 'Enter') addEquipe(); });
-        addForm.appendChild(el('div', { class: 'input-group input-group--full' }, inputEq));
-        addForm.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: addEquipe }, '+ Ajouter'));
+        // Form ajout équipe (2 joueurs : nom + prénom chacun)
+        // On utilise un datalist partagé pour autocomplete sur les joueurs existants
+        var datalistNoms = el('datalist', { id: 'joueurs-noms' });
+        var datalistPrenoms = el('datalist', { id: 'joueurs-prenoms' });
+        var nomsSet = {}, prenomsSet = {};
+        joueurs.forEach(function (j) {
+            if (j.nom && !nomsSet[j.nom]) { nomsSet[j.nom] = true; datalistNoms.appendChild(el('option', { value: j.nom })); }
+            if (j.prenom && !prenomsSet[j.prenom]) { prenomsSet[j.prenom] = true; datalistPrenoms.appendChild(el('option', { value: j.prenom })); }
+        });
+        card.appendChild(datalistNoms);
+        card.appendChild(datalistPrenoms);
+
+        var addForm = el('div', { class: 'add-equipe-form' });
+        var rowJ1 = el('div', { class: 'add-equipe-row' });
+        var inpNom1 = el('input', { type: 'text', class: 'tournoi-input', placeholder: 'Nom J1', list: 'joueurs-noms' });
+        var inpPrenom1 = el('input', { type: 'text', class: 'tournoi-input', placeholder: 'Prénom J1', list: 'joueurs-prenoms' });
+        rowJ1.appendChild(el('span', { class: 'add-equipe-label' }, 'J1'));
+        rowJ1.appendChild(inpNom1);
+        rowJ1.appendChild(inpPrenom1);
+        addForm.appendChild(rowJ1);
+
+        var rowJ2 = el('div', { class: 'add-equipe-row' });
+        var inpNom2 = el('input', { type: 'text', class: 'tournoi-input', placeholder: 'Nom J2', list: 'joueurs-noms' });
+        var inpPrenom2 = el('input', { type: 'text', class: 'tournoi-input', placeholder: 'Prénom J2', list: 'joueurs-prenoms' });
+        rowJ2.appendChild(el('span', { class: 'add-equipe-label' }, 'J2'));
+        rowJ2.appendChild(inpNom2);
+        rowJ2.appendChild(inpPrenom2);
+        addForm.appendChild(rowJ2);
+
+        // Submit on Enter dans le dernier champ
+        inpPrenom2.addEventListener('keydown', function (e) { if (e.key === 'Enter') addEquipe(); });
+
+        var btnAdd = el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: addEquipe, style: 'width:100%;margin-top:0.5rem' }, '+ Ajouter l\'équipe');
+        addForm.appendChild(btnAdd);
         card.appendChild(addForm);
-        els.eqNom = inputEq;
+        els.eqNomJ1 = inpNom1;
+        els.eqPrenomJ1 = inpPrenom1;
+        els.eqNomJ2 = inpNom2;
+        els.eqPrenomJ2 = inpPrenom2;
 
         // Bouton répartir par niveau (visible dès qu'il y a au moins une poule)
         if (poules.length > 0 && equipes.length > 0) {
@@ -2372,7 +2482,7 @@
             sortedUnassigned.forEach(function (eq) {
                 var item = el('div', { class: 'equipe-item equipe-item--draggable' });
                 item.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
-                item.appendChild(el('span', { class: 'equipe-nom' }, eq.nom));
+                item.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage(eq)));
                 item.appendChild(makeNiveauInput(eq));
                 item.appendChild(el('button', { class: 'icon-btn icon-btn--danger', onclick: function () { deleteEquipe(eq.id); }, title: 'Supprimer' }, '🗑'));
                 makeDraggableEquipe(item, eq);
@@ -2438,7 +2548,7 @@
                         if (s && s.mj > 0) {
                             row.appendChild(el('span', { class: 'poule-pos-badge', title: 'Position calculée' }, '#' + s.pos));
                         }
-                        row.appendChild(el('span', { class: 'equipe-nom' }, eq.nom));
+                        row.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage(eq)));
                         if (s && s.mj > 0) {
                             row.appendChild(el('span', { class: 'poule-stats', title: 'V-D · diff sets · diff jeux' },
                                 s.v + '-' + s.d + ' · ' + ((s.sg - s.sp) >= 0 ? '+' : '') + (s.sg - s.sp)
@@ -2872,7 +2982,7 @@
         var id = side === 'a' ? m.equipe_a_id : m.equipe_b_id;
         if (id) {
             var eq = equipes.find(function (e) { return e.id === id; });
-            return eq ? eq.nom : '?';
+            return eq ? equipeAffichage(eq) : '?';
         }
         var sOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
         var sType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
