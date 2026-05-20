@@ -546,8 +546,13 @@
         if (guardReadOnly()) return;
         var maison3x4 = isConfig3p4();
         var maison1p5 = isConfig1p5();
+        var maison1p4 = isConfig1p4();
         var nbPoules = poules.length;
 
+        // 1 poule de 4 : auto, pas de popup
+        if (maison1p4) {
+            return await genererSqueletteMaison1p4();
+        }
         // 1 poule de 5 : auto, pas de popup
         if (maison1p5) {
             return await genererSqueletteMaison1p5();
@@ -1188,6 +1193,48 @@
         return nb === 5;
     }
 
+    function isConfig1p4() {
+        if (poules.length !== 1) return false;
+        var nb = equipes.filter(function (e) { return e.poule_id === poules[0].id; }).length;
+        return nb === 4;
+    }
+
+    // Format maison 1 poule de 4 équipes :
+    // - principal/ordre 0 : finale = 1er vs 2e de poule
+    // - places_3_4/ordre 1 : 3e vs 4e
+    async function genererSqueletteMaison1p4() {
+        if (poules.length !== 1) return;
+        var pouleId = poules[0].id;
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var newMatchs = [];
+
+        // Finale : 1er vs 2e
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+            status: 'en_attente', ordre: 0, terrain: pickT(0),
+            equipe_a_id: null,
+            equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: 1, equipe_a_source_type: 'rang_poule',
+            equipe_b_id: null,
+            equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: 2, equipe_b_source_type: 'rang_poule'
+        });
+
+        // Match 3e/4e
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_3_4',
+            status: 'en_attente', ordre: 1, terrain: pickT(1),
+            equipe_a_id: null,
+            equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: 3, equipe_a_source_type: 'rang_poule',
+            equipe_b_id: null,
+            equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: 4, equipe_b_source_type: 'rang_poule'
+        });
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
     // Format maison 1 poule de 5 équipes :
     // - principal/ordre 0 : demi-finale = 2e vs 3e
     // - principal/ordre 1 : finale = 1er de poule vs vainqueur de la demi (créée auto après la demi)
@@ -1526,6 +1573,11 @@
         // Mode 1p×5 : principal = 2 matchs au total (demi + finale)
         if (bracket === 'principal' && isConfig1p5()) {
             return b.length >= 2 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
+        // Mode 1p×4 : principal = 1 seul match (la finale), fini dès qu'il est joué
+        if (bracket === 'principal' && isConfig1p4()) {
+            return b.length >= 1 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
         }
 
         var rows = classementGlobal();
@@ -2868,6 +2920,7 @@
 
         // Mode maison : brackets places_X_Y (1 match chacun, place déjà encodée dans le nom)
         var maisonBrackets = [
+            { key: 'places_3_4', w: 3, l: 4 },
             { key: 'places_4_5', w: 4, l: 5 },
             { key: 'places_5_6', w: 5, l: 6 },
             { key: 'places_7_8', w: 7, l: 8 },
@@ -2910,6 +2963,8 @@
         if (b === 'rang_3') return '🥉 Places 7-9';
         if (b === 'rang_4') return '🎾 Places 10-12';
         // Mode maison
+        if (b === 'places_3_4') return '🥉 Match 3ᵉ place';
+        if (b === 'places_4_5') return '🎾 Match places 4-5';
         if (b === 'places_5_6') return '🥈 Match places 5-6';
         if (b === 'places_7_8') return '🥉 Match places 7-8';
         if (b === 'places_9_10') return '🎾 Match places 9-10';
@@ -2970,7 +3025,7 @@
         }
 
         // === Pré-générer le squelette dès maintenant (placeholders qui se rempliront au fil des résultats) ===
-        if (matchsFinale.length === 0 && matchsPoule.length > 0 && (poules.length >= 2 || isConfig1p5())) {
+        if (matchsFinale.length === 0 && matchsPoule.length > 0 && (poules.length >= 2 || isConfig1p5() || isConfig1p4())) {
             card.appendChild(el('button', {
                 class: 'btn-live btn-live--primary',
                 style: 'width:100%;margin-top:1rem',
