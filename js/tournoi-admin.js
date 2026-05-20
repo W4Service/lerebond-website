@@ -447,39 +447,47 @@
     // - 'croise4'     : format 4 équipes avec dépendances (M3=PM2/GM1, M4=GM2/PM1, M5=PM1/PM2, M6=GM1/GM2)
     function buildMatchsPoule(poule, format) {
         var eqs = equipes.filter(function (e) { return e.poule_id === poule.id; });
-        var base = { tournoi_id: currentTournoi.id, phase: 'poule', poule_id: poule.id, terrain: poule.terrain, status: 'en_attente' };
+        // S'il n'y a qu'une seule poule pour tout le tournoi, on répartit les matchs sur tous les terrains.
+        var nbTerrains = currentTournoi.nb_terrains || 1;
+        var seulePoule = poules.length === 1;
+        var pickTerrain = function (i) {
+            if (seulePoule) return ((i % nbTerrains) + 1);
+            return poule.terrain;
+        };
+        var base = { tournoi_id: currentTournoi.id, phase: 'poule', poule_id: poule.id, status: 'en_attente' };
         var out = [];
         var ordre = 0;
 
         if (format === 'croise4' && eqs.length === 4) {
             var picked = shuffle(eqs);
             // M1 : picked[0] vs picked[1]
-            out.push(Object.assign({}, base, { ordre: ordre++, equipe_a_id: picked[0].id, equipe_b_id: picked[1].id }));
+            out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre), equipe_a_id: picked[0].id, equipe_b_id: picked[1].id })); ordre++;
             // M2 : picked[2] vs picked[3]
-            out.push(Object.assign({}, base, { ordre: ordre++, equipe_a_id: picked[2].id, equipe_b_id: picked[3].id }));
+            out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre), equipe_a_id: picked[2].id, equipe_b_id: picked[3].id })); ordre++;
             // M3 : PM2 vs GM1
-            out.push(Object.assign({}, base, { ordre: ordre++,
+            out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre),
                 equipe_a_source_ordre: 1, equipe_a_source_type: 'perdant',
-                equipe_b_source_ordre: 0, equipe_b_source_type: 'gagnant' }));
+                equipe_b_source_ordre: 0, equipe_b_source_type: 'gagnant' })); ordre++;
             // M4 : GM2 vs PM1
-            out.push(Object.assign({}, base, { ordre: ordre++,
+            out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre),
                 equipe_a_source_ordre: 1, equipe_a_source_type: 'gagnant',
-                equipe_b_source_ordre: 0, equipe_b_source_type: 'perdant' }));
+                equipe_b_source_ordre: 0, equipe_b_source_type: 'perdant' })); ordre++;
             // M5 : PM1 vs PM2 (petite finale)
-            out.push(Object.assign({}, base, { ordre: ordre++,
+            out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre),
                 equipe_a_source_ordre: 0, equipe_a_source_type: 'perdant',
-                equipe_b_source_ordre: 1, equipe_b_source_type: 'perdant' }));
+                equipe_b_source_ordre: 1, equipe_b_source_type: 'perdant' })); ordre++;
             // M6 : GM1 vs GM2 (grande finale)
-            out.push(Object.assign({}, base, { ordre: ordre++,
+            out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre),
                 equipe_a_source_ordre: 0, equipe_a_source_type: 'gagnant',
-                equipe_b_source_ordre: 1, equipe_b_source_type: 'gagnant' }));
+                equipe_b_source_ordre: 1, equipe_b_source_type: 'gagnant' })); ordre++;
             return out;
         }
 
         // Round-robin par défaut
         for (var i = 0; i < eqs.length; i++) {
             for (var j = i + 1; j < eqs.length; j++) {
-                out.push(Object.assign({}, base, { ordre: ordre++, equipe_a_id: eqs[i].id, equipe_b_id: eqs[j].id }));
+                out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre), equipe_a_id: eqs[i].id, equipe_b_id: eqs[j].id }));
+                ordre++;
             }
         }
         return out;
