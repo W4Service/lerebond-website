@@ -230,6 +230,8 @@
             offset += part.length;
         }
         var maisonBrackets = [
+            { key: 'places_3_4', w: 3, l: 4 },
+            { key: 'places_4_5', w: 4, l: 5 },
             { key: 'places_5_6', w: 5, l: 6 },
             { key: 'places_7_8', w: 7, l: 8 },
             { key: 'places_9_10', w: 9, l: 10 },
