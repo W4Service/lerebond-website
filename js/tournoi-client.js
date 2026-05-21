@@ -91,7 +91,9 @@
     // Classement en temps réel d'une poule
     var FORMAT_HAS_SETS = {
         format_a: true, format_b: true, format_c: true, format_d: true,
-        format_e: false, americano: false, libre: false
+        format_e: false,
+        '1set_6jeux': true, '1set_5jeux': true, '1set_4jeux': true,
+        americano: false, libre: false
     };
     function manche(raw) {
         if (raw == null) return NaN;
@@ -301,14 +303,15 @@
             case 'format_c': return 'Format C · 2 sets de 4 jeux + super TB';
             case 'format_d': return 'Format D · 1 set de 9 jeux';
             case 'format_e': return 'Format E · super TB à 10';
+            case '1set_6jeux': return '1 set à 6 jeux (TB à 6-6)';
+            case '1set_5jeux': return '1 set à 5 jeux (TB à 5-5)';
+            case '1set_4jeux': return '1 set à 4 jeux (TB à 4-4)';
             case 'americano': return 'Americano';
             case 'libre': return null;
             // Anciens codes (rétro-compat pour tournois déjà créés)
             case '2sets_supertb': return 'Format B · 2 sets de 6 jeux + super TB';
             case '2sets_classique': return '2 sets + 3ᵉ set complet';
             case 'proset_9jeux': return 'Format D · 1 set de 9 jeux';
-            case '1set_6jeux': return '1 set en 6 jeux';
-            case '1set_4jeux': return '1 set court (4 jeux)';
             case 'supertb_10': return 'Format E · super TB à 10';
             case 'supertb_15': return 'Super tie-break (15 pts)';
         }

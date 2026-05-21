@@ -2186,13 +2186,16 @@
 
         form.appendChild(el('label', { class: 'control-label', style: 'margin-top:1rem' }, 'Format de score (FFT Padel 2026)'));
         var selectFormat = el('select', { class: 'tournoi-input' });
-        // Formats officiels FFT padel 2026 (A à E) + Americano + Libre
+        // Formats officiels FFT padel 2026 (A à E) + formats club custom + Americano + Libre
         var fftFormats = [
             { v: 'format_b', label: 'B — 2 sets de 6 jeux + super tie-break à 10' },
             { v: 'format_a', label: 'A — 3 sets de 6 jeux (TB à 7)' },
             { v: 'format_c', label: 'C — 2 sets de 4 jeux + super tie-break à 10' },
             { v: 'format_d', label: 'D — 1 set de 9 jeux (TB à 7)' },
             { v: 'format_e', label: 'E — Super tie-break unique à 10 points' },
+            { v: '1set_6jeux', label: '1 set à 6 jeux (TB à 6-6, format court)' },
+            { v: '1set_5jeux', label: '1 set à 5 jeux (TB à 5-5, format court)' },
+            { v: '1set_4jeux', label: '1 set à 4 jeux (TB à 4-4, format ultra-court)' },
             { v: 'americano', label: 'Americano (points cumulés)' },
             { v: 'libre', label: 'Libre (saisie texte personnalisée)' }
         ];
@@ -2346,6 +2349,12 @@
                 return 'Format D (FFT) — 1 set unique de 9 jeux, tie-break classique à 7 points si 8-8. Format intermédiaire.';
             case 'format_e':
                 return 'Format E (FFT) — Un seul super tie-break à 10 points (avec 2 d\'écart). Format ultra-rapide pour P25 ou formats club.';
+            case '1set_6jeux':
+                return 'Club — 1 set unique en 6 jeux gagnants, tie-break à 7 points en cas d\'égalité 6-6. Environ 20 min/match.';
+            case '1set_5jeux':
+                return 'Club — 1 set unique en 5 jeux gagnants, tie-break à 7 points en cas d\'égalité 5-5. Environ 17 min/match. Bon compromis pour gros plateaux.';
+            case '1set_4jeux':
+                return 'Club — 1 set unique en 4 jeux gagnants, tie-break à 7 points en cas d\'égalité 4-4. Environ 14 min/match. Très rapide.';
             case 'americano':
                 return 'Format Americano : on compte les points marqués sur un temps ou un nombre de jeux donné. Saisie libre dans le score.';
             case 'libre':
@@ -2368,6 +2377,10 @@
         format_c: { sets: 2, jeux: 4, tb: 5,  superTb: true  }, // TB à 4-4 jusqu'à 5
         format_d: { sets: 1, jeux: 9, tb: 7,  superTb: false }, // 1 set en 9 jeux, TB à 8-8 jusqu'à 7
         format_e: { superTbOnly: true },
+        // Formats club custom (1 set unique)
+        '1set_6jeux': { sets: 1, jeux: 6, tb: 7, superTb: false }, // 1 set en 6 jeux, TB à 6-6 jusqu'à 7
+        '1set_5jeux': { sets: 1, jeux: 5, tb: 7, superTb: false }, // 1 set en 5 jeux, TB à 5-5 jusqu'à 7
+        '1set_4jeux': { sets: 1, jeux: 4, tb: 7, superTb: false }, // 1 set en 4 jeux, TB à 4-4 jusqu'à 7
         americano: { libre: true },
         libre:     { libre: true }
     };
@@ -2383,6 +2396,9 @@
             case 'format_c': return 'Format C · 2 sets de 4 jeux + super TB à 10';
             case 'format_d': return 'Format D · 1 set de 9 jeux (TB à 7)';
             case 'format_e': return 'Format E · super TB à 10';
+            case '1set_6jeux': return '1 set à 6 jeux (TB à 6-6)';
+            case '1set_5jeux': return '1 set à 5 jeux (TB à 5-5)';
+            case '1set_4jeux': return '1 set à 4 jeux (TB à 4-4)';
             case 'americano': return 'Americano (points cumulés)';
             case 'libre': return 'Libre';
         }
@@ -2396,6 +2412,9 @@
             case 'format_c': return 'Ex : 4-2 4-1  ·  4-2 2-4 10-8';
             case 'format_d': return 'Ex : 9-5  ·  9-8(7-4)';
             case 'format_e': return 'Ex : 10-7  ·  12-10';
+            case '1set_6jeux': return 'Ex : 6-3  ·  7-6';
+            case '1set_5jeux': return 'Ex : 5-2  ·  6-5';
+            case '1set_4jeux': return 'Ex : 4-1  ·  5-4';
             case 'americano': return 'Ex : 21  ·  24';
             case 'libre': return '';
         }
@@ -2571,6 +2590,9 @@
             case 'format_c': base = 25; break;
             case 'format_d': base = 30; break;
             case 'format_e': base = 15; break;
+            case '1set_6jeux': base = 22; break;
+            case '1set_5jeux': base = 18; break;
+            case '1set_4jeux': base = 15; break;
             case 'americano': base = 30; break;
             default: base = 30; break;
         }
@@ -3376,6 +3398,10 @@
                 return { nbSets: 1, labels: ['Set unique'], hasSuperTb: false };
             case 'format_e':
                 return { nbSets: 1, labels: ['Super TB'], hasSuperTb: true };
+            case '1set_6jeux':
+            case '1set_5jeux':
+            case '1set_4jeux':
+                return { nbSets: 1, labels: ['Set unique'], hasSuperTb: false };
             case 'americano':
             case 'libre':
             default:
