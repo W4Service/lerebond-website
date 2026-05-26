@@ -677,6 +677,31 @@ select.tournoi-input option {
     margin-top: 0.5rem;
 }
 
+/* Drag & drop pour réordonner les matchs de poule */
+.match-item--draggable {
+    cursor: grab;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.1s, border-color 0.15s;
+}
+.match-item--draggable:active {
+    cursor: grabbing;
+}
+.match-item--draggable.dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+}
+.match-item--draggable.drop-target {
+    border-color: rgba(244, 201, 65, 0.7);
+    border-style: dashed;
+    box-shadow: 0 0 0 2px rgba(244, 201, 65, 0.2);
+}
+.match-drag-handle {
+    color: rgba(244, 240, 230, 0.35);
+    margin-right: 0.4rem;
+    font-size: 0.85rem;
+    letter-spacing: -1px;
+    cursor: grab;
+}
+
 /* Durée d'un match (chrono dans le header de chaque carte) */
 .match-duree {
     font-family: 'Turret Road', sans-serif;
