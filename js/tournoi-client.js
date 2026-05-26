@@ -3,7 +3,23 @@
    ============================================ */
 (function () {
     var supa = window.LeRebondSupa;
-    if (!supa) { document.getElementById('tournoi-content').textContent = 'Erreur Supabase'; return; }
+    if (!supa) {
+        // Diagnostic plus parlant pour identifier la cause (souvent : Chrome trop ancien sur Android TV)
+        var raison = 'inconnue';
+        if (!window.REBOND_CONFIG) raison = 'config manquante';
+        else if (!window.supabase) raison = 'SDK Supabase non chargé (navigateur peut-être trop ancien)';
+        else if (typeof window.supabase.createClient !== 'function') raison = 'SDK Supabase corrompu';
+        var c = document.getElementById('tournoi-content');
+        if (c) {
+            c.innerHTML = '<div style="padding:2rem;text-align:center;color:rgba(244,240,230,0.9)">' +
+                '<h2 style="font-size:1.4rem;margin-bottom:1rem">⚠️ Impossible de charger le tournoi</h2>' +
+                '<p style="margin-bottom:1rem">Raison : ' + raison + '</p>' +
+                '<p style="font-size:0.85rem;color:rgba(244,240,230,0.6);margin-bottom:1rem">Navigateur : ' + (navigator.userAgent || '?') + '</p>' +
+                '<p>Essaye sur un autre appareil (téléphone, ordinateur) ou mets à jour ton navigateur.</p>' +
+                '</div>';
+        }
+        return;
+    }
 
     var currentTournoi = null;
     var poules = [];
