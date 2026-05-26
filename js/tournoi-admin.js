@@ -687,6 +687,7 @@
         var maison3x4 = isConfig3p4();
         var maison1p5 = isConfig1p5();
         var maison1p4 = isConfig1p4();
+        var maison_4_4_5 = isConfig3p_4_4_5();
         var nbPoules = poules.length;
 
         // 1 poule de 4 : auto, pas de popup
@@ -696,6 +697,10 @@
         // 1 poule de 5 : auto, pas de popup
         if (maison1p5) {
             return await genererSqueletteMaison1p5();
+        }
+        // 3 poules (4+4+5) = 13 équipes : auto, pas de popup
+        if (maison_4_4_5) {
+            return await genererSqueletteMaison3p_4_4_5();
         }
 
         if (nbPoules < 2) {
@@ -1339,6 +1344,87 @@
         return nb === 4;
     }
 
+    // Config 3 poules : deux de 4 équipes + une de 5 (total 13 équipes)
+    function isConfig3p_4_4_5() {
+        if (poules.length !== 3) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        }).sort();
+        return tailles[0] === 4 && tailles[1] === 4 && tailles[2] === 5;
+    }
+
+    // Format maison 3 poules (4+4+5) : 13 équipes.
+    // Principal = 1er des 2 poules de 4 + 1er + 2e de la poule de 5 (4 équipes).
+    // rang_2 = 2es des 2 poules de 4 + 3e de la poule de 5 (3 équipes, barrage + finale)
+    // rang_3 = 3es des 2 poules de 4 + 4e de la poule de 5 (3 équipes, barrage + finale)
+    // rang_4 = 4es des 2 poules de 4 + 5e de la poule de 5 (3 équipes, barrage + finale)
+    // Dans les brackets à 3, c'est l'équipe de la poule de 5 qui est exemptée du barrage.
+    async function genererSqueletteMaison3p_4_4_5() {
+        // Trier les poules par taille : les 2 de 4 d'abord (ordre original), la poule de 5 en dernier
+        var poules4 = poules.filter(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 4;
+        }).sort(function (a, b) { return a.ordre - b.ordre; });
+        var poules5 = poules.filter(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 5;
+        });
+        if (poules4.length !== 2 || poules5.length !== 1) {
+            showToast('Format maison 3p (4+4+5) : il faut exactement 2 poules de 4 et 1 poule de 5.', 'error');
+            return;
+        }
+        var P_A = poules4[0].id;
+        var P_B = poules4[1].id;
+        var P_C5 = poules5[0].id;
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var newMatchs = [];
+        var ordre = 0;
+
+        // Placeholder helpers
+        var rang = function (pouleId, r, side) {
+            var p = {};
+            p['equipe_' + side + '_id'] = null;
+            p['equipe_' + side + '_source_poule_id'] = pouleId;
+            p['equipe_' + side + '_source_ordre'] = r;
+            p['equipe_' + side + '_source_type'] = 'rang_poule';
+            return p;
+        };
+        var base = function (bracket) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+
+        // === Tableau principal (4 équipes) ===
+        // Demi 1 : 1er Poule A vs 2e Poule C5  (seeding : poule de 4 reçoit le 2e de C5)
+        newMatchs.push(Object.assign({}, base('principal'), rang(P_A, 1, 'a'), rang(P_C5, 2, 'b')));
+        ordre++;
+        // Demi 2 : 1er Poule B vs 1er Poule C5
+        newMatchs.push(Object.assign({}, base('principal'), rang(P_B, 1, 'a'), rang(P_C5, 1, 'b')));
+        ordre++;
+        // Finale et 3e/4e seront créés automatiquement après les demis (genererTourSuivant).
+
+        // === rang_2 (places 5-7) : 2A + 2B en barrage, exempté = 3C5 ===
+        // Barrage : 2A vs 2B
+        newMatchs.push(Object.assign({}, base('rang_2'), rang(P_A, 2, 'a'), rang(P_B, 2, 'b')));
+        ordre++;
+        // La finale (3C5 vs vainqueur barrage) sera créée par genererTourSuivant('rang_2')
+
+        // === rang_3 (places 8-10) : 3A + 3B en barrage, exempté = 4C5 ===
+        newMatchs.push(Object.assign({}, base('rang_3'), rang(P_A, 3, 'a'), rang(P_B, 3, 'b')));
+        ordre++;
+
+        // === rang_4 (places 11-13) : 4A + 4B en barrage, exempté = 5C5 ===
+        newMatchs.push(Object.assign({}, base('rang_4'), rang(P_A, 4, 'a'), rang(P_B, 4, 'b')));
+        ordre++;
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
     // Format maison 1 poule de 4 équipes :
     // - principal/ordre 0 : finale = 1er vs 2e de poule (sur T1)
     // - places_3_4/ordre 1 : 3e vs 4e (sur T2)
@@ -1613,6 +1699,34 @@
             if (bracket === 'rang_2') {
                 sortedRows = trierParStats(rangRows).slice(1);
             }
+            // Cas spécial config maison 3p (4+4+5) : l'exempté est l'équipe de la poule de 5 (rang_2 → 3e C5, rang_3 → 4e C5, rang_4 → 5e C5)
+            if (isConfig3p_4_4_5() && bracketMatchs.length === 1 && (bracket === 'rang_2' || bracket === 'rang_3' || bracket === 'rang_4')) {
+                var poules5_b = poules.filter(function (p) {
+                    return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 5;
+                });
+                if (poules5_b.length === 1) {
+                    var rankInPoule5 = rangCible + 1; // rang_2 → rang 3 de poule 5, etc.
+                    var classement5 = computeClassement(poules5_b[0].id);
+                    var exemptedId = classement5[rankInPoule5 - 1] ? classement5[rankInPoule5 - 1].id : null;
+                    if (exemptedId) {
+                        var winB = bracketMatchs[0].vainqueur_id;
+                        nextMatchs.push({
+                            phase: 'finale', bracket: bracket,
+                            tournoi_id: currentTournoi.id, status: 'en_attente',
+                            ordre: nextOrdre++, terrain: terrains[0],
+                            equipe_a_id: exemptedId,
+                            equipe_b_id: winB
+                        });
+                        // Sauter le bloc standard ci-dessous en appelant 'do insert' direct
+                        var resJ = await supa.from('matchs').insert(nextMatchs).select();
+                        if (resJ.error) { showToast('Erreur : ' + resJ.error.message, 'error'); console.error(resJ.error); return; }
+                        matchs = matchs.concat(resJ.data);
+                        render();
+                        showToast(resJ.data.length + ' match(s) suivants générés', 'ok');
+                        return;
+                    }
+                }
+            }
             if (sortedRows.length === 3) {
                 // Barrage déjà joué -> finale entre exempté et gagnant
                 var exempted = sortedRows[0];
@@ -1713,6 +1827,17 @@
         // Mode 1p×4 : principal = 1 seul match (la finale), fini dès qu'il est joué
         if (bracket === 'principal' && isConfig1p4()) {
             return b.length >= 1 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
+        // Mode maison 3p (4+4+5) : principal = 4 matchs (2 demis + finale + 3e/4e),
+        // rang_2/3/4 = 2 matchs chacun (barrage + finale)
+        if (isConfig3p_4_4_5()) {
+            if (bracket === 'principal') {
+                return b.length >= 4 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+            }
+            if (bracket === 'rang_2' || bracket === 'rang_3' || bracket === 'rang_4') {
+                return b.length >= 2 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+            }
         }
 
         var rows = classementGlobal();
