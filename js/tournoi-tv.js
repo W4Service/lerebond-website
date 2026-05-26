@@ -213,9 +213,17 @@
                     '</div>';
             }
         }
-        document.getElementById('poules-list').innerHTML = poulesHtml;
+        // Définit dynamiquement le nb de colonnes selon le nb de poules
+        // 1 poule → 1 colonne, 2 → 2 colonnes, 3+ → 3 colonnes max (au-delà ça reste lisible)
+        var poulesEl = document.getElementById('poules-list');
+        var nbCols = Math.min(Math.max(poules.length, 1), 3);
+        poulesEl.style.gridTemplateColumns = 'repeat(' + nbCols + ', 1fr)';
+        poulesEl.innerHTML = poulesHtml;
     }
 
     // Démarrage
     loadAll();
+    // Refresh JS toutes les 10 secondes (sans recharger la page = pas de "flash")
+    // En complément du <meta refresh> qui recharge complètement toutes les 60s.
+    setInterval(loadAll, 10000);
 })();
