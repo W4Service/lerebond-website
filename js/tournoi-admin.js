@@ -3718,6 +3718,81 @@
         return m + ' min ' + (s < 10 ? '0' + s : s) + ' s';
     }
 
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Swap l'ordre de 2 matchs (drag & drop dans une même poule, phase 'poule' uniquement).
+    // On échange seulement la valeur 'ordre' des 2 matchs, le terrain et l'état restent inchangés.
+    async function swapMatchsOrdre(idA, idB) {
+        if (guardReadOnly()) return;
+        var mA = matchs.find(function (m) { return m.id === idA; });
+        var mB = matchs.find(function (m) { return m.id === idB; });
+        if (!mA || !mB) return;
+        if (mA.id === mB.id) return;
+        // Échange en 2 étapes (contrainte unique éventuelle sur (poule_id, ordre) → on passe par un ordre temporaire)
+        var tmpOrdre = -1 - Math.floor(Math.random() * 100000);
+        await supa.from('matchs').update({ ordre: tmpOrdre, updated_at: new Date().toISOString() }).eq('id', mA.id);
+        await supa.from('matchs').update({ ordre: mA.ordre, updated_at: new Date().toISOString() }).eq('id', mB.id);
+        var res = await supa.from('matchs').update({ ordre: mB.ordre, updated_at: new Date().toISOString() }).eq('id', mA.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        // Maj cache local
+        var iA = matchs.findIndex(function (m) { return m.id === idA; });
+        var iB = matchs.findIndex(function (m) { return m.id === idB; });
+        if (iA >= 0 && iB >= 0) {
+            var ordreA = matchs[iA].ordre;
+            matchs[iA].ordre = matchs[iB].ordre;
+            matchs[iB].ordre = ordreA;
+        }
+        render();
+        showToast('Ordre des matchs modifié', 'ok');
+    }
+
+    function makeMatchCardDraggable(card, m) {
+        // On rend les matchs de phase 'poule' draggables (pas la phase finale qui a sa propre logique).
+        if (m.phase !== 'poule') return;
+        if (m.status === 'termine') return; // Pas de réordonnancement des matchs déjà joués
+        card.setAttribute('draggable', 'true');
+        card.classList.add('match-item--draggable');
+        card.dataset.matchId = m.id;
+        card.dataset.pouleId = m.poule_id;
+
+        card.addEventListener('dragstart', function (e) {
+            // Ne pas drag si on a cliqué dans un input/select/button (sinon on perd la saisie)
+            var target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON' || target.tagName === 'OPTION')) {
+                e.preventDefault();
+                return;
+            }
+            e.dataTransfer.setData('text/plain', JSON.stringify({ matchId: m.id, pouleId: m.poule_id }));
+            e.dataTransfer.effectAllowed = 'move';
+            card.classList.add('dragging');
+        });
+        card.addEventListener('dragend', function () { card.classList.remove('dragging'); });
+        card.addEventListener('dragover', function (e) {
+            // On accepte le drop seulement si c'est un match de la même poule
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            card.classList.add('drop-target');
+        });
+        card.addEventListener('dragleave', function () { card.classList.remove('drop-target'); });
+        card.addEventListener('drop', function (e) {
+            e.preventDefault();
+            card.classList.remove('drop-target');
+            var data;
+            try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
+            if (!data || !data.matchId || data.matchId === m.id) return;
+            // Refuse si pas même poule
+            if (data.pouleId !== m.poule_id) {
+                showToast('On ne peut réordonner que dans la même poule', 'error');
+                return;
+            }
+            swapMatchsOrdre(data.matchId, m.id);
+        });
+    }
+
     function renderMatchAdmin(m) {
         var eqA = equipes.find(function (e) { return e.id === m.equipe_a_id; });
         var eqB = equipes.find(function (e) { return e.id === m.equipe_b_id; });
@@ -3728,11 +3803,16 @@
         var isFinale = m.phase === 'finale';
 
         var card = el('div', { class: 'match-item match-item--' + m.status + (ready ? '' : ' match-item--pending-dep') });
+        // Rendre la carte draggable pour réordonner (uniquement matchs poule non terminés)
+        makeMatchCardDraggable(card, m);
 
         var header = el('div', { class: 'match-header' });
         var retourTag = m.is_retour ? ' · 🔄 retour' : '';
+        var dragHandle = m.phase === 'poule' && m.status !== 'termine'
+            ? '<span class="match-drag-handle" title="Glisser pour réordonner">⋮⋮</span> ' : '';
         var metaText = (poule ? poule.nom + ' · ' : '') + (isFinale ? bracketLabel(m.bracket) + ' · ' : '') + 'Match ' + (m.ordre + 1) + retourTag + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent');
-        header.appendChild(el('span', { class: 'match-meta' }, metaText));
+        var metaSpan = el('span', { class: 'match-meta', html: dragHandle + escapeHtml(metaText) });
+        header.appendChild(metaSpan);
 
         // Durée du match (chrono live si en cours, durée totale si terminé)
         var dureeSec = dureeMatchSecondes(m);
