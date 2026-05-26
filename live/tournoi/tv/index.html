@@ -20,25 +20,26 @@ html, body {
     overflow: hidden;
 }
 
-/* Layout principal en grid vertical : header / live / poules / footer */
+/* Layout principal : flex column */
 .tv-app {
-    height: 100vh;
-    width: 100vw;
-    padding: 1.5vh 1.5vw;
-    display: grid;
-    grid-template-rows: auto auto 1fr auto;
-    gap: 1.2vh;
+    height: 100%;
+    width: 100%;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
 /* === Header === */
 .tv-header {
+    flex: 0 0 auto;
     text-align: center;
-    padding-bottom: 0.8vh;
+    padding-bottom: 6px;
     border-bottom: 2px solid rgba(244, 201, 65, 0.35);
+    margin-bottom: 8px;
 }
 .tv-title {
-    font-size: clamp(1.8rem, 3.4vh, 3rem);
+    font-size: 26px;
     font-weight: 800;
     color: #f4c941;
     letter-spacing: 0.04em;
@@ -46,79 +47,77 @@ html, body {
     line-height: 1.1;
 }
 .tv-subtitle {
-    font-size: clamp(0.9rem, 1.7vh, 1.3rem);
+    font-size: 13px;
     color: rgba(244, 240, 230, 0.75);
-    margin-top: 0.3vh;
+    margin-top: 2px;
 }
 
-/* === En direct (bandeau horizontal) === */
+/* === En direct === */
 .tv-live {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 1vw;
-    min-height: 0;
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: stretch;
+    min-height: 60px;
 }
 .tv-live-label {
-    font-size: clamp(0.9rem, 1.8vh, 1.4rem);
+    flex: 0 0 auto;
+    font-size: 14px;
     color: #ea1a15;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     font-weight: 800;
     white-space: nowrap;
-    padding-right: 1vw;
-    border-right: 1px solid rgba(244, 240, 230, 0.15);
+    padding: 6px 12px 6px 0;
+    border-right: 2px solid rgba(244, 240, 230, 0.15);
     display: flex;
     align-items: center;
-    gap: 0.5vw;
+    gap: 6px;
+    margin-right: 12px;
 }
 .tv-live-pulse {
     display: inline-block;
-    width: 0.8em;
-    height: 0.8em;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: #ea1a15;
-    box-shadow: 0 0 12px #ea1a15;
-    animation: pulse 1.5s ease-in-out infinite;
-}
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.85); }
+    box-shadow: 0 0 10px #ea1a15;
 }
 .tv-live-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 1vw;
+    flex: 1 1 auto;
+    display: flex;
+    gap: 8px;
     min-width: 0;
 }
 .tv-match {
+    flex: 1 1 0;
     background: rgba(234, 26, 21, 0.16);
     border: 2px solid #ea1a15;
-    border-radius: 10px;
-    padding: 0.8vh 1vw;
-    box-shadow: 0 4px 16px rgba(234, 26, 21, 0.25);
+    border-radius: 8px;
+    padding: 6px 10px;
     min-width: 0;
 }
 .tv-match-meta {
-    font-size: clamp(0.7rem, 1.2vh, 0.95rem);
+    font-size: 11px;
     color: rgba(244, 240, 230, 0.7);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 600;
-    margin-bottom: 0.3vh;
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .tv-match-body {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: center;
-    gap: 0.6vw;
+    justify-content: space-between;
+    gap: 8px;
     min-width: 0;
 }
 .tv-match-equipe {
-    font-size: clamp(0.9rem, 1.8vh, 1.4rem);
+    flex: 1 1 0;
+    font-size: 14px;
     font-weight: 700;
     color: #f4f0e6;
     overflow: hidden;
@@ -126,50 +125,56 @@ html, body {
     white-space: nowrap;
     min-width: 0;
 }
-.tv-match-equipe:last-child { text-align: right; }
+.tv-match-equipe.tv-eq-b { text-align: right; }
 .tv-match-score {
-    font-size: clamp(1.2rem, 2.6vh, 2.2rem);
+    flex: 0 0 auto;
+    font-size: 18px;
     font-weight: 800;
     color: #f4c941;
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 .tv-live-empty {
-    font-size: clamp(0.9rem, 1.6vh, 1.2rem);
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
     color: rgba(244, 240, 230, 0.4);
     font-style: italic;
-    text-align: center;
 }
 
-/* === Classements de poule (occupe le reste de l'écran) === */
+/* === Classements (le bloc principal, occupe tout le reste) === */
 .tv-poules-section {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    gap: 0.8vh;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     overflow: hidden;
 }
 .tv-poules-section-title {
-    font-size: clamp(1rem, 2vh, 1.5rem);
+    flex: 0 0 auto;
+    font-size: 15px;
     color: #efa707;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     font-weight: 800;
-    padding-bottom: 0.4vh;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
     border-bottom: 1px solid rgba(244, 201, 65, 0.25);
 }
 .tv-poules-grid {
-    display: grid;
-    /* Le nb de colonnes est défini en inline-style par le JS selon nb de poules */
-    gap: 1vw;
+    flex: 1 1 auto;
+    display: flex;
+    gap: 8px;
     min-height: 0;
     overflow: hidden;
 }
 .tv-poule {
+    flex: 1 1 0;
     background: rgba(244, 240, 230, 0.06);
     border: 1px solid rgba(239, 167, 7, 0.35);
-    border-radius: 10px;
-    padding: 0.8vh 0.9vw;
+    border-radius: 8px;
+    padding: 6px 10px;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -177,40 +182,42 @@ html, body {
     overflow: hidden;
 }
 .tv-poule-nom {
-    font-size: clamp(1rem, 2vh, 1.4rem);
+    flex: 0 0 auto;
+    font-size: 16px;
     font-weight: 800;
     color: #f4c941;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5vh;
-    padding-bottom: 0.3vh;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    padding-bottom: 3px;
     border-bottom: 1px solid rgba(244, 240, 230, 0.12);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .tv-poule-table {
+    flex: 1 1 auto;
     width: 100%;
     border-collapse: collapse;
-    flex: 1;
+    table-layout: fixed;
     min-height: 0;
 }
 .tv-poule-table th {
-    font-size: clamp(0.65rem, 1.1vh, 0.85rem);
+    font-size: 10px;
     color: rgba(244, 240, 230, 0.5);
     text-transform: uppercase;
     text-align: center;
-    padding: 0.2vh 0.2vw;
+    padding: 2px 3px;
     font-weight: 600;
 }
 .tv-poule-table th.left { text-align: left; }
 .tv-poule-table td {
-    padding: 0.4vh 0.3vw;
+    padding: 4px 3px;
     color: #f4f0e6;
-    font-variant-numeric: tabular-nums;
     text-align: center;
-    font-size: clamp(0.85rem, 1.6vh, 1.15rem);
+    font-size: 14px;
     border-bottom: 1px solid rgba(244, 240, 230, 0.06);
+    line-height: 1.2;
 }
 .tv-poule-table tr:last-child td { border-bottom: none; }
 .tv-poule-table td.equipe {
@@ -219,46 +226,49 @@ html, body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 0;
-    width: 100%;
 }
 .tv-poule-table td.pos {
     color: #efa707;
     font-weight: 800;
-    width: 2.5em;
+    width: 32px;
 }
 .tv-poule-table td.v {
     color: #f4c941;
     font-weight: 800;
 }
+.tv-poule-table th.col-mj, .tv-poule-table td.col-mj,
+.tv-poule-table th.col-v, .tv-poule-table td.col-v { width: 30px; }
+.tv-poule-table th.col-s, .tv-poule-table td.col-s,
+.tv-poule-table th.col-j, .tv-poule-table td.col-j { width: 38px; }
 
 /* === Footer & états === */
 .tv-footer {
-    font-size: clamp(0.6rem, 1vh, 0.8rem);
+    flex: 0 0 auto;
+    font-size: 10px;
     color: rgba(244, 240, 230, 0.4);
     text-align: right;
-    padding-top: 0.4vh;
+    padding-top: 4px;
 }
 .tv-loading {
     text-align: center;
-    font-size: clamp(1rem, 2vh, 1.4rem);
+    font-size: 16px;
     color: rgba(244, 240, 230, 0.6);
-    padding: 5vh 2vw;
+    padding: 30px;
 }
 .tv-error {
     background: rgba(234, 26, 21, 0.2);
     border: 1px solid #ea1a15;
-    border-radius: 10px;
-    padding: 2vh 2vw;
+    border-radius: 8px;
+    padding: 12px;
     text-align: center;
-    margin: 2vh;
+    margin: 12px;
 }
 .tv-empty {
     color: rgba(244, 240, 230, 0.5);
     font-style: italic;
-    font-size: clamp(0.9rem, 1.6vh, 1.2rem);
+    font-size: 14px;
     text-align: center;
-    padding: 2vh;
+    padding: 16px;
 }
 </style>
 </head>
@@ -270,7 +280,7 @@ html, body {
         <div class="tv-subtitle" id="t-subtitle">Chargement…</div>
     </header>
 
-    <section class="tv-live" id="sec-live">
+    <section class="tv-live">
         <div class="tv-live-label"><span class="tv-live-pulse"></span> En direct</div>
         <div class="tv-live-grid" id="live-matchs">
             <div class="tv-loading">…</div>
@@ -278,13 +288,13 @@ html, body {
     </section>
 
     <section class="tv-poules-section">
-        <div class="tv-poules-section-title">🎾 Classements de poule</div>
+        <div class="tv-poules-section-title">Classements de poule</div>
         <div class="tv-poules-grid" id="poules-list">
             <div class="tv-loading">…</div>
         </div>
     </section>
 
-    <div class="tv-footer">Mise à jour live · le-rebond.fr/live/tournoi/tv/</div>
+    <div class="tv-footer">le-rebond.fr/live/tournoi/tv/</div>
 </div>
 
 <script src="js/resa-config.min.js"></script>
