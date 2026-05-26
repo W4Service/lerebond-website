@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tournoi TV — Le Rebond</title>
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="refresh" content="30">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    height: 100%;
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #680920 0%, #4d061a 100%);
+    color: #f4f0e6;
+    overflow: hidden;
+}
+body { padding: 1rem 1.5rem; }
+
+.tv-header {
+    text-align: center;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid rgba(244, 201, 65, 0.3);
+    margin-bottom: 1rem;
+}
+.tv-title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #f4c941;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.tv-subtitle {
+    font-size: 1.1rem;
+    color: rgba(244, 240, 230, 0.7);
+    margin-top: 0.3rem;
+}
+
+.tv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    height: calc(100% - 130px);
+}
+.tv-col {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.tv-section-title {
+    font-size: 1.4rem;
+    color: #efa707;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 800;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid rgba(244, 201, 65, 0.2);
+}
+
+.tv-match {
+    background: rgba(234, 26, 21, 0.18);
+    border: 3px solid #ea1a15;
+    border-radius: 14px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.8rem;
+    box-shadow: 0 6px 24px rgba(234, 26, 21, 0.25);
+}
+.tv-match-meta {
+    font-size: 1rem;
+    color: rgba(244, 240, 230, 0.75);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.tv-match-body {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+}
+.tv-match-equipe {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #f4f0e6;
+}
+.tv-match-equipe:last-child { text-align: right; }
+.tv-match-score {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #f4c941;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.tv-empty {
+    color: rgba(244, 240, 230, 0.5);
+    font-style: italic;
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 2rem;
+}
+
+.tv-poule {
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(239, 167, 7, 0.3);
+    border-radius: 12px;
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 0.8rem;
+}
+.tv-poule-nom {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #f4c941;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.tv-poule-table {
+    width: 100%;
+    font-size: 1rem;
+    border-collapse: collapse;
+}
+.tv-poule-table th {
+    font-size: 0.75rem;
+    color: rgba(244, 240, 230, 0.5);
+    text-transform: uppercase;
+    text-align: center;
+    padding: 0.15rem 0.3rem;
+    font-weight: 600;
+}
+.tv-poule-table th.left { text-align: left; }
+.tv-poule-table td {
+    padding: 0.25rem 0.3rem;
+    color: #f4f0e6;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+.tv-poule-table td.equipe { text-align: left; font-weight: 600; }
+.tv-poule-table td.pos {
+    color: #efa707;
+    font-weight: 800;
+    width: 40px;
+}
+.tv-poule-table td.v {
+    color: #f4c941;
+    font-weight: 800;
+}
+
+.tv-loading {
+    text-align: center;
+    font-size: 1.4rem;
+    color: rgba(244, 240, 230, 0.6);
+    padding: 3rem;
+}
+.tv-error {
+    background: rgba(234, 26, 21, 0.2);
+    border: 1px solid #ea1a15;
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 2rem;
+    text-align: center;
+}
+
+.tv-footer {
+    position: fixed;
+    bottom: 0.5rem;
+    right: 1rem;
+    font-size: 0.7rem;
+    color: rgba(244, 240, 230, 0.35);
+}
+</style>
+</head>
+<body>
+
+<header class="tv-header">
+    <div class="tv-title" id="t-title">Tournoi en direct</div>
+    <div class="tv-subtitle" id="t-subtitle">Chargement…</div>
+</header>
+
+<div class="tv-grid">
+    <div class="tv-col" id="col-live">
+        <div class="tv-section-title">🔴 En direct</div>
+        <div id="live-matchs"><div class="tv-loading">…</div></div>
+    </div>
+    <div class="tv-col" id="col-poules" style="overflow-y:auto">
+        <div class="tv-section-title">🎾 Classements de poule</div>
+        <div id="poules-list"><div class="tv-loading">…</div></div>
+    </div>
+</div>
+
+<div class="tv-footer">Auto-refresh toutes les 30s · le-rebond.fr/live/tournoi/tv/</div>
+
+<script src="js/resa-config.min.js"></script>
+<script src="js/tournoi-tv.js"></script>
+
+</body>
+</html>
