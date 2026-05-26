@@ -158,7 +158,7 @@
         var enCours = [];
         for (var i = 0; i < matchs.length; i++) if (matchs[i].status === 'en_cours') enCours.push(matchs[i]);
         if (enCours.length === 0) {
-            liveHtml = '<div class="tv-empty">Aucun match en cours</div>';
+            liveHtml = '<div class="tv-live-empty">Aucun match en cours</div>';
         } else {
             for (var k = 0; k < enCours.length; k++) {
                 var m = enCours[k];
@@ -168,9 +168,9 @@
                 liveHtml += '<div class="tv-match">' +
                     '<div class="tv-match-meta">' + escape(meta) + '</div>' +
                     '<div class="tv-match-body">' +
-                        '<div class="tv-match-equipe">' + escape(eqName(equipes, m.equipe_a_id)) + '</div>' +
+                        '<div class="tv-match-equipe tv-eq-a">' + escape(eqName(equipes, m.equipe_a_id)) + '</div>' +
                         '<div class="tv-match-score">' + escape(m.score_a || '–') + ' : ' + escape(m.score_b || '–') + '</div>' +
-                        '<div class="tv-match-equipe">' + escape(eqName(equipes, m.equipe_b_id)) + '</div>' +
+                        '<div class="tv-match-equipe tv-eq-b">' + escape(eqName(equipes, m.equipe_b_id)) + '</div>' +
                     '</div></div>';
             }
         }
@@ -187,12 +187,12 @@
                 var clmt = computeClassement(p.id, equipes, matchs, hasSets);
                 var rows = '';
                 rows += '<tr>' +
-                    '<th>#</th>' +
+                    '<th class="col-pos">#</th>' +
                     '<th class="left">Équipe</th>' +
-                    '<th>MJ</th>' +
-                    '<th>V</th>' +
-                    (hasSets ? '<th>±S</th>' : '') +
-                    (hasSets ? '<th>±J</th>' : '') +
+                    '<th class="col-mj">MJ</th>' +
+                    '<th class="col-v">V</th>' +
+                    (hasSets ? '<th class="col-s">±S</th>' : '') +
+                    (hasSets ? '<th class="col-j">±J</th>' : '') +
                     '</tr>';
                 for (var ci = 0; ci < clmt.length; ci++) {
                     var s = clmt[ci];
@@ -201,10 +201,10 @@
                     rows += '<tr>' +
                         '<td class="pos">' + (s.mj > 0 ? '#' + s.pos : '·') + '</td>' +
                         '<td class="equipe">' + escape(s.nom) + '</td>' +
-                        '<td>' + s.mj + '</td>' +
-                        '<td class="v">' + s.v + '</td>' +
-                        (hasSets ? '<td>' + (ds >= 0 ? '+' : '') + ds + '</td>' : '') +
-                        (hasSets ? '<td>' + (dj >= 0 ? '+' : '') + dj + '</td>' : '') +
+                        '<td class="col-mj">' + s.mj + '</td>' +
+                        '<td class="v col-v">' + s.v + '</td>' +
+                        (hasSets ? '<td class="col-s">' + (ds >= 0 ? '+' : '') + ds + '</td>' : '') +
+                        (hasSets ? '<td class="col-j">' + (dj >= 0 ? '+' : '') + dj + '</td>' : '') +
                         '</tr>';
                 }
                 poulesHtml += '<div class="tv-poule">' +
@@ -213,12 +213,7 @@
                     '</div>';
             }
         }
-        // Définit dynamiquement le nb de colonnes selon le nb de poules
-        // 1 poule → 1 colonne, 2 → 2 colonnes, 3+ → 3 colonnes max (au-delà ça reste lisible)
-        var poulesEl = document.getElementById('poules-list');
-        var nbCols = Math.min(Math.max(poules.length, 1), 3);
-        poulesEl.style.gridTemplateColumns = 'repeat(' + nbCols + ', 1fr)';
-        poulesEl.innerHTML = poulesHtml;
+        document.getElementById('poules-list').innerHTML = poulesHtml;
     }
 
     // Démarrage
