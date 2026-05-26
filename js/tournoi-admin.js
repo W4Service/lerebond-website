@@ -3081,6 +3081,58 @@
         return card;
     }
 
+    // === Stats durées de match (moyennes, min/max) ===
+    function renderStatsDurees(matchsTermines) {
+        var fmt = currentTournoi && currentTournoi.format_score;
+        // On collecte les durées en secondes
+        var durees = matchsTermines.map(dureeMatchSecondes).filter(function (d) { return d != null && d > 0; });
+        if (durees.length === 0) return el('div');
+
+        var sum = 0;
+        var min = durees[0], max = durees[0];
+        durees.forEach(function (d) { sum += d; if (d < min) min = d; if (d > max) max = d; });
+        var avg = Math.round(sum / durees.length);
+
+        var wrap = el('div', { class: 'phase-section' });
+        wrap.appendChild(el('h4', { class: 'phase-section-title' }, '⏱️ Durées de match'));
+        var statsBar = el('div', { class: 'durees-stats' });
+        statsBar.appendChild(el('div', { class: 'durees-stat' }, [
+            el('span', { class: 'durees-stat-label' }, 'Moyenne'),
+            el('span', { class: 'durees-stat-value' }, formatDureeMmSs(avg))
+        ]));
+        statsBar.appendChild(el('div', { class: 'durees-stat' }, [
+            el('span', { class: 'durees-stat-label' }, 'Min'),
+            el('span', { class: 'durees-stat-value' }, formatDureeMmSs(min))
+        ]));
+        statsBar.appendChild(el('div', { class: 'durees-stat' }, [
+            el('span', { class: 'durees-stat-label' }, 'Max'),
+            el('span', { class: 'durees-stat-value' }, formatDureeMmSs(max))
+        ]));
+        statsBar.appendChild(el('div', { class: 'durees-stat' }, [
+            el('span', { class: 'durees-stat-label' }, 'Total joué'),
+            el('span', { class: 'durees-stat-value' }, formatDureeMmSs(sum))
+        ]));
+        statsBar.appendChild(el('div', { class: 'durees-stat' }, [
+            el('span', { class: 'durees-stat-label' }, 'Échantillon'),
+            el('span', { class: 'durees-stat-value' }, durees.length + ' match' + (durees.length > 1 ? 's' : ''))
+        ]));
+        wrap.appendChild(statsBar);
+
+        // Comparaison avec l'estimation du format actuel
+        var estimMin = dureeMatchMin(fmt, currentTournoi && currentTournoi.no_ad);
+        if (estimMin) {
+            var realMin = Math.round(avg / 60);
+            var diff = realMin - estimMin;
+            var hint = 'Estimation théorique du format : ' + estimMin + ' min/match · Réel : ' + realMin + ' min/match';
+            if (diff > 0) hint += ' (+' + diff + ' min plus long que prévu)';
+            else if (diff < 0) hint += ' (' + diff + ' min plus court que prévu)';
+            else hint += ' (conforme à l\'estimation)';
+            wrap.appendChild(el('p', { class: 'tournoi-hint', style: 'margin-top:0.4rem' }, hint));
+        }
+
+        return wrap;
+    }
+
     // === Tableau récap des classements de poule (admin) ===
     function renderClassementsPoulesAdmin() {
         var fmt = currentTournoi && currentTournoi.format_score;
@@ -3360,6 +3412,12 @@
         var matchsPoule = matchs.filter(function (m) { return m.phase === 'poule'; });
         var matchsFinale = matchs.filter(function (m) { return m.phase === 'finale'; });
 
+        // === Stats durées de match ===
+        var matchsTermines = matchs.filter(function (m) { return m.status === 'termine' && m.started_at && m.finished_at; });
+        if (matchsTermines.length > 0) {
+            card.appendChild(renderStatsDurees(matchsTermines));
+        }
+
         // === Classements de poule (tableaux récap) ===
         if (poules.length > 0 && matchsPoule.length > 0) {
             card.appendChild(renderClassementsPoulesAdmin());
@@ -3637,6 +3695,29 @@
         });
     }
 
+    // Durée écoulée d'un match (en secondes) : depuis started_at jusqu'à finished_at (ou maintenant si en cours)
+    function dureeMatchSecondes(m) {
+        if (!m.started_at) return null;
+        var startMs = new Date(m.started_at).getTime();
+        if (isNaN(startMs)) return null;
+        var endMs;
+        if (m.status === 'termine' && m.finished_at) {
+            endMs = new Date(m.finished_at).getTime();
+        } else if (m.status === 'en_cours') {
+            endMs = Date.now();
+        } else {
+            return null;
+        }
+        return Math.max(0, Math.round((endMs - startMs) / 1000));
+    }
+
+    function formatDureeMmSs(sec) {
+        if (sec == null) return '';
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        return m + ' min ' + (s < 10 ? '0' + s : s) + ' s';
+    }
+
     function renderMatchAdmin(m) {
         var eqA = equipes.find(function (e) { return e.id === m.equipe_a_id; });
         var eqB = equipes.find(function (e) { return e.id === m.equipe_b_id; });
@@ -3652,6 +3733,13 @@
         var retourTag = m.is_retour ? ' · 🔄 retour' : '';
         var metaText = (poule ? poule.nom + ' · ' : '') + (isFinale ? bracketLabel(m.bracket) + ' · ' : '') + 'Match ' + (m.ordre + 1) + retourTag + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent');
         header.appendChild(el('span', { class: 'match-meta' }, metaText));
+
+        // Durée du match (chrono live si en cours, durée totale si terminé)
+        var dureeSec = dureeMatchSecondes(m);
+        if (dureeSec != null) {
+            var dureeClass = m.status === 'en_cours' ? 'match-duree match-duree--live' : 'match-duree';
+            header.appendChild(el('span', { class: dureeClass, 'data-match': m.id, 'data-start': m.started_at }, '⏱ ' + formatDureeMmSs(dureeSec)));
+        }
         // Rappel du format directement dans la carte du match
         header.appendChild(el('span', { class: 'match-format-tag' }, '🎾 ' + formatShortLabel(fmt) + (currentTournoi && currentTournoi.no_ad ? ' · No-ad' : '')));
 
@@ -3771,6 +3859,21 @@
         if (s === 'termine') return '✅ Terminé';
         return s;
     }
+
+    // Tick chrono : rafraîchit les <span> .match-duree--live toutes les secondes
+    // sans déclencher un re-render complet (qui perdrait la saisie en cours).
+    setInterval(function () {
+        var spans = document.querySelectorAll('.match-duree--live[data-start]');
+        for (var i = 0; i < spans.length; i++) {
+            var span = spans[i];
+            var startStr = span.getAttribute('data-start');
+            if (!startStr) continue;
+            var startMs = new Date(startStr).getTime();
+            if (isNaN(startMs)) continue;
+            var sec = Math.max(0, Math.round((Date.now() - startMs) / 1000));
+            span.textContent = '⏱ ' + formatDureeMmSs(sec);
+        }
+    }, 1000);
 
     // ===== Export =====
 
