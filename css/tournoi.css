@@ -677,6 +677,62 @@ select.tournoi-input option {
     margin-top: 0.5rem;
 }
 
+/* Durée d'un match (chrono dans le header de chaque carte) */
+.match-duree {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: rgba(244, 240, 230, 0.7);
+    background: rgba(244, 240, 230, 0.08);
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.match-duree--live {
+    color: #ea1a15;
+    background: rgba(234, 26, 21, 0.12);
+    border-color: rgba(234, 26, 21, 0.4);
+    animation: pulse-chrono 1.5s ease-in-out infinite;
+}
+@keyframes pulse-chrono {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
+}
+
+/* Stats durées (section dédiée) */
+.durees-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+.durees-stat {
+    background: rgba(244, 201, 65, 0.08);
+    border: 1px solid rgba(244, 201, 65, 0.25);
+    border-radius: 10px;
+    padding: 0.55rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.durees-stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(244, 240, 230, 0.55);
+    font-weight: 700;
+}
+.durees-stat-value {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+}
+
 /* Classements de poule côté admin */
 .classements-poules-grid {
     display: grid;
