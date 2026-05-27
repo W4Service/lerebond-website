@@ -537,7 +537,7 @@
       "registration_link": "https://lerebond.mymobileapp.fr/installation",
       "featured": true,
       "status_text": "Écran géant 3m × 2m · Bar & restauration",
-      "coming_soon": true,
+      "coming_soon": false,
       "registration_note": "Réservation via l'application mobile ou par téléphone au 03 44 26 12 98"
     },
     {
