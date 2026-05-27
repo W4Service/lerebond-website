@@ -961,6 +961,11 @@
     color: #efa707;
 }
 
+.event-category.evenement {
+    background: rgba(58, 89, 152, 0.12);
+    color: #3a5998;
+}
+
 .event-type {
     background: rgba(26, 26, 26, 0.08);
     color: #1a1a1a;
