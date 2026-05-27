@@ -143,6 +143,96 @@
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    function renderMatchCard(m, poules, equipes, opts) {
+        opts = opts || {};
+        var poule = null;
+        for (var pi = 0; pi < poules.length; pi++) if (poules[pi].id === m.poule_id) { poule = poules[pi]; break; }
+        var meta = (poule ? poule.nom + ' · ' : '') + (m.terrain ? 'Terrain ' + m.terrain : '');
+        if (opts.bracket) meta = (opts.bracket + ' · ') + meta;
+        var scoreLine = '';
+        if (m.status === 'en_cours' || m.status === 'termine') {
+            scoreLine = '<div class="tv-match-score">' + escape(m.score_a || '–') + ' : ' + escape(m.score_b || '–') + '</div>';
+        } else {
+            scoreLine = '<div class="tv-match-score tv-match-score--vs">vs</div>';
+        }
+        var cls = 'tv-match';
+        if (m.status === 'en_attente') cls += ' tv-match--upcoming';
+        else if (m.status === 'termine') cls += ' tv-match--done';
+        return '<div class="' + cls + '">' +
+            '<div class="tv-match-meta">' + escape(meta) + '</div>' +
+            '<div class="tv-match-body">' +
+                '<div class="tv-match-equipe tv-eq-a">' + escape(eqName(equipes, m.equipe_a_id)) + '</div>' +
+                scoreLine +
+                '<div class="tv-match-equipe tv-eq-b">' + escape(eqName(equipes, m.equipe_b_id)) + '</div>' +
+            '</div></div>';
+    }
+
+    function bracketLabel(b) {
+        if (b === 'principal') return '🏆 Principal';
+        if (b === 'rang_2') return '🥈 Places 5-7';
+        if (b === 'rang_3') return '🥉 Places 8-10';
+        if (b === 'rang_4') return 'Places 11-13';
+        if (b === 'places_3_4') return 'Match 3ᵉ place';
+        if (b === 'places_4_5') return 'Places 4-5';
+        if (b === 'places_5_6') return 'Places 5-6';
+        if (b === 'places_7_8') return 'Places 7-8';
+        if (b === 'places_9_10') return 'Places 9-10';
+        if (b === 'places_11_12') return 'Places 11-12';
+        return b || '';
+    }
+
+    function renderPoulesGrid(poules, equipes, matchs, hasSets) {
+        var poulesHtml = '';
+        if (poules.length === 0) {
+            return '<div class="tv-empty">Pas de poules</div>';
+        }
+        for (var pi2 = 0; pi2 < poules.length; pi2++) {
+            var p = poules[pi2];
+            var clmt = computeClassement(p.id, equipes, matchs, hasSets);
+            var rows = '';
+            rows += '<tr>' +
+                '<th class="col-pos">#</th>' +
+                '<th class="left">Équipe</th>' +
+                '<th class="col-mj">MJ</th>' +
+                '<th class="col-v">V</th>' +
+                (hasSets ? '<th class="col-s">±S</th>' : '') +
+                (hasSets ? '<th class="col-j">±J</th>' : '') +
+                '</tr>';
+            for (var ci = 0; ci < clmt.length; ci++) {
+                var s = clmt[ci];
+                var ds = s.sg - s.sp;
+                var dj = s.jg - s.jp;
+                rows += '<tr>' +
+                    '<td class="pos">' + (s.mj > 0 ? '#' + s.pos : '·') + '</td>' +
+                    '<td class="equipe">' + escape(s.nom) + '</td>' +
+                    '<td class="col-mj">' + s.mj + '</td>' +
+                    '<td class="v col-v">' + s.v + '</td>' +
+                    (hasSets ? '<td class="col-s">' + (ds >= 0 ? '+' : '') + ds + '</td>' : '') +
+                    (hasSets ? '<td class="col-j">' + (dj >= 0 ? '+' : '') + dj + '</td>' : '') +
+                    '</tr>';
+            }
+            poulesHtml += '<div class="tv-poule">' +
+                '<div class="tv-poule-nom">' + escape(p.nom) + (p.terrain ? ' · T' + p.terrain : '') + '</div>' +
+                '<table class="tv-poule-table">' + rows + '</table>' +
+                '</div>';
+        }
+        return poulesHtml;
+    }
+
+    // Détermine le mode d'affichage TV selon tv_mode + état des matchs
+    function determineMode(tournoi, matchs) {
+        var force = tournoi.tv_mode || 'auto';
+        if (force === 'poule' || force === 'finale') return force;
+        // Auto : on bascule en finale dès que tous les matchs de poule sont terminés ET qu'il y a au moins un match finale
+        var matchsPoule = matchs.filter(function (m) { return m.phase === 'poule'; });
+        var matchsFinale = matchs.filter(function (m) { return m.phase === 'finale'; });
+        if (matchsFinale.length > 0) {
+            var allPouleDone = matchsPoule.length > 0 && matchsPoule.every(function (m) { return m.status === 'termine'; });
+            if (allPouleDone) return 'finale';
+        }
+        return 'poule';
+    }
+
     function render(tournoi, poules, equipes, matchs) {
         // Header
         document.getElementById('t-title').textContent = tournoi.nom || 'Tournoi';
@@ -153,67 +243,125 @@
         if (tournoi.no_ad) subParts.push('No-ad');
         document.getElementById('t-subtitle').textContent = subParts.join(' · ');
 
-        // Matchs en direct (en_cours)
-        var liveHtml = '';
+        var mode = determineMode(tournoi, matchs);
+        var hasSets = !!FORMAT_HAS_SETS[tournoi.format_score];
+
         var enCours = [];
         for (var i = 0; i < matchs.length; i++) if (matchs[i].status === 'en_cours') enCours.push(matchs[i]);
+
+        if (mode === 'finale') {
+            renderModeFinale(tournoi, poules, equipes, matchs, enCours);
+        } else {
+            renderModePoule(tournoi, poules, equipes, matchs, enCours, hasSets);
+        }
+    }
+
+    // === MODE POULE : classement (gauche) + matchs en cours + prochains (droite) ===
+    function renderModePoule(tournoi, poules, equipes, matchs, enCours, hasSets) {
+        document.body.setAttribute('data-mode', 'poule');
+
+        // Section live (en cours + prochains)
+        var liveHtml = '';
+        if (enCours.length === 0) {
+            liveHtml = '<div class="tv-live-empty">Aucun match en cours</div>';
+        } else {
+            for (var k = 0; k < enCours.length; k++) {
+                liveHtml += renderMatchCard(enCours[k], poules, equipes);
+            }
+        }
+        document.getElementById('live-matchs').innerHTML = liveHtml;
+
+        // Prochains matchs à lancer (en_attente, jusqu'à 6 prioritaires : ceux qui ont des équipes assignées)
+        // Tri : par ordre ascendant, par terrain
+        var prochains = [];
+        for (var p = 0; p < matchs.length; p++) {
+            var m = matchs[p];
+            if (m.phase !== 'poule') continue;
+            if (m.status !== 'en_attente') continue;
+            if (!m.equipe_a_id || !m.equipe_b_id) continue;
+            prochains.push(m);
+        }
+        prochains.sort(function (a, b) {
+            if (a.terrain !== b.terrain) return (a.terrain || 99) - (b.terrain || 99);
+            return a.ordre - b.ordre;
+        });
+        var prochainsHtml = '';
+        if (prochains.length === 0) {
+            prochainsHtml = '<div class="tv-empty">Tous les matchs sont joués ou en cours</div>';
+        } else {
+            for (var q = 0; q < Math.min(prochains.length, 6); q++) {
+                prochainsHtml += renderMatchCard(prochains[q], poules, equipes);
+            }
+        }
+        document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
+
+        // Classements (occupent toute la zone principale)
+        document.getElementById('poules-list').innerHTML = renderPoulesGrid(poules, equipes, matchs, hasSets);
+        // Re-titre de la section principale
+        document.getElementById('poules-section-title').textContent = 'Classements de poule';
+    }
+
+    // === MODE FINALE : brackets en haut, classement final en bas ===
+    function renderModeFinale(tournoi, poules, equipes, matchs, enCours) {
+        document.body.setAttribute('data-mode', 'finale');
+
+        // En direct
+        var liveHtml = '';
         if (enCours.length === 0) {
             liveHtml = '<div class="tv-live-empty">Aucun match en cours</div>';
         } else {
             for (var k = 0; k < enCours.length; k++) {
                 var m = enCours[k];
-                var poule = null;
-                for (var pi = 0; pi < poules.length; pi++) if (poules[pi].id === m.poule_id) { poule = poules[pi]; break; }
-                var meta = (poule ? poule.nom + ' · ' : '') + (m.terrain ? 'Terrain ' + m.terrain : '');
-                liveHtml += '<div class="tv-match">' +
-                    '<div class="tv-match-meta">' + escape(meta) + '</div>' +
-                    '<div class="tv-match-body">' +
-                        '<div class="tv-match-equipe tv-eq-a">' + escape(eqName(equipes, m.equipe_a_id)) + '</div>' +
-                        '<div class="tv-match-score">' + escape(m.score_a || '–') + ' : ' + escape(m.score_b || '–') + '</div>' +
-                        '<div class="tv-match-equipe tv-eq-b">' + escape(eqName(equipes, m.equipe_b_id)) + '</div>' +
-                    '</div></div>';
+                liveHtml += renderMatchCard(m, poules, equipes, { bracket: m.phase === 'finale' ? bracketLabel(m.bracket) : '' });
             }
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
 
-        // Classement par poule
-        var hasSets = !!FORMAT_HAS_SETS[tournoi.format_score];
-        var poulesHtml = '';
-        if (poules.length === 0) {
-            poulesHtml = '<div class="tv-empty">Pas de poules</div>';
+        // Prochains matchs phase finale
+        var prochains = matchs.filter(function (m) {
+            return m.phase === 'finale' && m.status === 'en_attente' && m.equipe_a_id && m.equipe_b_id;
+        });
+        prochains.sort(function (a, b) { return a.ordre - b.ordre; });
+        var prochainsHtml = '';
+        if (prochains.length === 0) {
+            prochainsHtml = '<div class="tv-empty">Aucun match programmé</div>';
         } else {
-            for (var pi2 = 0; pi2 < poules.length; pi2++) {
-                var p = poules[pi2];
-                var clmt = computeClassement(p.id, equipes, matchs, hasSets);
-                var rows = '';
-                rows += '<tr>' +
-                    '<th class="col-pos">#</th>' +
-                    '<th class="left">Équipe</th>' +
-                    '<th class="col-mj">MJ</th>' +
-                    '<th class="col-v">V</th>' +
-                    (hasSets ? '<th class="col-s">±S</th>' : '') +
-                    (hasSets ? '<th class="col-j">±J</th>' : '') +
-                    '</tr>';
-                for (var ci = 0; ci < clmt.length; ci++) {
-                    var s = clmt[ci];
-                    var ds = s.sg - s.sp;
-                    var dj = s.jg - s.jp;
-                    rows += '<tr>' +
-                        '<td class="pos">' + (s.mj > 0 ? '#' + s.pos : '·') + '</td>' +
-                        '<td class="equipe">' + escape(s.nom) + '</td>' +
-                        '<td class="col-mj">' + s.mj + '</td>' +
-                        '<td class="v col-v">' + s.v + '</td>' +
-                        (hasSets ? '<td class="col-s">' + (ds >= 0 ? '+' : '') + ds + '</td>' : '') +
-                        (hasSets ? '<td class="col-j">' + (dj >= 0 ? '+' : '') + dj + '</td>' : '') +
-                        '</tr>';
-                }
-                poulesHtml += '<div class="tv-poule">' +
-                    '<div class="tv-poule-nom">' + escape(p.nom) + (p.terrain ? ' · T' + p.terrain : '') + '</div>' +
-                    '<table class="tv-poule-table">' + rows + '</table>' +
-                    '</div>';
+            for (var q = 0; q < Math.min(prochains.length, 6); q++) {
+                var mp = prochains[q];
+                prochainsHtml += renderMatchCard(mp, poules, equipes, { bracket: bracketLabel(mp.bracket) });
             }
         }
-        document.getElementById('poules-list').innerHTML = poulesHtml;
+        document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
+
+        // Bloc principal : matchs de phase finale groupés par bracket
+        document.getElementById('poules-section-title').textContent = 'Tableau final';
+        var byBracket = {};
+        matchs.forEach(function (m) {
+            if (m.phase !== 'finale') return;
+            (byBracket[m.bracket] = byBracket[m.bracket] || []).push(m);
+        });
+        var bracketOrder = function (b) {
+            if (b === 'principal') return 0;
+            if (b === 'places_3_4') return 0.5;
+            if (b === 'rang_2' || b === 'places_5_6') return 1;
+            if (b === 'rang_3' || b === 'places_7_8') return 2;
+            if (b === 'rang_4' || b === 'places_9_10') return 3;
+            if (b === 'places_11_12') return 4;
+            return 99;
+        };
+        var keys = Object.keys(byBracket).sort(function (a, b) { return bracketOrder(a) - bracketOrder(b); });
+        var html = '';
+        keys.forEach(function (bk) {
+            var ms = byBracket[bk].slice().sort(function (a, b) { return a.ordre - b.ordre; });
+            html += '<div class="tv-bracket">' +
+                '<div class="tv-bracket-title">' + escape(bracketLabel(bk)) + '</div>' +
+                '<div class="tv-bracket-matchs">';
+            ms.forEach(function (m) {
+                html += renderMatchCard(m, poules, equipes);
+            });
+            html += '</div></div>';
+        });
+        document.getElementById('poules-list').innerHTML = html;
     }
 
     // Démarrage

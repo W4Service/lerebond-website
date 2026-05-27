@@ -20,7 +20,6 @@ html, body {
     overflow: hidden;
 }
 
-/* Layout principal : flex column */
 .tv-app {
     height: 100%;
     width: 100%;
@@ -39,7 +38,7 @@ html, body {
     margin-bottom: 8px;
 }
 .tv-title {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
     color: #f4c941;
     letter-spacing: 0.04em;
@@ -47,58 +46,99 @@ html, body {
     line-height: 1.1;
 }
 .tv-subtitle {
-    font-size: 13px;
+    font-size: 12px;
     color: rgba(244, 240, 230, 0.75);
     margin-top: 2px;
 }
 
-/* === En direct === */
-.tv-live {
-    flex: 0 0 auto;
-    margin-bottom: 8px;
+/* === Corps principal : 2 colonnes : classements à gauche, live+prochains à droite === */
+.tv-main {
+    flex: 1 1 auto;
     display: flex;
-    align-items: stretch;
-    min-height: 60px;
+    gap: 10px;
+    min-height: 0;
+    overflow: hidden;
 }
-.tv-live-label {
+
+.tv-main-left {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+.tv-main-right {
+    flex: 0 0 32%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    gap: 8px;
+}
+
+/* === Section live (matchs en cours) === */
+.tv-live-section,
+.tv-upcoming-section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 50%;
+    overflow: hidden;
+}
+.tv-section-title {
     flex: 0 0 auto;
-    font-size: 14px;
-    color: #ea1a15;
+    font-size: 13px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     font-weight: 800;
-    white-space: nowrap;
-    padding: 6px 12px 6px 0;
-    border-right: 2px solid rgba(244, 240, 230, 0.15);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(244, 201, 65, 0.25);
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-right: 12px;
 }
+.tv-section-title.tv-section-title--live {
+    color: #ea1a15;
+    border-bottom-color: rgba(234, 26, 21, 0.35);
+}
+.tv-section-title.tv-section-title--upcoming { color: #efa707; }
+.tv-section-title.tv-section-title--main { color: #f4c941; font-size: 15px; }
 .tv-live-pulse {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: #ea1a15;
-    box-shadow: 0 0 10px #ea1a15;
+    box-shadow: 0 0 8px #ea1a15;
 }
-.tv-live-grid {
+
+.tv-matchs-list {
     flex: 1 1 auto;
+    overflow: hidden;
     display: flex;
-    gap: 8px;
-    min-width: 0;
+    flex-direction: column;
+    gap: 6px;
 }
 .tv-match {
-    flex: 1 1 0;
-    background: rgba(234, 26, 21, 0.16);
-    border: 2px solid #ea1a15;
+    background: rgba(244, 240, 230, 0.05);
+    border: 1px solid rgba(244, 240, 230, 0.15);
     border-radius: 8px;
     padding: 6px 10px;
-    min-width: 0;
+}
+.tv-match--upcoming {
+    background: rgba(239, 167, 7, 0.08);
+    border-color: rgba(239, 167, 7, 0.3);
+}
+.tv-live-section .tv-match {
+    background: rgba(234, 26, 21, 0.16);
+    border: 2px solid #ea1a15;
+    box-shadow: 0 4px 16px rgba(234, 26, 21, 0.25);
 }
 .tv-match-meta {
-    font-size: 11px;
+    font-size: 10px;
     color: rgba(244, 240, 230, 0.7);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -117,7 +157,7 @@ html, body {
 }
 .tv-match-equipe {
     flex: 1 1 0;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #f4f0e6;
     overflow: hidden;
@@ -128,47 +168,43 @@ html, body {
 .tv-match-equipe.tv-eq-b { text-align: right; }
 .tv-match-score {
     flex: 0 0 auto;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
     color: #f4c941;
     white-space: nowrap;
 }
-.tv-live-empty {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
+.tv-match-score--vs {
+    color: rgba(244, 240, 230, 0.45);
+    font-size: 13px;
+    font-weight: 600;
+}
+.tv-live-empty,
+.tv-empty {
     color: rgba(244, 240, 230, 0.4);
     font-style: italic;
+    font-size: 12px;
+    text-align: center;
+    padding: 12px;
 }
 
-/* === Classements (le bloc principal, occupe tout le reste) === */
-.tv-poules-section {
+/* === Section principale gauche (classements ou brackets finale) === */
+.tv-main-block {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
 }
-.tv-poules-section-title {
-    flex: 0 0 auto;
-    font-size: 15px;
-    color: #efa707;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 800;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
-    border-bottom: 1px solid rgba(244, 201, 65, 0.25);
-}
-.tv-poules-grid {
+.tv-main-content {
     flex: 1 1 auto;
     display: flex;
     gap: 8px;
     min-height: 0;
     overflow: hidden;
 }
+
+/* Mode poule : N poules en colonnes */
+body[data-mode="poule"] #poules-list { flex-direction: row; }
 .tv-poule {
     flex: 1 1 0;
     background: rgba(244, 240, 230, 0.06);
@@ -183,7 +219,7 @@ html, body {
 }
 .tv-poule-nom {
     flex: 0 0 auto;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 800;
     color: #f4c941;
     text-transform: uppercase;
@@ -200,7 +236,6 @@ html, body {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    min-height: 0;
 }
 .tv-poule-table th {
     font-size: 10px;
@@ -215,7 +250,7 @@ html, body {
     padding: 4px 3px;
     color: #f4f0e6;
     text-align: center;
-    font-size: 14px;
+    font-size: 13px;
     border-bottom: 1px solid rgba(244, 240, 230, 0.06);
     line-height: 1.2;
 }
@@ -230,18 +265,46 @@ html, body {
 .tv-poule-table td.pos {
     color: #efa707;
     font-weight: 800;
-    width: 32px;
+    width: 30px;
 }
 .tv-poule-table td.v {
     color: #f4c941;
     font-weight: 800;
 }
 .tv-poule-table th.col-mj, .tv-poule-table td.col-mj,
-.tv-poule-table th.col-v, .tv-poule-table td.col-v { width: 30px; }
+.tv-poule-table th.col-v, .tv-poule-table td.col-v { width: 28px; }
 .tv-poule-table th.col-s, .tv-poule-table td.col-s,
-.tv-poule-table th.col-j, .tv-poule-table td.col-j { width: 38px; }
+.tv-poule-table th.col-j, .tv-poule-table td.col-j { width: 36px; }
 
-/* === Footer & états === */
+/* Mode finale : brackets verticalement */
+body[data-mode="finale"] #poules-list { flex-direction: column; gap: 10px; }
+.tv-bracket {
+    background: rgba(244, 201, 65, 0.06);
+    border: 1px solid rgba(244, 201, 65, 0.35);
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.tv-bracket-title {
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 800;
+    color: #f4c941;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+.tv-bracket-matchs {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+/* === Footer === */
 .tv-footer {
     flex: 0 0 auto;
     font-size: 10px;
@@ -253,7 +316,7 @@ html, body {
     text-align: center;
     font-size: 16px;
     color: rgba(244, 240, 230, 0.6);
-    padding: 30px;
+    padding: 20px;
 }
 .tv-error {
     background: rgba(234, 26, 21, 0.2);
@@ -262,13 +325,6 @@ html, body {
     padding: 12px;
     text-align: center;
     margin: 12px;
-}
-.tv-empty {
-    color: rgba(244, 240, 230, 0.5);
-    font-style: italic;
-    font-size: 14px;
-    text-align: center;
-    padding: 16px;
 }
 </style>
 </head>
@@ -280,19 +336,33 @@ html, body {
         <div class="tv-subtitle" id="t-subtitle">Chargement…</div>
     </header>
 
-    <section class="tv-live">
-        <div class="tv-live-label"><span class="tv-live-pulse"></span> En direct</div>
-        <div class="tv-live-grid" id="live-matchs">
-            <div class="tv-loading">…</div>
+    <div class="tv-main">
+        <div class="tv-main-left">
+            <div class="tv-main-block">
+                <div class="tv-section-title tv-section-title--main" id="poules-section-title">Classements de poule</div>
+                <div class="tv-main-content" id="poules-list">
+                    <div class="tv-loading">…</div>
+                </div>
+            </div>
         </div>
-    </section>
 
-    <section class="tv-poules-section">
-        <div class="tv-poules-section-title">Classements de poule</div>
-        <div class="tv-poules-grid" id="poules-list">
-            <div class="tv-loading">…</div>
+        <div class="tv-main-right">
+            <div class="tv-live-section">
+                <div class="tv-section-title tv-section-title--live">
+                    <span class="tv-live-pulse"></span> En direct
+                </div>
+                <div class="tv-matchs-list" id="live-matchs">
+                    <div class="tv-loading">…</div>
+                </div>
+            </div>
+            <div class="tv-upcoming-section">
+                <div class="tv-section-title tv-section-title--upcoming">⏭ Prochains matchs</div>
+                <div class="tv-matchs-list" id="upcoming-matchs">
+                    <div class="tv-loading">…</div>
+                </div>
+            </div>
         </div>
-    </section>
+    </div>
 
     <div class="tv-footer">le-rebond.fr/live/tournoi/tv/</div>
 </div>
