@@ -521,6 +521,24 @@
       "status_text": "3 matchs minimum assurés",
       "coming_soon": false,
       "registration_note": "Inscription via la rubrique Événements de l'application mobile"
+    },
+    {
+      "id": "soiree-ldc-30-05",
+      "title": "Soirée Finale Ligue des Champions",
+      "date": "2026-05-30",
+      "time_start": "17h00",
+      "time_end": "00h00",
+      "category": "evenement",
+      "type": "animation",
+      "description": "Venez vivre la finale de la Ligue des Champions en direct sur grand écran au Rebond ! Ambiance supporters, bar et restauration sur place. Réservez votre place pour être sûr d'avoir une table.",
+      "price": "Entrée libre · Réservation conseillée",
+      "max_participants": "",
+      "image": "img/ambiance-supporters.webp",
+      "registration_link": "https://lerebond.mymobileapp.fr/installation",
+      "featured": true,
+      "status_text": "Diffusion grand écran · Bar & restauration",
+      "coming_soon": true,
+      "registration_note": "Réservation via l'application mobile ou par téléphone"
     }
   ]
 }
