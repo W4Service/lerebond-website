@@ -2760,6 +2760,16 @@
         showToast('Nb terrains : ' + n, 'ok');
     }
 
+    async function updateTvMode(mode) {
+        if (guardReadOnly()) return;
+        if (['auto', 'poule', 'finale'].indexOf(mode) < 0) return;
+        var res = await supa.from('tournois').update({ tv_mode: mode, updated_at: new Date().toISOString() }).eq('id', currentTournoi.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+        currentTournoi = res.data;
+        var labels = { auto: 'Auto', poule: 'Forcer poule', finale: 'Forcer finale' };
+        showToast('Affichage TV : ' + labels[mode], 'ok');
+    }
+
     function renderHeader() {
         var card = el('div', { class: 'tournoi-card tournoi-header' });
         var info = el('div');
@@ -2793,6 +2803,25 @@
         });
         terrainLine.appendChild(inpT);
         terrainLine.appendChild(el('span', { class: 'tournoi-terrain-edit-label' }, 'terrain' + (currentTournoi.nb_terrains > 1 ? 's' : '') + ' disponibles'));
+
+        // Widget mode TV
+        terrainLine.appendChild(el('span', { style: 'margin-left:1.5rem' }, '📺 '));
+        var tvSel = el('select', {
+            class: 'tournoi-input tournoi-input--mini',
+            style: 'width:auto',
+            title: 'Choisir ce qui s\'affiche sur la TV (live/tournoi/tv/)',
+            onchange: function (e) { updateTvMode(e.target.value); }
+        });
+        [
+            { v: 'auto', label: 'Auto (poule → finale)' },
+            { v: 'poule', label: 'Forcer poule' },
+            { v: 'finale', label: 'Forcer finale' }
+        ].forEach(function (o) {
+            var opt = el('option', { value: o.v }, o.label);
+            if ((currentTournoi.tv_mode || 'auto') === o.v) opt.selected = true;
+            tvSel.appendChild(opt);
+        });
+        terrainLine.appendChild(tvSel);
         info.appendChild(terrainLine);
 
         card.appendChild(info);
