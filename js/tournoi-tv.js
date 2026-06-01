@@ -99,19 +99,17 @@
         var e = findEq(equipes, id);
         return e ? e.nom : '?';
     }
-    // Renvoie [ligne1, ligne2] pour l'affichage 2 lignes.
-    // Si les joueurs sont liés : "Prénom J1 / Prénom J2" en ligne 1, "Nom J1 / Nom J2" en ligne 2.
+    // Renvoie [ligne1, ligne2] pour l'affichage 2 lignes (utilisé dans les cartes de match).
+    // Si les joueurs sont liés : "Prénom J1 / Prénom J2" en ligne 1, "Nom J1 · Nom J2" en ligne 2.
     // Sinon : on split eq.nom sur " / " et on met les 2 parties sur 2 lignes.
     function eqLines(equipes, joueurs, id) {
         var e = findEq(equipes, id);
         if (!e) return ['?', ''];
-        // Tentative via les joueurs liés : on affiche prioritairement les prénoms
         var j1 = findJoueur(joueurs, e.joueur_j1_id);
         var j2 = findJoueur(joueurs, e.joueur_j2_id);
         if (j1 || j2) {
             var p1 = j1 && j1.prenom ? j1.prenom : (j1 && j1.nom ? j1.nom : ((e.nom || '').split('/')[0] || '?'));
             var p2 = j2 && j2.prenom ? j2.prenom : (j2 && j2.nom ? j2.nom : ((e.nom || '').split('/')[1] || '?'));
-            // Ligne 1 : prénoms côte à côte ; Ligne 2 : noms de famille en discret si dispo
             var l1 = String(p1).trim() + ' / ' + String(p2).trim();
             var noms = [];
             if (j1 && j1.prenom && j1.nom) noms.push(j1.nom);
@@ -119,7 +117,26 @@
             var l2 = noms.join(' · ');
             return [l1, l2];
         }
-        // Fallback sans joueurs liés : split sur " / "
+        var parts = (e.nom || '').split('/');
+        return [
+            (parts[0] || e.nom || '?').trim(),
+            (parts[1] || '').trim()
+        ];
+    }
+
+    // Variante utilisée dans le classement de poule : un prénom par ligne (plus de place).
+    // Ligne 1 = prénom J1, ligne 2 = prénom J2.
+    function eqLinesCompact(equipes, joueurs, id) {
+        var e = findEq(equipes, id);
+        if (!e) return ['?', ''];
+        var j1 = findJoueur(joueurs, e.joueur_j1_id);
+        var j2 = findJoueur(joueurs, e.joueur_j2_id);
+        if (j1 || j2) {
+            var p1 = j1 && j1.prenom ? j1.prenom : (j1 && j1.nom ? j1.nom : ((e.nom || '').split('/')[0] || '?'));
+            var p2 = j2 && j2.prenom ? j2.prenom : (j2 && j2.nom ? j2.nom : ((e.nom || '').split('/')[1] || '?'));
+            return [String(p1).trim(), String(p2).trim()];
+        }
+        // Fallback : split sur " / "
         var parts = (e.nom || '').split('/');
         return [
             (parts[0] || e.nom || '?').trim(),
@@ -248,7 +265,8 @@
                 var s = clmt[ci];
                 var ds = s.sg - s.sp;
                 var dj = s.jg - s.jp;
-                var lines = eqLines(equipes, joueurs, s.id);
+                // Classement de poule : 1 prénom par ligne (plus de place horizontale)
+                var lines = eqLinesCompact(equipes, joueurs, s.id);
                 var nomCell = '<span class="tv-eq-line tv-eq-line--1">' + escape(lines[0]) + '</span>';
                 if (lines[1]) nomCell += '<span class="tv-eq-line tv-eq-line--2">' + escape(lines[1]) + '</span>';
                 rows += '<tr>' +
