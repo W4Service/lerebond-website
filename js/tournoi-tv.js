@@ -196,11 +196,49 @@
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    function renderEquipeLines(equipes, joueurs, id, side, m) {
-        var lines = eqLines(equipes, joueurs, id);
+    // Si l'équipe n'est pas encore assignée (placeholder en attente du résultat d'un match parent),
+    // construit un label parlant : "Gagnant M1", "Perdant M2", "1er Poule A", "Meilleur 2e".
+    function placeholderForSide(m, side, poules) {
+        var srcType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
+        var srcOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
+        var srcPouleId = side === 'a' ? m.equipe_a_source_poule_id : m.equipe_b_source_poule_id;
+        if (!srcType) return null;
+        if (srcType === 'gagnant') return 'Gagnant M' + ((srcOrdre || 0) + 1);
+        if (srcType === 'perdant') return 'Perdant M' + ((srcOrdre || 0) + 1);
+        if (srcType === 'rang_poule') {
+            var rangs = { 1: '1er', 2: '2e', 3: '3e', 4: '4e', 5: '5e' };
+            var nomP = '?';
+            if (srcPouleId) {
+                for (var i = 0; i < poules.length; i++) if (poules[i].id === srcPouleId) { nomP = poules[i].nom; break; }
+            }
+            return (rangs[srcOrdre] || (srcOrdre + 'e')) + ' ' + nomP;
+        }
+        if (srcType === 'meilleur_2e') return 'Meilleur 2e';
+        if (srcType === 'autres_2es') return 'Autre 2e';
+        return null;
+    }
+
+    function renderEquipeLines(equipes, joueurs, m, side, poules) {
+        var id = side === 'a' ? m.equipe_a_id : m.equipe_b_id;
         var clsExtra = '';
         // Marquer le gagnant en vert si match terminé
         if (m && m.status === 'termine' && m.vainqueur_id === id) clsExtra = ' tv-eq-winner';
+
+        // Si pas d'équipe assignée, on tente d'afficher un placeholder parlant
+        if (!id) {
+            var ph = placeholderForSide(m, side, poules || []);
+            if (ph) {
+                return '<div class="tv-match-equipe tv-eq-' + side + ' tv-eq-placeholder">' +
+                    '<span class="tv-eq-line tv-eq-line--1">' + escape(ph) + '</span>' +
+                    '</div>';
+            }
+            // fallback "?" si pas de source connue
+            return '<div class="tv-match-equipe tv-eq-' + side + ' tv-eq-placeholder">' +
+                '<span class="tv-eq-line tv-eq-line--1">?</span>' +
+                '</div>';
+        }
+
+        var lines = eqLines(equipes, joueurs, id);
         var l1 = '<span class="tv-eq-line tv-eq-line--1">' + escape(lines[0]) + '</span>';
         var l2 = lines[1] ? '<span class="tv-eq-line tv-eq-line--2">' + escape(lines[1]) + '</span>' : '';
         return '<div class="tv-match-equipe tv-eq-' + side + clsExtra + '">' + l1 + l2 + '</div>';
@@ -224,9 +262,9 @@
         return '<div class="' + cls + '">' +
             '<div class="tv-match-meta">' + escape(meta) + '</div>' +
             '<div class="tv-match-body">' +
-                renderEquipeLines(equipes, joueurs, m.equipe_a_id, 'a', m) +
+                renderEquipeLines(equipes, joueurs, m, 'a', poules) +
                 scoreLine +
-                renderEquipeLines(equipes, joueurs, m.equipe_b_id, 'b', m) +
+                renderEquipeLines(equipes, joueurs, m, 'b', poules) +
             '</div></div>';
     }
 
@@ -344,13 +382,13 @@
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
 
-        // Prochains matchs à lancer (en_attente avec équipes assignées)
+        // Prochains matchs à lancer (en_attente, avec ou sans équipes assignées — on affiche
+        // les placeholders type "Gagnant M1", "PM2", "1er Poule A" pour les matchs avec dépendances)
         var prochains = [];
         for (var p = 0; p < matchs.length; p++) {
             var m = matchs[p];
             if (m.phase !== 'poule') continue;
             if (m.status !== 'en_attente') continue;
-            if (!m.equipe_a_id || !m.equipe_b_id) continue;
             prochains.push(m);
         }
         prochains.sort(function (a, b) {
@@ -390,9 +428,9 @@
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
 
-        // Prochains matchs phase finale
+        // Prochains matchs phase finale (avec ou sans équipes assignées, placeholders OK)
         var prochains = matchs.filter(function (m) {
-            return m.phase === 'finale' && m.status === 'en_attente' && m.equipe_a_id && m.equipe_b_id;
+            return m.phase === 'finale' && m.status === 'en_attente';
         });
         prochains.sort(function (a, b) { return a.ordre - b.ordre; });
         var prochainsHtml = '';
