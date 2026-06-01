@@ -99,20 +99,27 @@
         var e = findEq(equipes, id);
         return e ? e.nom : '?';
     }
-    // Renvoie [nom1, nom2] pour l'affichage 2 lignes. Si pas de joueurs liés ou fallback,
-    // on split eq.nom sur " / " pour récupérer les 2 parties.
+    // Renvoie [ligne1, ligne2] pour l'affichage 2 lignes.
+    // Si les joueurs sont liés : "Prénom J1 / Prénom J2" en ligne 1, "Nom J1 / Nom J2" en ligne 2.
+    // Sinon : on split eq.nom sur " / " et on met les 2 parties sur 2 lignes.
     function eqLines(equipes, joueurs, id) {
         var e = findEq(equipes, id);
         if (!e) return ['?', ''];
-        // Tentative via les joueurs liés (utilisation propre du nom + prénom si disponible)
+        // Tentative via les joueurs liés : on affiche prioritairement les prénoms
         var j1 = findJoueur(joueurs, e.joueur_j1_id);
         var j2 = findJoueur(joueurs, e.joueur_j2_id);
         if (j1 || j2) {
-            var n1 = j1 ? j1.nom : (e.nom || '').split('/')[0] || '?';
-            var n2 = j2 ? j2.nom : (e.nom || '').split('/')[1] || '?';
-            return [String(n1).trim(), String(n2).trim()];
+            var p1 = j1 && j1.prenom ? j1.prenom : (j1 && j1.nom ? j1.nom : ((e.nom || '').split('/')[0] || '?'));
+            var p2 = j2 && j2.prenom ? j2.prenom : (j2 && j2.nom ? j2.nom : ((e.nom || '').split('/')[1] || '?'));
+            // Ligne 1 : prénoms côte à côte ; Ligne 2 : noms de famille en discret si dispo
+            var l1 = String(p1).trim() + ' / ' + String(p2).trim();
+            var noms = [];
+            if (j1 && j1.prenom && j1.nom) noms.push(j1.nom);
+            if (j2 && j2.prenom && j2.nom) noms.push(j2.nom);
+            var l2 = noms.join(' · ');
+            return [l1, l2];
         }
-        // Fallback : split sur " / "
+        // Fallback sans joueurs liés : split sur " / "
         var parts = (e.nom || '').split('/');
         return [
             (parts[0] || e.nom || '?').trim(),
