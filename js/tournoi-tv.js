@@ -48,7 +48,11 @@
                     if (err) return showError(err);
                     get('/matchs?tournoi_id=eq.' + tournoi.id + '&order=ordre', function (err, matchs) {
                         if (err) return showError(err);
-                        render(tournoi, poules || [], equipes || [], matchs || []);
+                        // Récupérer aussi les joueurs (pour affichage propre Nom1 / Nom2)
+                        get('/joueurs', function (err, joueurs) {
+                            // En cas d'erreur (table absente, droits), on continue sans joueurs
+                            render(tournoi, poules || [], equipes || [], matchs || [], joueurs || []);
+                        });
                     });
                 });
             });
@@ -86,9 +90,34 @@
         for (var i = 0; i < equipes.length; i++) if (equipes[i].id === id) return equipes[i];
         return null;
     }
+    function findJoueur(joueurs, id) {
+        if (!id || !joueurs) return null;
+        for (var i = 0; i < joueurs.length; i++) if (joueurs[i].id === id) return joueurs[i];
+        return null;
+    }
     function eqName(equipes, id) {
         var e = findEq(equipes, id);
         return e ? e.nom : '?';
+    }
+    // Renvoie [nom1, nom2] pour l'affichage 2 lignes. Si pas de joueurs liés ou fallback,
+    // on split eq.nom sur " / " pour récupérer les 2 parties.
+    function eqLines(equipes, joueurs, id) {
+        var e = findEq(equipes, id);
+        if (!e) return ['?', ''];
+        // Tentative via les joueurs liés (utilisation propre du nom + prénom si disponible)
+        var j1 = findJoueur(joueurs, e.joueur_j1_id);
+        var j2 = findJoueur(joueurs, e.joueur_j2_id);
+        if (j1 || j2) {
+            var n1 = j1 ? j1.nom : (e.nom || '').split('/')[0] || '?';
+            var n2 = j2 ? j2.nom : (e.nom || '').split('/')[1] || '?';
+            return [String(n1).trim(), String(n2).trim()];
+        }
+        // Fallback : split sur " / "
+        var parts = (e.nom || '').split('/');
+        return [
+            (parts[0] || e.nom || '?').trim(),
+            (parts[1] || '').trim()
+        ];
     }
     function manche(raw) {
         if (raw == null) return NaN;
@@ -143,7 +172,17 @@
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    function renderMatchCard(m, poules, equipes, opts) {
+    function renderEquipeLines(equipes, joueurs, id, side, m) {
+        var lines = eqLines(equipes, joueurs, id);
+        var clsExtra = '';
+        // Marquer le gagnant en vert si match terminé
+        if (m && m.status === 'termine' && m.vainqueur_id === id) clsExtra = ' tv-eq-winner';
+        var l1 = '<span class="tv-eq-line tv-eq-line--1">' + escape(lines[0]) + '</span>';
+        var l2 = lines[1] ? '<span class="tv-eq-line tv-eq-line--2">' + escape(lines[1]) + '</span>' : '';
+        return '<div class="tv-match-equipe tv-eq-' + side + clsExtra + '">' + l1 + l2 + '</div>';
+    }
+
+    function renderMatchCard(m, poules, equipes, joueurs, opts) {
         opts = opts || {};
         var poule = null;
         for (var pi = 0; pi < poules.length; pi++) if (poules[pi].id === m.poule_id) { poule = poules[pi]; break; }
@@ -161,9 +200,9 @@
         return '<div class="' + cls + '">' +
             '<div class="tv-match-meta">' + escape(meta) + '</div>' +
             '<div class="tv-match-body">' +
-                '<div class="tv-match-equipe tv-eq-a">' + escape(eqName(equipes, m.equipe_a_id)) + '</div>' +
+                renderEquipeLines(equipes, joueurs, m.equipe_a_id, 'a', m) +
                 scoreLine +
-                '<div class="tv-match-equipe tv-eq-b">' + escape(eqName(equipes, m.equipe_b_id)) + '</div>' +
+                renderEquipeLines(equipes, joueurs, m.equipe_b_id, 'b', m) +
             '</div></div>';
     }
 
@@ -181,7 +220,7 @@
         return b || '';
     }
 
-    function renderPoulesGrid(poules, equipes, matchs, hasSets) {
+    function renderPoulesGrid(poules, equipes, matchs, joueurs, hasSets) {
         var poulesHtml = '';
         if (poules.length === 0) {
             return '<div class="tv-empty">Pas de poules</div>';
@@ -202,9 +241,12 @@
                 var s = clmt[ci];
                 var ds = s.sg - s.sp;
                 var dj = s.jg - s.jp;
+                var lines = eqLines(equipes, joueurs, s.id);
+                var nomCell = '<span class="tv-eq-line tv-eq-line--1">' + escape(lines[0]) + '</span>';
+                if (lines[1]) nomCell += '<span class="tv-eq-line tv-eq-line--2">' + escape(lines[1]) + '</span>';
                 rows += '<tr>' +
                     '<td class="pos">' + (s.mj > 0 ? '#' + s.pos : '·') + '</td>' +
-                    '<td class="equipe">' + escape(s.nom) + '</td>' +
+                    '<td class="equipe">' + nomCell + '</td>' +
                     '<td class="col-mj">' + s.mj + '</td>' +
                     '<td class="v col-v">' + s.v + '</td>' +
                     (hasSets ? '<td class="col-s">' + (ds >= 0 ? '+' : '') + ds + '</td>' : '') +
@@ -233,7 +275,8 @@
         return 'poule';
     }
 
-    function render(tournoi, poules, equipes, matchs) {
+    function render(tournoi, poules, equipes, matchs, joueurs) {
+        joueurs = joueurs || [];
         // Header
         document.getElementById('t-title').textContent = tournoi.nom || 'Tournoi';
         var subParts = [];
@@ -248,31 +291,35 @@
 
         var enCours = [];
         for (var i = 0; i < matchs.length; i++) if (matchs[i].status === 'en_cours') enCours.push(matchs[i]);
+        // Toggle layout selon présence de matchs en cours
+        document.body.setAttribute('data-has-live', enCours.length > 0 ? 'yes' : 'no');
 
         if (mode === 'finale') {
-            renderModeFinale(tournoi, poules, equipes, matchs, enCours);
+            renderModeFinale(tournoi, poules, equipes, matchs, joueurs, enCours);
         } else {
-            renderModePoule(tournoi, poules, equipes, matchs, enCours, hasSets);
+            renderModePoule(tournoi, poules, equipes, matchs, joueurs, enCours, hasSets);
         }
+
+        // Bandeau "Derniers résultats" en bas (commun aux 2 modes)
+        renderDerniersResultats(matchs, poules, equipes, joueurs);
     }
 
     // === MODE POULE : classement (gauche) + matchs en cours + prochains (droite) ===
-    function renderModePoule(tournoi, poules, equipes, matchs, enCours, hasSets) {
+    function renderModePoule(tournoi, poules, equipes, matchs, joueurs, enCours, hasSets) {
         document.body.setAttribute('data-mode', 'poule');
 
-        // Section live (en cours + prochains)
+        // Section live
         var liveHtml = '';
         if (enCours.length === 0) {
             liveHtml = '<div class="tv-live-empty">Aucun match en cours</div>';
         } else {
             for (var k = 0; k < enCours.length; k++) {
-                liveHtml += renderMatchCard(enCours[k], poules, equipes);
+                liveHtml += renderMatchCard(enCours[k], poules, equipes, joueurs);
             }
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
 
-        // Prochains matchs à lancer (en_attente, jusqu'à 6 prioritaires : ceux qui ont des équipes assignées)
-        // Tri : par ordre ascendant, par terrain
+        // Prochains matchs à lancer (en_attente avec équipes assignées)
         var prochains = [];
         for (var p = 0; p < matchs.length; p++) {
             var m = matchs[p];
@@ -289,20 +336,21 @@
         if (prochains.length === 0) {
             prochainsHtml = '<div class="tv-empty">Tous les matchs sont joués ou en cours</div>';
         } else {
-            for (var q = 0; q < Math.min(prochains.length, 6); q++) {
-                prochainsHtml += renderMatchCard(prochains[q], poules, equipes);
+            // Limite plus élevée si pas de match en cours (on a plus de place)
+            var maxProchains = enCours.length === 0 ? 8 : 5;
+            for (var q = 0; q < Math.min(prochains.length, maxProchains); q++) {
+                prochainsHtml += renderMatchCard(prochains[q], poules, equipes, joueurs);
             }
         }
         document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
 
-        // Classements (occupent toute la zone principale)
-        document.getElementById('poules-list').innerHTML = renderPoulesGrid(poules, equipes, matchs, hasSets);
-        // Re-titre de la section principale
+        // Classements
+        document.getElementById('poules-list').innerHTML = renderPoulesGrid(poules, equipes, matchs, joueurs, hasSets);
         document.getElementById('poules-section-title').textContent = 'Classements de poule';
     }
 
     // === MODE FINALE : brackets en haut, classement final en bas ===
-    function renderModeFinale(tournoi, poules, equipes, matchs, enCours) {
+    function renderModeFinale(tournoi, poules, equipes, matchs, joueurs, enCours) {
         document.body.setAttribute('data-mode', 'finale');
 
         // En direct
@@ -312,7 +360,7 @@
         } else {
             for (var k = 0; k < enCours.length; k++) {
                 var m = enCours[k];
-                liveHtml += renderMatchCard(m, poules, equipes, { bracket: m.phase === 'finale' ? bracketLabel(m.bracket) : '' });
+                liveHtml += renderMatchCard(m, poules, equipes, joueurs, { bracket: m.phase === 'finale' ? bracketLabel(m.bracket) : '' });
             }
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
@@ -326,9 +374,10 @@
         if (prochains.length === 0) {
             prochainsHtml = '<div class="tv-empty">Aucun match programmé</div>';
         } else {
-            for (var q = 0; q < Math.min(prochains.length, 6); q++) {
+            var maxProchains = enCours.length === 0 ? 8 : 5;
+            for (var q = 0; q < Math.min(prochains.length, maxProchains); q++) {
                 var mp = prochains[q];
-                prochainsHtml += renderMatchCard(mp, poules, equipes, { bracket: bracketLabel(mp.bracket) });
+                prochainsHtml += renderMatchCard(mp, poules, equipes, joueurs, { bracket: bracketLabel(mp.bracket) });
             }
         }
         document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
@@ -357,11 +406,40 @@
                 '<div class="tv-bracket-title">' + escape(bracketLabel(bk)) + '</div>' +
                 '<div class="tv-bracket-matchs">';
             ms.forEach(function (m) {
-                html += renderMatchCard(m, poules, equipes);
+                html += renderMatchCard(m, poules, equipes, joueurs);
             });
             html += '</div></div>';
         });
         document.getElementById('poules-list').innerHTML = html;
+    }
+
+    // === Bandeau "Derniers résultats" ===
+    function renderDerniersResultats(matchs, poules, equipes, joueurs) {
+        var termines = matchs.filter(function (m) {
+            return m.status === 'termine' && m.vainqueur_id && m.finished_at;
+        });
+        // Tri par finished_at décroissant (les plus récents d'abord)
+        termines.sort(function (a, b) {
+            if (a.finished_at && b.finished_at) {
+                return b.finished_at.localeCompare(a.finished_at);
+            }
+            return b.ordre - a.ordre;
+        });
+        var section = document.getElementById('results-section');
+        if (termines.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        // Affiche 4 derniers résultats
+        var html = '';
+        var nb = Math.min(termines.length, 4);
+        for (var i = 0; i < nb; i++) {
+            html += '<div class="tv-result-card">';
+            html += renderMatchCard(termines[i], poules, equipes, joueurs).replace(/^<div class="tv-match[^"]*">/, '').replace(/<\/div>$/, '');
+            html += '</div>';
+        }
+        document.getElementById('results-list').innerHTML = html;
+        section.style.display = '';
     }
 
     // Démarrage
