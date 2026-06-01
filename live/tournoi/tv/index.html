@@ -89,8 +89,8 @@ html, body {
 /* Quand il y a des matchs en cours, la section live prend la moitié */
 body[data-has-live="yes"] .tv-live-section { flex: 1 1 50%; }
 body[data-has-live="yes"] .tv-upcoming-section { flex: 1 1 50%; }
-/* Quand il n'y en a pas, la section "prochains" prend toute la place */
-body[data-has-live="no"] .tv-live-section { flex: 0 0 auto; }
+/* Quand il n'y en a pas, on masque complètement la section live */
+body[data-has-live="no"] .tv-live-section { display: none; }
 body[data-has-live="no"] .tv-upcoming-section { flex: 1 1 auto; }
 
 .tv-upcoming-section {
@@ -101,16 +101,16 @@ body[data-has-live="no"] .tv-upcoming-section { flex: 1 1 auto; }
 }
 .tv-section-title {
     flex: 0 0 auto;
-    font-size: 14px;
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     font-weight: 800;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
+    padding-bottom: 3px;
+    margin-bottom: 5px;
     border-bottom: 1px solid rgba(244, 201, 65, 0.25);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 .tv-section-title.tv-section-title--live {
     color: #ea1a15;
@@ -138,13 +138,13 @@ body[data-has-live="no"] .tv-upcoming-section { flex: 1 1 auto; }
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 .tv-match {
     background: rgba(244, 240, 230, 0.05);
     border: 1px solid rgba(244, 240, 230, 0.15);
-    border-radius: 8px;
-    padding: 6px 10px;
+    border-radius: 6px;
+    padding: 4px 8px;
 }
 .tv-match--upcoming {
     background: rgba(239, 167, 7, 0.08);
@@ -162,43 +162,48 @@ body[data-has-live="no"] .tv-upcoming-section { flex: 1 1 auto; }
     padding: 8px 12px;
 }
 .tv-match-meta {
-    font-size: 11px;
-    color: rgba(244, 240, 230, 0.75);
+    font-size: 9px;
+    color: rgba(244, 240, 230, 0.7);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.1;
 }
+.tv-live-section .tv-match-meta { font-size: 11px; }
 .tv-match-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
 }
 .tv-match-equipe {
     flex: 1 1 0;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     color: #f4f0e6;
     min-width: 0;
-    line-height: 1.25;
+    line-height: 1.1;
 }
+.tv-live-section .tv-match-equipe { font-size: 14px; line-height: 1.2; }
 /* Affichage sur 2 lignes : "Nom1" / "Nom2" */
 .tv-match-equipe .tv-eq-line {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.1;
 }
 .tv-match-equipe .tv-eq-line--2 {
-    color: rgba(244, 240, 230, 0.85);
-    font-weight: 600;
-    font-size: 0.92em;
+    color: rgba(244, 240, 230, 0.75);
+    font-weight: 500;
+    font-size: 0.78em;
 }
+.tv-live-section .tv-match-equipe .tv-eq-line--2 { font-size: 0.85em; }
 .tv-match-equipe.tv-eq-b { text-align: right; }
 .tv-match-equipe.tv-eq-b .tv-eq-line { text-align: right; }
 /* Gagnant en vert */
@@ -207,18 +212,19 @@ body[data-has-live="no"] .tv-upcoming-section { flex: 1 1 auto; }
 
 .tv-match-score {
     flex: 0 0 auto;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 800;
     color: #f4c941;
     white-space: nowrap;
-    padding: 0 6px;
+    padding: 0 4px;
 }
-.tv-live-section .tv-match-score { font-size: 22px; }
+.tv-live-section .tv-match-score { font-size: 22px; padding: 0 6px; }
 .tv-match-score--vs {
     color: rgba(244, 240, 230, 0.45);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
 }
+.tv-live-section .tv-match-score--vs { font-size: 13px; }
 .tv-live-empty,
 .tv-empty {
     color: rgba(244, 240, 230, 0.4);
@@ -289,29 +295,34 @@ body[data-mode="poule"] #poules-list { flex-direction: row; }
 }
 .tv-poule-table th.left { text-align: left; padding-left: 6px; }
 .tv-poule-table td {
-    padding: 5px 3px;
+    padding: 2px 3px;
     color: #f4f0e6;
     text-align: center;
     font-size: 13px;
     border-bottom: 1px solid rgba(244, 240, 230, 0.06);
-    line-height: 1.25;
+    line-height: 1.1;
 }
 .tv-poule-table tr:last-child td { border-bottom: none; }
 .tv-poule-table td.equipe {
     text-align: left;
     font-weight: 600;
     padding-left: 6px;
+    line-height: 1.05;
 }
 .tv-poule-table td.equipe .tv-eq-line {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.1;
+}
+.tv-poule-table td.equipe .tv-eq-line--1 {
+    font-size: 0.95em;
 }
 .tv-poule-table td.equipe .tv-eq-line--2 {
-    color: rgba(244, 240, 230, 0.75);
+    color: rgba(244, 240, 230, 0.7);
     font-weight: 500;
-    font-size: 0.88em;
+    font-size: 0.78em;
 }
 .tv-poule-table td.pos {
     color: #efa707;
