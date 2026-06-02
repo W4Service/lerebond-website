@@ -365,7 +365,17 @@
         if (isClosed) {
             var back = el('a', {
                 href: '#', class: 'historique-back',
-                onclick: function (e) { e.preventDefault(); window.location.hash = ''; }
+                onclick: function (e) {
+                    e.preventDefault();
+                    // Vide le hash et recharge manuellement (hashchange peut ne pas se déclencher)
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                    } else {
+                        window.location.hash = '';
+                    }
+                    loadAll();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             }, '← Revenir au tournoi en cours');
             root.appendChild(back);
         }
@@ -538,11 +548,22 @@
         section.appendChild(el('h2', { class: 'live-section-title' }, '📚 Tournois précédents'));
         var list = el('div', { class: 'historique-list' });
         others.forEach(function (t) {
+            // À cause de <base href="https://le-rebond.fr/">, un href relatif "#t=xxx" partirait
+            // vers la racine. On force la navigation manuelle via onclick : window.location.hash.
             var card = el('a', {
                 href: '#t=' + t.id,
                 class: 'historique-card',
                 onclick: function (e) {
-                    // laisser le navigateur changer le hash, hashchange déclenchera loadAll
+                    e.preventDefault();
+                    var newHash = 't=' + t.id;
+                    // Si on est déjà sur le bon hash : recharger manuellement (hashchange ne se déclenche pas)
+                    if (window.location.hash.replace(/^#/, '') === newHash) {
+                        loadAll();
+                    } else {
+                        window.location.hash = newHash;
+                    }
+                    // Scroll en haut pour voir le tournoi sélectionné
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             });
             card.appendChild(el('div', { class: 'historique-card-nom' }, t.nom));
