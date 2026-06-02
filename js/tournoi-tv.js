@@ -196,29 +196,60 @@
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    // Si l'équipe n'est pas encore assignée (placeholder en attente du résultat d'un match parent),
-    // construit un label parlant : "Gagnant M1", "Perdant M2", "1er Poule A", "Meilleur 2e".
-    function placeholderForSide(m, side, poules) {
+    // Cherche un match parent dans la liste 'matchs' par poule_id + ordre.
+    function trouveMatchParent(matchs, pouleId, ordre) {
+        if (pouleId == null || ordre == null) return null;
+        for (var i = 0; i < matchs.length; i++) {
+            var mm = matchs[i];
+            if (mm.phase !== 'poule') continue;
+            if (mm.poule_id !== pouleId) continue;
+            if (mm.ordre !== ordre) continue;
+            return mm;
+        }
+        return null;
+    }
+
+    // Si l'équipe n'est pas encore assignée (placeholder en attente d'un résultat),
+    // construit un label parlant. Retourne { line1, line2 } pour qu'on puisse afficher les
+    // 2 paires possibles sur 2 lignes (ex: "Marc/Paul ou", "Jean/Luc").
+    function placeholderForSide(m, side, poules, matchs, equipes, joueurs) {
         var srcType = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
         var srcOrdre = side === 'a' ? m.equipe_a_source_ordre : m.equipe_b_source_ordre;
         var srcPouleId = side === 'a' ? m.equipe_a_source_poule_id : m.equipe_b_source_poule_id;
         if (!srcType) return null;
-        if (srcType === 'gagnant') return 'Gagnant M' + ((srcOrdre || 0) + 1);
-        if (srcType === 'perdant') return 'Perdant M' + ((srcOrdre || 0) + 1);
+
+        // gagnant/perdant : on cherche le match parent et on affiche les 2 équipes
+        if (srcType === 'gagnant' || srcType === 'perdant') {
+            var parent = trouveMatchParent(matchs || [], m.poule_id, srcOrdre);
+            if (parent && parent.equipe_a_id && parent.equipe_b_id) {
+                var l_a = eqLines(equipes, joueurs, parent.equipe_a_id);
+                var l_b = eqLines(equipes, joueurs, parent.equipe_b_id);
+                // Format compact : 2 lignes avec "ou" entre
+                return {
+                    line1: l_a[0] + ' ou',
+                    line2: l_b[0],
+                    type: srcType  // pour distinguer en CSS si besoin
+                };
+            }
+            // Fallback : pas de match parent ou pas d'équipes → label texte
+            var prefix = (srcType === 'gagnant') ? 'Gagnant M' : 'Perdant M';
+            return { line1: prefix + ((srcOrdre || 0) + 1), line2: '', type: srcType };
+        }
+
         if (srcType === 'rang_poule') {
             var rangs = { 1: '1er', 2: '2e', 3: '3e', 4: '4e', 5: '5e' };
             var nomP = '?';
             if (srcPouleId) {
                 for (var i = 0; i < poules.length; i++) if (poules[i].id === srcPouleId) { nomP = poules[i].nom; break; }
             }
-            return (rangs[srcOrdre] || (srcOrdre + 'e')) + ' ' + nomP;
+            return { line1: (rangs[srcOrdre] || (srcOrdre + 'e')) + ' ' + nomP, line2: '', type: srcType };
         }
-        if (srcType === 'meilleur_2e') return 'Meilleur 2e';
-        if (srcType === 'autres_2es') return 'Autre 2e';
+        if (srcType === 'meilleur_2e') return { line1: 'Meilleur 2e', line2: '', type: srcType };
+        if (srcType === 'autres_2es') return { line1: 'Autre 2e', line2: '', type: srcType };
         return null;
     }
 
-    function renderEquipeLines(equipes, joueurs, m, side, poules) {
+    function renderEquipeLines(equipes, joueurs, m, side, poules, matchs) {
         var id = side === 'a' ? m.equipe_a_id : m.equipe_b_id;
         var clsExtra = '';
         // Marquer le gagnant en vert si match terminé
@@ -226,13 +257,12 @@
 
         // Si pas d'équipe assignée, on tente d'afficher un placeholder parlant
         if (!id) {
-            var ph = placeholderForSide(m, side, poules || []);
+            var ph = placeholderForSide(m, side, poules || [], matchs || [], equipes, joueurs);
             if (ph) {
-                return '<div class="tv-match-equipe tv-eq-' + side + ' tv-eq-placeholder">' +
-                    '<span class="tv-eq-line tv-eq-line--1">' + escape(ph) + '</span>' +
-                    '</div>';
+                var ll1 = '<span class="tv-eq-line tv-eq-line--1">' + escape(ph.line1) + '</span>';
+                var ll2 = ph.line2 ? '<span class="tv-eq-line tv-eq-line--2">' + escape(ph.line2) + '</span>' : '';
+                return '<div class="tv-match-equipe tv-eq-' + side + ' tv-eq-placeholder">' + ll1 + ll2 + '</div>';
             }
-            // fallback "?" si pas de source connue
             return '<div class="tv-match-equipe tv-eq-' + side + ' tv-eq-placeholder">' +
                 '<span class="tv-eq-line tv-eq-line--1">?</span>' +
                 '</div>';
@@ -244,7 +274,7 @@
         return '<div class="tv-match-equipe tv-eq-' + side + clsExtra + '">' + l1 + l2 + '</div>';
     }
 
-    function renderMatchCard(m, poules, equipes, joueurs, opts) {
+    function renderMatchCard(m, poules, equipes, joueurs, opts, matchs) {
         opts = opts || {};
         var poule = null;
         for (var pi = 0; pi < poules.length; pi++) if (poules[pi].id === m.poule_id) { poule = poules[pi]; break; }
@@ -262,9 +292,9 @@
         return '<div class="' + cls + '">' +
             '<div class="tv-match-meta">' + escape(meta) + '</div>' +
             '<div class="tv-match-body">' +
-                renderEquipeLines(equipes, joueurs, m, 'a', poules) +
+                renderEquipeLines(equipes, joueurs, m, 'a', poules, matchs) +
                 scoreLine +
-                renderEquipeLines(equipes, joueurs, m, 'b', poules) +
+                renderEquipeLines(equipes, joueurs, m, 'b', poules, matchs) +
             '</div></div>';
     }
 
@@ -377,7 +407,7 @@
             liveHtml = '<div class="tv-live-empty">Aucun match en cours</div>';
         } else {
             for (var k = 0; k < enCours.length; k++) {
-                liveHtml += renderMatchCard(enCours[k], poules, equipes, joueurs);
+                liveHtml += renderMatchCard(enCours[k], poules, equipes, joueurs, null, matchs);
             }
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
@@ -402,7 +432,7 @@
             // Limite plus élevée si pas de match en cours (on a plus de place)
             var maxProchains = enCours.length === 0 ? 8 : 5;
             for (var q = 0; q < Math.min(prochains.length, maxProchains); q++) {
-                prochainsHtml += renderMatchCard(prochains[q], poules, equipes, joueurs);
+                prochainsHtml += renderMatchCard(prochains[q], poules, equipes, joueurs, null, matchs);
             }
         }
         document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
@@ -423,7 +453,7 @@
         } else {
             for (var k = 0; k < enCours.length; k++) {
                 var m = enCours[k];
-                liveHtml += renderMatchCard(m, poules, equipes, joueurs, { bracket: m.phase === 'finale' ? bracketLabel(m.bracket) : '' });
+                liveHtml += renderMatchCard(m, poules, equipes, joueurs, { bracket: m.phase === 'finale' ? bracketLabel(m.bracket) : '' }, matchs);
             }
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
@@ -440,7 +470,7 @@
             var maxProchains = enCours.length === 0 ? 8 : 5;
             for (var q = 0; q < Math.min(prochains.length, maxProchains); q++) {
                 var mp = prochains[q];
-                prochainsHtml += renderMatchCard(mp, poules, equipes, joueurs, { bracket: bracketLabel(mp.bracket) });
+                prochainsHtml += renderMatchCard(mp, poules, equipes, joueurs, { bracket: bracketLabel(mp.bracket) }, matchs);
             }
         }
         document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
@@ -469,7 +499,7 @@
                 '<div class="tv-bracket-title">' + escape(bracketLabel(bk)) + '</div>' +
                 '<div class="tv-bracket-matchs">';
             ms.forEach(function (m) {
-                html += renderMatchCard(m, poules, equipes, joueurs);
+                html += renderMatchCard(m, poules, equipes, joueurs, null, matchs);
             });
             html += '</div></div>';
         });
