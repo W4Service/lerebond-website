@@ -32,6 +32,9 @@
 <link rel="preconnect" href="https://five.le-rebond.com" crossorigin>
 <link rel="preconnect" href="https://w4s.le-rebond.com" crossorigin>
 <link rel="preconnect" href="https://wepe.le-rebond.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<!-- hls.js pour lire les flux HLS sur navigateurs non-Safari -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -134,10 +137,13 @@
     background: #000;
     overflow: hidden;
   }
-  .live-card-player iframe {
+  .live-card-player iframe,
+  .live-card-player video {
     width: 100%; height: 100%;
     border: 0; display: block;
     pointer-events: none;
+    object-fit: cover;
+    background: #000;
   }
   .live-placeholder {
     display: flex; align-items: center; justify-content: center;
@@ -199,9 +205,12 @@
     position: relative;
     min-height: 300px;
   }
-  .live-modal-player iframe {
+  .live-modal-player iframe,
+  .live-modal-player video {
     width: 100%; height: 100%;
     border: 0; display: block;
+    background: #000;
+    object-fit: contain;
   }
 
   /* Bandeau replay si pas de live */
@@ -493,15 +502,43 @@
   var state = {};
 
   // ---------------------------------------------------------------------
-  // Détection du live à partir du HTML retourné par /live.asp.
-  // Cas observés :
-  //  - Live  : contient <video> + hls.js + live.m3u8
-  //  - Off   : contient "Live terminé"
+  // Détection du live et extraction de l'URL HLS depuis /live.asp.
+  //
+  // Cas observés sur le HTML retourné par la borne :
+  //
+  //   Live actif :
+  //     <video id="video" muted autoplay ...></video>
+  //     <script src="hls.js"></script>
+  //     <script>
+  //       hls.loadSource('http://192.168.1.12/videos/segments/<ID>/live.m3u8?dd=...');
+  //     </script>
+  //
+  //   Pas de live :
+  //     <h1>Live terminé</h1>
+  //
+  // BUG côté borne : l'URL HLS est en absolu http://192.168.1.XX/ → pas
+  // joignable depuis Internet (mixed content + IP privée). On la réécrit
+  // en https://<host_public>/ pour passer par le tunnel Cloudflare.
   // ---------------------------------------------------------------------
-  function isLive(html) {
-    if (!html) return false;
-    if (/Live\s*termin/i.test(html)) return false;
-    return /<video/i.test(html) && /live\.m3u8/i.test(html);
+  function extractHlsUrl(html, publicHost) {
+    if (!html) return null;
+    // Regex sur loadSource('...m3u8...')
+    var m = html.match(/loadSource\(\s*['"]([^'"]+\.m3u8[^'"]*)['"]/i);
+    if (!m) return null;
+    var raw = m[1];
+    // Réécrire http://192.168.1.XX/ → https://publicHost/
+    var rewritten = raw.replace(/^https?:\/\/[^\/]+/i, 'https://' + publicHost);
+    return rewritten;
+  }
+
+  function parseLiveAsp(html, publicHost) {
+    if (!html) return { status: 'off' };
+    if (/Live\s*termin/i.test(html)) return { status: 'off' };
+    if (/<video/i.test(html) && /\.m3u8/i.test(html)) {
+      var hlsUrl = extractHlsUrl(html, publicHost);
+      if (hlsUrl) return { status: 'live', hlsUrl: hlsUrl };
+    }
+    return { status: 'off' };
   }
 
   function fetchWithTimeout(url, ms) {
@@ -519,12 +556,65 @@
         return res.text();
       })
       .then(function(html) {
-        return { status: isLive(html) ? 'live' : 'off' };
+        return parseLiveAsp(html, t.host);
       })
       .catch(function(e) {
         var reason = e.name === 'AbortError' ? 'timeout' : (e.message || 'erreur réseau');
         return { status: 'error', error: reason };
       });
+  }
+
+  // ---------------------------------------------------------------------
+  // Construit un player vidéo HLS dans un container.
+  // - container : élément DOM où placer la <video>
+  // - hlsUrl    : URL du flux .m3u8 (déjà réécrite en https://<public>)
+  // - opts      : { muted, autoplay, controls, liveSyncDuration }
+  // Retourne l'instance Hls pour qu'on puisse la détruire au démontage.
+  // ---------------------------------------------------------------------
+  function buildHlsPlayer(container, hlsUrl, opts) {
+    opts = opts || {};
+    container.innerHTML = '';
+    var video = document.createElement('video');
+    video.muted = !!opts.muted;
+    video.autoplay = opts.autoplay !== false;
+    video.controls = !!opts.controls;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    container.appendChild(video);
+
+    // Safari/iOS supporte HLS nativement
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = hlsUrl;
+      var p = video.play();
+      if (p && p.catch) p.catch(function () { /* autoplay bloqué → ignore */ });
+      return { destroy: function () { video.removeAttribute('src'); video.load(); } };
+    }
+
+    // Chrome/Firefox/Edge → hls.js (chargé via CDN dans le <head>)
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+      var hls = new Hls({
+        liveSyncDuration: opts.liveSyncDuration || 20,
+        capLevelToPlayerSize: true,
+        enableWorker: true
+      });
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function () {
+        var p = video.play();
+        if (p && p.catch) p.catch(function () { /* autoplay bloqué → ignore */ });
+      });
+      return {
+        destroy: function () {
+          try { hls.destroy(); } catch (e) {}
+        }
+      };
+    }
+
+    // Pas de support HLS
+    container.innerHTML = '<div class="live-placeholder">'
+      + '<div class="icon">📵</div>'
+      + '<div class="msg">Navigateur non compatible HLS</div></div>';
+    return { destroy: function () {} };
   }
 
   function escapeHtml(s) {
@@ -535,8 +625,15 @@
 
   // ---------------------------------------------------------------------
   // Rendu des cartes
+  //
+  // Subtilité : on ne fait PAS de innerHTML systématique du grid à chaque
+  // tick, sinon on détruit les <video> en cours de lecture (= flash noir
+  // toutes les 30 sec). On reconstruit le DOM uniquement si le statut
+  // d'un terrain change. Sinon on laisse les players HLS tourner.
   // ---------------------------------------------------------------------
-  function renderCard(t, result) {
+  var cardPlayers = {};  // id -> { player, hlsUrl, status }
+
+  function buildCardDom(t, result) {
     var liveOn = result.status === 'live';
     var err    = result.status === 'error';
 
@@ -545,77 +642,127 @@
     else if (err)    badgeHtml = '<span class="live-badge error">Injoignable</span>';
     else             badgeHtml = '<span class="live-badge off">Pas de match</span>';
 
-    var playerHtml;
-    if (liveOn) {
-      // On embed live.asp en mini-preview muette (l'iframe charge le HTML
-      // de la borne qui inclut hls.js et le bon .m3u8). pointer-events:none
-      // pour qu'on puisse cliquer sur la carte sans interagir avec l'iframe.
-      playerHtml = '<iframe src="https://' + t.host + '/live.asp" allow="autoplay" loading="lazy" referrerpolicy="no-referrer"></iframe>';
-    } else if (err) {
-      playerHtml = ''
-        + '<div class="live-placeholder">'
-        + '  <div class="icon">⚠</div>'
-        + '  <div class="msg">Borne injoignable</div>'
-        + '  <div class="sub">' + escapeHtml(result.error || '') + '</div>'
-        + '</div>';
-    } else {
-      playerHtml = ''
-        + '<div class="live-placeholder">'
-        + '  <div class="icon">🎾</div>'
-        + '  <div class="msg">Pas de match en cours</div>'
-        + '  <div class="sub">Cette page se rafraîchit automatiquement</div>'
-        + '</div>';
-    }
-
     var classes = 'live-card';
     if (liveOn) classes += ' live';
     if (!liveOn) classes += ' disabled';
 
-    return ''
-      + '<div class="' + classes + '" data-terrain="' + t.id + '" '
-      + (liveOn ? 'role="button" tabindex="0"' : '')
-      + '>'
-      +   '<div class="live-card-head">'
-      +     '<span class="live-card-name">' + escapeHtml(t.nom) + '</span>'
-      +     badgeHtml
-      +   '</div>'
-      +   '<div class="live-card-player">' + playerHtml + '</div>'
-      + '</div>';
+    var card = document.createElement('div');
+    card.className = classes;
+    card.setAttribute('data-terrain', t.id);
+    if (liveOn) {
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+    }
+
+    var head = document.createElement('div');
+    head.className = 'live-card-head';
+    head.innerHTML = ''
+      + '<span class="live-card-name">' + escapeHtml(t.nom) + '</span>'
+      + badgeHtml;
+    card.appendChild(head);
+
+    var playerWrap = document.createElement('div');
+    playerWrap.className = 'live-card-player';
+
+    if (liveOn) {
+      // Mini-preview HLS muette en autoplay. Pas de controls (on clique
+      // sur la carte pour passer en plein écran avec son).
+      var prev = cardPlayers[t.id];
+      if (prev && prev.player) { try { prev.player.destroy(); } catch (e) {} }
+      var instance = buildHlsPlayer(playerWrap, result.hlsUrl, {
+        muted: true, autoplay: true, controls: false
+      });
+      cardPlayers[t.id] = { player: instance, hlsUrl: result.hlsUrl, status: 'live' };
+    } else if (err) {
+      playerWrap.innerHTML = ''
+        + '<div class="live-placeholder">'
+        + '<div class="icon">⚠</div>'
+        + '<div class="msg">Borne injoignable</div>'
+        + '<div class="sub">' + escapeHtml(result.error || '') + '</div>'
+        + '</div>';
+      cardPlayers[t.id] = { player: null, status: 'error' };
+    } else {
+      playerWrap.innerHTML = ''
+        + '<div class="live-placeholder">'
+        + '<div class="icon">🎾</div>'
+        + '<div class="msg">Pas de match en cours</div>'
+        + '<div class="sub">Cette page se rafraîchit automatiquement</div>'
+        + '</div>';
+      cardPlayers[t.id] = { player: null, status: 'off' };
+    }
+
+    card.appendChild(playerWrap);
+
+    if (liveOn) {
+      card.addEventListener('click', function () { openLiveModal(t); });
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+      });
+    }
+
+    return card;
   }
 
   function renderAll() {
     var grid = document.getElementById('live-grid');
-    grid.innerHTML = TERRAINS.map(function(t) {
-      return renderCard(t, state[t.id] || { status: 'loading' });
-    }).join('');
 
-    // Branche les clics sur les cartes en live
-    var cards = grid.querySelectorAll('.live-card.live');
-    cards.forEach(function(card) {
-      card.addEventListener('click', function() {
-        var id = card.getAttribute('data-terrain');
-        var t = TERRAINS.find(function(x){ return x.id === id; });
-        if (t) openLiveModal(t);
+    // Premier rendu : tout reconstruire
+    if (!grid.firstChild) {
+      TERRAINS.forEach(function (t) {
+        var result = state[t.id] || { status: 'loading' };
+        grid.appendChild(buildCardDom(t, result));
       });
-      card.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          card.click();
-        }
-      });
+      return;
+    }
+
+    // Rendus suivants : ne reconstruire QUE les cartes dont le statut a changé.
+    // Pour les cartes "live" qui restent live, on ne touche pas au DOM (le
+    // player continue de tourner).
+    TERRAINS.forEach(function (t, i) {
+      var result = state[t.id] || { status: 'loading' };
+      var prev = cardPlayers[t.id];
+      var prevStatus = prev ? prev.status : null;
+      var sameStatus = prevStatus === result.status;
+      var sameHls = prev && prev.hlsUrl === result.hlsUrl;
+
+      if (sameStatus && (result.status !== 'live' || sameHls)) {
+        // rien à faire, garder l'existant
+        return;
+      }
+
+      // Statut ou flux changé → reconstruire cette carte
+      var oldCard = grid.children[i];
+      var newCard = buildCardDom(t, result);
+      if (oldCard) grid.replaceChild(newCard, oldCard);
+      else grid.appendChild(newCard);
     });
   }
 
   // ---------------------------------------------------------------------
   // Modal plein écran avec son
   // ---------------------------------------------------------------------
+  var modalPlayerInstance = null;
+
   function openLiveModal(t) {
+    var st = state[t.id];
+    if (!st || st.status !== 'live' || !st.hlsUrl) return;
+
     document.getElementById('live-modal-title').textContent = t.nom + ' — En direct';
-    var player = document.getElementById('live-modal-player');
-    // iframe avec son (l'utilisateur a explicitement cliqué)
-    // Note : la vidéo dans live.asp est muted=true par défaut côté borne.
-    // L'utilisateur clique sur "unmute" dans le player vidéo une fois le modal ouvert.
-    player.innerHTML = '<iframe src="https://' + t.host + '/live.asp" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+    var container = document.getElementById('live-modal-player');
+
+    // Démonter un éventuel player précédent
+    if (modalPlayerInstance) {
+      try { modalPlayerInstance.destroy(); } catch (e) {}
+      modalPlayerInstance = null;
+    }
+
+    // Player avec son ET contrôles (l'utilisateur a explicitement cliqué).
+    // Démarre muted pour permettre l'autoplay, l'utilisateur unmute via les
+    // contrôles natifs.
+    modalPlayerInstance = buildHlsPlayer(container, st.hlsUrl, {
+      muted: true, autoplay: true, controls: true
+    });
+
     document.getElementById('live-modal').classList.add('show');
     document.body.style.overflow = 'hidden';
 
@@ -626,6 +773,10 @@
 
   function closeLiveModal() {
     document.getElementById('live-modal').classList.remove('show');
+    if (modalPlayerInstance) {
+      try { modalPlayerInstance.destroy(); } catch (e) {}
+      modalPlayerInstance = null;
+    }
     document.getElementById('live-modal-player').innerHTML = '';
     document.body.style.overflow = '';
   }
