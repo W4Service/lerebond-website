@@ -502,23 +502,15 @@
   var state = {};
 
   // ---------------------------------------------------------------------
-  // Détection du live et extraction de l'URL HLS depuis /live.asp.
+  // Détection du live et extraction de l'URL HLS depuis live.asp.
   //
   // Cas observés sur le HTML retourné par la borne :
-  //
-  //   Live actif :
-  //     <video id="video" muted autoplay ...></video>
-  //     <script src="hls.js"></script>
-  //     <script>
-  //       hls.loadSource('http://192.168.1.12/videos/segments/<ID>/live.m3u8?dd=...');
-  //     </script>
-  //
-  //   Pas de live :
-  //     <h1>Live terminé</h1>
+  //   Live actif : balise video + hls.js + appel hls.loadSource('...m3u8')
+  //   Pas de live : titre "Live terminé"
   //
   // BUG côté borne : l'URL HLS est en absolu http://192.168.1.XX/ → pas
   // joignable depuis Internet (mixed content + IP privée). On la réécrit
-  // en https://<host_public>/ pour passer par le tunnel Cloudflare.
+  // en https://hostpublic/ pour passer par le tunnel Cloudflare.
   // ---------------------------------------------------------------------
   function extractHlsUrl(html, publicHost) {
     if (!html) return null;
