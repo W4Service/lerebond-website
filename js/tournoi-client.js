@@ -27,6 +27,15 @@
     var matchs = [];
     var closedTournois = []; // historique des tournois clôturés
 
+    // Mapping Terrain n° (tournoi) → id du flux vidéo live (page /videos/live/)
+    // T1 = Wuilhome, T2 = W4S, T3 = WEPE (les 3 terrains padel)
+    var TERRAIN_VIDEO_ID = { 1: 'wuilhome', 2: 'w4s', 3: 'wepe' };
+    function terrainVideoUrl(numTerrain) {
+        var id = TERRAIN_VIDEO_ID[numTerrain];
+        if (!id) return null;
+        return 'videos/live/?terrain=' + id;
+    }
+
     // Si le hash contient #t=<id>, on charge ce tournoi-là (clôturé) au lieu de l'actif.
     function tournoiIdFromHash() {
         var h = window.location.hash || '';
@@ -409,7 +418,18 @@
         Object.keys(byTerrain).forEach(function (t) {
             var list = byTerrain[t];
             var card = el('div', { class: 'terrain-card' });
-            card.appendChild(el('h3', { class: 'terrain-card-title' }, '🏟️ Terrain ' + t));
+            // Titre du terrain : cliquable s'il a un flux vidéo associé
+            var videoUrl = terrainVideoUrl(parseInt(t, 10));
+            if (videoUrl) {
+                var titleLink = el('a', {
+                    class: 'terrain-card-title terrain-card-title--link',
+                    href: videoUrl,
+                    title: 'Voir le live vidéo du terrain ' + t
+                }, '🏟️ Terrain ' + t + ' · 📺');
+                card.appendChild(titleLink);
+            } else {
+                card.appendChild(el('h3', { class: 'terrain-card-title' }, '🏟️ Terrain ' + t));
+            }
 
             var prochains = list.filter(function (m) { return m.status === 'en_attente'; });
             var resultats = list.filter(function (m) { return m.status === 'termine'; });

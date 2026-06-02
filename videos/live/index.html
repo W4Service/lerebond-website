@@ -668,6 +668,14 @@
     wrap.classList.toggle('has-replays', showReplays);
   }
 
+  // Lit ?terrain=<id> dans l'URL pour ouvrir auto la modale du bon terrain.
+  function getTerrainFromQuery() {
+    var match = window.location.search.match(/[?&]terrain=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  var autoOpenTerrain = getTerrainFromQuery();
+  var autoOpened = false;
+
   function tick() {
     Promise.all(TERRAINS.map(checkTerrain)).then(function(results) {
       var live = 0, off = 0, err = 0;
@@ -686,6 +694,16 @@
       renderAll();
       updateStatusBar(live, off, err);
       updateReplaysBanner(live, err);
+
+      // Ouverture auto de la modale du terrain demandé via ?terrain= (une seule fois)
+      if (autoOpenTerrain && !autoOpened) {
+        var target = TERRAINS.find(function (x) { return x.id === autoOpenTerrain; });
+        var st = state[autoOpenTerrain];
+        if (target && st && st.status === 'live') {
+          autoOpened = true;
+          openLiveModal(target);
+        }
+      }
     });
   }
 
