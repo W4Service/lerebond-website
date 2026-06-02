@@ -1161,6 +1161,15 @@ select.tournoi-input option {
     margin-bottom: 1rem;
     padding-bottom: 0.6rem;
     border-bottom: 1px solid rgba(244, 240, 230, 0.12);
+    display: block;
+}
+.terrain-card-title--link {
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s;
+}
+.terrain-card-title--link:hover {
+    color: #efa707;
+    border-bottom-color: rgba(239, 167, 7, 0.4);
 }
 .terrain-subsection {
     margin-bottom: 1rem;
