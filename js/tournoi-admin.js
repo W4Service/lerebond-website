@@ -3655,10 +3655,17 @@
 
     // Swap d'équipes entre deux matchs (drag depuis un match vers une face d'un autre match)
     async function swapEquipesEntreMatchs(srcMatchId, srcSide, dstMatchId, dstSide) {
+        if (guardReadOnly()) return;
         if (srcMatchId === dstMatchId && srcSide === dstSide) return;
         var src = matchs.find(function (m) { return m.id === srcMatchId; });
         var dst = matchs.find(function (m) { return m.id === dstMatchId; });
         if (!src || !dst) return;
+        // Garde-fou : refuser si l'un des 2 matchs a déjà un résultat ou est en cours
+        // (sinon on perdrait la cohérence des scores et du classement)
+        if (src.status !== 'en_attente' || dst.status !== 'en_attente') {
+            showToast('Impossible d\'échanger : un des matchs est en cours ou terminé.', 'error');
+            return;
+        }
         var srcEqId = srcSide === 'a' ? src.equipe_a_id : src.equipe_b_id;
         var dstEqId = dstSide === 'a' ? dst.equipe_a_id : dst.equipe_b_id;
         if (!srcEqId && !dstEqId) return;
@@ -3870,7 +3877,8 @@
 
         var body = el('div', { class: 'match-body' });
         var spanA = el('span', { class: 'match-equipe' + (eqA ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'a'));
-        if (isFinale) makeMatchEquipeDraggable(spanA, m.id, 'a');
+        // Drag activé si le match n'a pas démarré (refusé sinon par swapEquipesEntreMatchs)
+        if (m.status === 'en_attente') makeMatchEquipeDraggable(spanA, m.id, 'a');
         body.appendChild(spanA);
 
         // Si terminé : affiche le score, sinon inputs
@@ -3925,7 +3933,7 @@
         }
 
         var spanB = el('span', { class: 'match-equipe' + (eqB ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'b'));
-        if (isFinale) makeMatchEquipeDraggable(spanB, m.id, 'b');
+        if (m.status === 'en_attente') makeMatchEquipeDraggable(spanB, m.id, 'b');
         body.appendChild(spanB);
         card.appendChild(body);
 
