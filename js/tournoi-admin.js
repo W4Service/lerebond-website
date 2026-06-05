@@ -3760,28 +3760,57 @@
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
+    // Détermine si on peut sans risque échanger l'ordre de 2 matchs.
+    // On refuse si l'un des 2 matchs a des dépendants (matchs qui référencent son ordre via
+    // source_ordre + source_type), sinon on casserait les liens GM/PM du format croisé.
+    function aDesDependants(match) {
+        return matchs.some(function (mm) {
+            if (mm.poule_id !== match.poule_id) return false;
+            if (mm.equipe_a_source_ordre === match.ordre &&
+                (mm.equipe_a_source_type === 'gagnant' || mm.equipe_a_source_type === 'perdant')) return true;
+            if (mm.equipe_b_source_ordre === match.ordre &&
+                (mm.equipe_b_source_type === 'gagnant' || mm.equipe_b_source_type === 'perdant')) return true;
+            return false;
+        });
+    }
+
     // Swap l'ordre de 2 matchs (drag & drop dans une même poule, phase 'poule' uniquement).
-    // On échange seulement la valeur 'ordre' des 2 matchs, le terrain et l'état restent inchangés.
     async function swapMatchsOrdre(idA, idB) {
         if (guardReadOnly()) return;
         var mA = matchs.find(function (m) { return m.id === idA; });
         var mB = matchs.find(function (m) { return m.id === idB; });
         if (!mA || !mB) return;
         if (mA.id === mB.id) return;
+        // Refus si l'un des 2 matchs a des dépendants : on casserait les liens GM/PM
+        if (aDesDependants(mA) || aDesDependants(mB)) {
+            showToast('Impossible de réordonner : un des matchs a des dépendants (format croisé).', 'error');
+            return;
+        }
         // Échange en 2 étapes (contrainte unique éventuelle sur (poule_id, ordre) → on passe par un ordre temporaire)
+        var ordreA = mA.ordre;
+        var ordreB = mB.ordre;
         var tmpOrdre = -1 - Math.floor(Math.random() * 100000);
-        await supa.from('matchs').update({ ordre: tmpOrdre, updated_at: new Date().toISOString() }).eq('id', mA.id);
-        await supa.from('matchs').update({ ordre: mA.ordre, updated_at: new Date().toISOString() }).eq('id', mB.id);
-        var res = await supa.from('matchs').update({ ordre: mB.ordre, updated_at: new Date().toISOString() }).eq('id', mA.id).select().single();
-        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        var r1 = await supa.from('matchs').update({ ordre: tmpOrdre, updated_at: new Date().toISOString() }).eq('id', mA.id);
+        if (r1.error) { showToast('Erreur étape 1 : ' + r1.error.message, 'error'); return; }
+        var r2 = await supa.from('matchs').update({ ordre: ordreA, updated_at: new Date().toISOString() }).eq('id', mB.id);
+        if (r2.error) {
+            // Tentative de restauration de mA
+            await supa.from('matchs').update({ ordre: ordreA, updated_at: new Date().toISOString() }).eq('id', mA.id);
+            showToast('Erreur étape 2 : ' + r2.error.message, 'error');
+            return;
+        }
+        var r3 = await supa.from('matchs').update({ ordre: ordreB, updated_at: new Date().toISOString() }).eq('id', mA.id);
+        if (r3.error) {
+            await supa.from('matchs').update({ ordre: ordreB, updated_at: new Date().toISOString() }).eq('id', mB.id);
+            await supa.from('matchs').update({ ordre: ordreA, updated_at: new Date().toISOString() }).eq('id', mA.id);
+            showToast('Erreur étape 3 : ' + r3.error.message, 'error');
+            return;
+        }
         // Maj cache local
         var iA = matchs.findIndex(function (m) { return m.id === idA; });
         var iB = matchs.findIndex(function (m) { return m.id === idB; });
-        if (iA >= 0 && iB >= 0) {
-            var ordreA = matchs[iA].ordre;
-            matchs[iA].ordre = matchs[iB].ordre;
-            matchs[iB].ordre = ordreA;
-        }
+        if (iA >= 0) matchs[iA].ordre = ordreB;
+        if (iB >= 0) matchs[iB].ordre = ordreA;
         render();
         showToast('Ordre des matchs modifié', 'ok');
     }
