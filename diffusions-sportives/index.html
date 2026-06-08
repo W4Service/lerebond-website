@@ -150,7 +150,7 @@
 <h2 class="section-header__title">Prochaines diffusions</h2>
 <p class="section-header__text">Foot, Rugby, F1, Tennis, Cyclisme… Retrouvez ici tous les matchs à venir et réservez votre place.</p>
 </div>
-<div class="planning-wrap" id="planning-wrap" data-animate="" data-delay="100">
+<div class="planning-wrap" id="planning-wrap">
 <div class="fanzo-loading">Chargement du planning…</div>
 </div>
 <p class="fanzo-credit" data-animate="" data-delay="200">Données fournies par <a href="https://www.fanzo.com/" target="_blank" rel="noopener">FANZO</a></p>
@@ -555,6 +555,7 @@
 
         console.log('[FANZO] HTML généré, longueur :', html.length, '— injection dans le DOM');
         wrap.innerHTML = html;
+        wrap.classList.add('visible');
     }
 
     function load() {
