@@ -235,6 +235,258 @@
 </div>
 </div>
 </section>
+<!-- Section FANZO : matchs diffusés en direct -->
+<section class="section section-alt" id="sports-live">
+<div class="container">
+<div class="section-header center" data-animate="">
+<span class="section-header__label">📺 À l'affiche</span>
+<h2 class="section-header__title">Les matchs diffusés au Rebond</h2>
+<p class="section-header__text">Foot, rugby, NBA, F1, Roland-Garros, Champions League… Retrouvez tous les sports en direct sur nos écrans (écran géant 3m × 2m + plusieurs TV).</p>
+</div>
+<div class="fanzo-fixtures" id="fanzo-fixtures" data-animate="" data-delay="100">
+<div class="fanzo-loading">Chargement des prochains matchs…</div>
+</div>
+<p class="fanzo-credit" data-animate="" data-delay="200">Fixtures fournies par <a href="https://www.fanzo.com/" target="_blank" rel="noopener">FANZO</a></p>
+</div>
+</section>
+
+<style>
+.fanzo-fixtures {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0 1rem;
+}
+.fanzo-loading,
+.fanzo-empty,
+.fanzo-error {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    color: #888;
+    font-style: italic;
+}
+.fanzo-fixture {
+    background: #fff;
+    border: 1px solid rgba(104, 9, 32, 0.15);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    text-decoration: none;
+    color: inherit;
+}
+.fanzo-fixture:hover {
+    transform: translateY(-2px);
+    border-color: #efa707;
+    box-shadow: 0 8px 24px rgba(104, 9, 32, 0.12);
+}
+.fanzo-fixture__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+    color: #680920;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.fanzo-fixture__sport-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+.fanzo-fixture__compet {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+    margin-left: auto;
+}
+.fanzo-fixture__event {
+    font-family: var(--font-display, 'Turret Road', sans-serif);
+    font-weight: 800;
+    color: #1a1a1a;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+.fanzo-fixture__teams {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.fanzo-fixture__team {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    font-size: 0.95rem;
+}
+.fanzo-fixture__team-logo {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+}
+.fanzo-fixture__vs {
+    color: #888;
+    font-size: 0.85rem;
+}
+.fanzo-fixture__time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #680920;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-top: 1px solid rgba(104, 9, 32, 0.08);
+    padding-top: 0.5rem;
+    margin-top: auto;
+}
+.fanzo-fixture__time-day {
+    background: rgba(239, 167, 7, 0.15);
+    color: #efa707;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+.fanzo-fixture__channel {
+    margin-left: auto;
+    color: #888;
+    font-size: 0.78rem;
+}
+.fanzo-credit {
+    text-align: center;
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 1rem;
+}
+.fanzo-credit a { color: #680920; text-decoration: none; font-weight: 600; }
+.fanzo-credit a:hover { text-decoration: underline; }
+</style>
+
+<script>
+(function () {
+    var FANZO_URL = 'https://www-service.fanzo.com/venues/257711/fixture/json';
+    var MAX_FIXTURES = 8;
+    var DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    var MONTHS = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'aoû', 'sep', 'oct', 'nov', 'déc'];
+
+    function pad(n) { return n < 10 ? '0' + n : String(n); }
+
+    function formatDate(iso) {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        var day = DAYS[d.getDay()];
+        var num = d.getDate();
+        var month = MONTHS[d.getMonth()];
+        var h = d.getHours();
+        var m = d.getMinutes();
+        return {
+            badge: day + ' ' + num + ' ' + month,
+            time: pad(h) + 'h' + pad(m)
+        };
+    }
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function renderFixture(fx) {
+        var dt = formatDate(fx.startTimeLocal || fx.startTimeUtc);
+        var sportLogo = fx.sport && fx.sport.logo
+            ? '<img class="fanzo-fixture__sport-logo" src="' + escapeHtml(fx.sport.logo) + '" alt="' + escapeHtml(fx.sport.name || '') + '" loading="lazy" onerror="this.style.display=\'none\'">'
+            : '';
+        var sportName = fx.sport && fx.sport.name ? escapeHtml(fx.sport.name) : '';
+        var compet = fx.competition && fx.competition.name ? '<span class="fanzo-fixture__compet">' + escapeHtml(fx.competition.name) + '</span>' : '';
+
+        // Équipes
+        var teamsHtml = '';
+        if (fx.teams && fx.teams.length === 2) {
+            var home = fx.teams.find(function (t) { return t.side === 'home'; }) || fx.teams[0];
+            var away = fx.teams.find(function (t) { return t.side === 'away'; }) || fx.teams[1];
+            var teamHtml = function (t) {
+                var logo = t.logo ? '<img class="fanzo-fixture__team-logo" src="' + escapeHtml(t.logo) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+                return '<span class="fanzo-fixture__team">' + logo + escapeHtml(t.name || '') + '</span>';
+            };
+            teamsHtml = '<div class="fanzo-fixture__teams">' + teamHtml(home) + '<span class="fanzo-fixture__vs">vs</span>' + teamHtml(away) + '</div>';
+        } else if (fx.eventName) {
+            teamsHtml = '<div class="fanzo-fixture__event">' + escapeHtml(fx.eventName) + '</div>';
+        }
+
+        var channel = fx.channel && fx.channel.name ? '<span class="fanzo-fixture__channel">📺 ' + escapeHtml(fx.channel.name) + '</span>' : '';
+        var tag = fx.link ? 'a' : 'div';
+        var hrefAttr = fx.link ? ' href="' + escapeHtml(fx.link) + '" target="_blank" rel="noopener"' : '';
+
+        return '<' + tag + ' class="fanzo-fixture"' + hrefAttr + '>' +
+            '<div class="fanzo-fixture__head">' + sportLogo + sportName + compet + '</div>' +
+            teamsHtml +
+            '<div class="fanzo-fixture__time">' +
+                '<span class="fanzo-fixture__time-day">' + escapeHtml(dt.badge) + '</span>' +
+                '<span>' + escapeHtml(dt.time) + '</span>' +
+                channel +
+            '</div>' +
+            '</' + tag + '>';
+    }
+
+    function render(fixtures) {
+        var el = document.getElementById('fanzo-fixtures');
+        if (!el) return;
+        if (!fixtures || fixtures.length === 0) {
+            el.innerHTML = '<div class="fanzo-empty">Aucun match programmé pour le moment.</div>';
+            return;
+        }
+        // Filtre : seulement les matchs à venir (startTime >= maintenant - 2h pour matcher les matchs en cours)
+        var now = Date.now() - 2 * 3600 * 1000;
+        var upcoming = fixtures.filter(function (fx) {
+            var t = new Date(fx.startTimeUtc || fx.startTimeLocal).getTime();
+            return !isNaN(t) && t >= now;
+        });
+        upcoming.sort(function (a, b) {
+            return new Date(a.startTimeUtc).getTime() - new Date(b.startTimeUtc).getTime();
+        });
+        if (upcoming.length === 0) {
+            el.innerHTML = '<div class="fanzo-empty">Aucun match programmé pour le moment.</div>';
+            return;
+        }
+        el.innerHTML = upcoming.slice(0, MAX_FIXTURES).map(renderFixture).join('');
+    }
+
+    function load() {
+        fetch(FANZO_URL)
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
+            .then(function (data) {
+                var fixtures = (data && data.result) ? data.result : (Array.isArray(data) ? data : []);
+                render(fixtures);
+            })
+            .catch(function (err) {
+                console.error('FANZO fetch error:', err);
+                var el = document.getElementById('fanzo-fixtures');
+                if (el) el.innerHTML = '<div class="fanzo-error">Impossible de charger les matchs pour le moment.</div>';
+            });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', load);
+    } else {
+        load();
+    }
+})();
+</script>
+
 <!-- CTA Section -->
 <section class="section section-cta">
 <div class="container text-center">
