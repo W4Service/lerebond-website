@@ -71,11 +71,18 @@
 <a class="nav__link nav__dropdown-toggle" href="evenements/">Événements <svg class="nav__dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></a>
 <div class="nav__dropdown-menu">
 <a href="evenements/#sportif">Sportif</a>
+<a href="diffusions-sportives/">Diffusions 📺</a>
 <a href="evenements/#anniversaire">Anniversaire</a>
 <a href="live/tournoi/">Tournoi 🏆</a>
 </div>
 </li>
-<li><a class="nav__link active" href="bar-restaurant/">Bar &amp; Restaurant</a></li>
+<li class="nav__dropdown">
+<a class="nav__link nav__dropdown-toggle" href="bar-restaurant/">Bar &amp; Restaurant <svg class="nav__dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></a>
+<div class="nav__dropdown-menu">
+<a href="bar-restaurant/">Bar &amp; Restaurant</a>
+<a href="reserver-restaurant/">Réserver une table</a>
+</div>
+</li>
 <li><a class="nav__link" href="tarifs/">Tarifs</a></li>
 <li class="nav__dropdown">
 <a class="nav__link nav__dropdown-toggle" href="videos/">Vidéos <svg class="nav__dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></a>
@@ -176,7 +183,7 @@
 <p class="photo-break-text">Grands écrans, bières artisanales et ambiance sportive</p>
 </div>
 </section>
-<!-- Sports Viewing Section : flux FANZO -->
+<!-- Sports Viewing Section : aperçu FANZO (3 prochains matchs) -->
 <section class="section section-dark" id="soirees-sport">
 <div class="container">
 <div class="section-header center" data-animate="">
@@ -187,7 +194,9 @@
 <div class="fanzo-fixtures" id="fanzo-fixtures" data-animate="" data-delay="100">
 <div class="fanzo-loading">Chargement des prochains matchs…</div>
 </div>
-<p class="fanzo-credit" data-animate="" data-delay="200">Fixtures fournies par <a href="https://www.fanzo.com/" target="_blank" rel="noopener">FANZO</a></p>
+<div class="text-center" data-animate="" data-delay="200" style="margin-top: 1.5rem">
+<a class="btn btn--secondary" href="diffusions-sportives/">📅 Voir tout le planning des diffusions</a>
+</div>
 </div>
 </section>
 <!-- Opening Hours Section -->
@@ -350,7 +359,7 @@
 <script>
 (function () {
     var FANZO_URL = 'https://www-service.fanzo.com/venues/257711/fixture/json';
-    var MAX_FIXTURES = 8;
+    var MAX_FIXTURES = 3;
     var DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     var MONTHS = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'aoû', 'sep', 'oct', 'nov', 'déc'];
 
@@ -500,6 +509,7 @@
 <a class="footer__link" href="#" onclick="reserverTerrain();return false">Réserver un terrain</a>
 <a class="footer__link" href="reserver-restaurant/">Réserver une table</a>
 <a class="footer__link" href="evenements/">Événements</a>
+<a class="footer__link" href="diffusions-sportives/">Diffusions sportives</a>
 <a class="footer__link" href="bar-restaurant/">Bar &amp; Restaurant</a>
 <a class="footer__link" href="tarifs/">Tarifs</a>
 <a class="footer__link" href="videos/">Vidéos</a>

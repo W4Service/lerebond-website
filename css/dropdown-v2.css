@@ -1,0 +1,853 @@
+/* ============================================
+   TARIF EVENTS GRID (4 cards on tarifs page)
+   ============================================ */
+.tarif-events-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-md, 24px) !important;
+}
+
+@media (max-width: 768px) {
+    .tarif-events-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ============================================
+   PRICING BADGE (icon + text alignment fix)
+   ============================================ */
+.pricing-card-badge {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.4rem;
+    line-height: 1;
+}
+
+.pricing-card-badge svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================
+   SUBSCRIPTIONS GRID (4 cards)
+   ============================================ */
+.pricing-cards-grid--4 {
+    grid-template-columns: repeat(4, 1fr) !important;
+}
+
+.pricing-grid--4 {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: var(--space-md, 24px);
+}
+
+@media (max-width: 1100px) {
+    .pricing-cards-grid--4,
+    .pricing-grid--4 {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .pricing-cards-grid--4,
+    .pricing-grid--4 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ============================================
+   REPLAYS PAGE
+   ============================================ */
+.replay-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md, 24px);
+    margin-top: var(--space-lg, 32px);
+}
+
+.replay-step {
+    position: relative;
+    padding: 2rem 1.5rem 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(244,201,65, 0.15);
+    border-radius: 16px;
+    text-align: center;
+}
+
+.replay-step__number {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+    background: #f4c941;
+    color: #1a1a1a;
+    font-family: var(--font-display, 'Turret Road', sans-serif);
+    font-size: 1.1rem;
+    font-weight: 800;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(244,201,65, 0.3);
+}
+
+.replay-step__icon {
+    color: #f4c941;
+    margin: 0.5rem 0 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+.replay-step__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--light, #f4f0e6);
+    margin-bottom: 0.6rem;
+    line-height: 1.3;
+}
+
+.replay-step__text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--secondary, #cec3b6);
+}
+
+.replay-step__text strong {
+    color: #f4c941;
+}
+
+@media (max-width: 1024px) {
+    .replay-steps {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .replay-steps {
+        grid-template-columns: 1fr;
+    }
+}
+
+.replay-iframe-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    margin: var(--space-lg, 32px) auto 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    background: #1a1a1a;
+    min-height: 600px;
+}
+
+.replay-iframe-wrapper iframe {
+    width: 100%;
+    height: 700px;
+    border: 0;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .replay-iframe-wrapper {
+        min-height: 500px;
+    }
+    .replay-iframe-wrapper iframe {
+        height: 550px;
+    }
+}
+
+/* ============================================
+   HOMEPAGE COURS TEASER (bordeaux DA)
+   ============================================ */
+.cours-teaser {
+    background: linear-gradient(135deg, rgba(7,68,89, 0.95), rgba(58, 5, 16, 0.95)), url('img/padel-mains-vitre.webp') center/cover;
+    padding: var(--space-xl, 64px) 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.cours-teaser__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg, 48px);
+    align-items: center;
+}
+
+.cours-teaser__content {
+    color: var(--light, #f4f0e6);
+}
+
+.cours-teaser__label {
+    display: inline-block;
+    font-family: var(--font-display, 'Turret Road', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #f4c941;
+    margin-bottom: 0.75rem;
+}
+
+.cours-teaser__title {
+    font-family: var(--font-display, 'Turret Road', sans-serif);
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    color: var(--light, #f4f0e6);
+}
+
+.cours-teaser__title span {
+    color: #f4c941;
+}
+
+.cours-teaser__sub {
+    font-size: 0.95rem;
+    color: #f4c941;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    letter-spacing: 0.02em;
+    opacity: 0.95;
+}
+
+.cours-teaser__text {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    opacity: 0.9;
+}
+
+.cours-teaser__prices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+}
+
+.cours-teaser__price {
+    background: rgba(244,201,65, 0.08);
+    border-radius: 10px;
+    padding: 0.85rem 0.75rem;
+    text-align: center;
+    border: 1px solid rgba(244,201,65, 0.25);
+}
+
+.cours-teaser__price-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--secondary, #cec3b6);
+    margin-bottom: 0.3rem;
+}
+
+.cours-teaser__price-value {
+    display: block;
+    font-weight: 700;
+    color: #f4c941;
+    font-size: 0.95rem;
+}
+
+.cours-teaser__visual {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(244,201,65, 0.2);
+}
+
+.cours-teaser__visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cours-teaser__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(7,68,89, 0.3), transparent 60%);
+    pointer-events: none;
+}
+
+.cours-teaser__badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #f4c941;
+    color: #1a1a1a;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 6px 12px;
+    border-radius: 4px;
+    z-index: 2;
+}
+
+@media (max-width: 900px) {
+    .cours-teaser__grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md, 32px);
+    }
+    .cours-teaser__content {
+        text-align: center;
+    }
+    .cours-teaser__prices {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   HOMEPAGE REPLAY TEASER
+   ============================================ */
+.replay-teaser {
+    background: linear-gradient(135deg, rgba(7,68,89, 0.92), rgba(58, 5, 16, 0.92)), url('img/padel-mains-vitre.webp') center/cover;
+    padding: var(--space-xl, 64px) 0;
+}
+
+.replay-teaser__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg, 48px);
+    align-items: center;
+}
+
+.replay-teaser__visual {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.replay-teaser__visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.replay-teaser__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    background: rgba(244,201,65, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease, background 0.3s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: #1a1a1a;
+}
+
+.replay-teaser__play:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: #f4c941;
+}
+
+.replay-teaser__play svg {
+    width: 36px;
+    height: 36px;
+    margin-left: 4px;
+}
+
+.replay-teaser__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.5));
+    pointer-events: none;
+}
+
+.replay-teaser__badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(244,201,65, 0.95);
+    color: #1a1a1a;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 12px;
+    border-radius: 4px;
+    z-index: 2;
+}
+
+.replay-teaser__content {
+    color: var(--light, #f4f0e6);
+}
+
+.replay-teaser__label {
+    display: inline-block;
+    font-family: var(--font-display, 'Turret Road', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #f4c941;
+    margin-bottom: 0.75rem;
+}
+
+.replay-teaser__title {
+    font-family: var(--font-display, 'Turret Road', sans-serif);
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+}
+
+.replay-teaser__title span {
+    color: #f4c941;
+}
+
+.replay-teaser__text {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    opacity: 0.9;
+}
+
+.replay-teaser__features {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.replay-teaser__feature {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--secondary, #cec3b6);
+}
+
+.replay-teaser__feature svg {
+    color: #f4c941;
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .replay-teaser__grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md, 32px);
+    }
+    .replay-teaser__content {
+        text-align: center;
+    }
+    .replay-teaser__features {
+        justify-content: center;
+    }
+}
+
+/* ============================================
+   NAV FIT (compact layout for many items)
+   ============================================ */
+@media (min-width: 1025px) {
+    .nav__list {
+        gap: 1.4rem !important;
+        align-items: center;
+    }
+    .nav__list > li {
+        display: flex;
+        align-items: center;
+    }
+    .nav__link {
+        white-space: nowrap;
+        font-size: 0.85rem !important;
+        letter-spacing: 0.04em !important;
+    }
+}
+
+@media (min-width: 1025px) and (max-width: 1400px) {
+    .nav__list {
+        gap: 1rem !important;
+    }
+    .nav__link {
+        font-size: 0.78rem !important;
+    }
+    .nav__cta {
+        font-size: 0.78rem !important;
+        padding: 0.55rem 0.9rem !important;
+    }
+}
+
+/* ============================================
+   NAV DROPDOWN
+   ============================================ */
+.nav__dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nav__dropdown-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.3rem;
+    line-height: 1;
+}
+
+.nav__dropdown > .nav__link {
+    gap: 0.3rem;
+}
+
+.nav__dropdown-arrow {
+    width: 10px;
+    height: 10px;
+    vertical-align: middle;
+    transition: transform var(--transition-fast);
+}
+
+.nav__dropdown:hover .nav__dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.nav__dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 180px;
+    background: var(--primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 0.5rem 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast);
+    z-index: 100;
+}
+
+.nav__dropdown:hover .nav__dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+}
+
+.nav__dropdown-menu a {
+    display: block;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--light);
+    text-decoration: none;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap;
+}
+
+.nav__dropdown-menu a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent);
+}
+
+@media (max-width: 768px) {
+    .nav__dropdown {
+        flex-direction: column;
+    }
+
+    .nav__dropdown-menu {
+        position: static;
+        transform: none;
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: none;
+        display: none;
+        border-radius: var(--radius-sm);
+        padding: 0.25rem 0;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .nav__dropdown.open .nav__dropdown-menu {
+        display: block;
+    }
+
+    .nav__dropdown-menu a {
+        color: var(--light);
+        text-align: center;
+        font-size: 1rem;
+    }
+
+    .nav__dropdown-menu a:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--accent);
+    }
+}
+
+/* ============================================
+   PROMO POPUP (bottom-right toast)
+   ============================================ */
+.promo-popup {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    max-width: 320px;
+    background: #074459;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem 1.2rem;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.promo-popup.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.promo-popup__content {
+    flex: 1;
+}
+
+.promo-popup__emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.promo-popup__text {
+    font-size: 0.85rem;
+    color: #f4f0e6;
+    line-height: 1.4;
+    margin-top: 0.25rem;
+}
+
+.promo-popup__text strong {
+    color: #f4c941;
+}
+
+.promo-popup__link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f4c941;
+    text-decoration: none;
+}
+
+.promo-popup__link:hover {
+    text-decoration: underline;
+}
+
+.promo-popup__close {
+    background: none;
+    border: none;
+    color: #f4f0e6;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+}
+
+.promo-popup__close:hover {
+    opacity: 1;
+}
+
+@media (max-width: 480px) {
+    .promo-popup {
+        bottom: 80px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}
+
+/* ============================================
+   PAST EVENTS (grayed out)
+   ============================================ */
+.event-card--past {
+    opacity: 0.45;
+    filter: grayscale(60%);
+    pointer-events: auto;
+}
+
+.event-card--past .btn--primary {
+    background: #888;
+    border-color: #888;
+    pointer-events: none;
+}
+
+.event-card--past .event-card-image::after {
+    content: 'Terminé';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #f4f0e6;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    z-index: 2;
+}
+
+.event-card--past .event-card-image {
+    position: relative;
+}
+
+/* ============================================
+   HERO STATS (inside hero section)
+   ============================================ */
+.hero__stats {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(244, 240, 230, 0.92);
+    z-index: 2;
+}
+
+/* ============================================
+   EVENT CARDS (overrides)
+   ============================================ */
+.event-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.event-card-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.event-card-description {
+    flex: 1;
+}
+
+.events-loading,
+.events-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-xl) var(--space-md);
+    color: #888;
+    font-size: 1.1rem;
+}
+
+.event-note {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0.5rem 0 0;
+    font-style: italic;
+}
+
+/* ============================================
+   EVENT TABS
+   ============================================ */
+.event-tab-content {
+    display: none;
+}
+
+.event-tab-content.active {
+    display: block;
+}
+
+/* ============================================
+   ANNIVERSAIRE
+   ============================================ */
+.anniv-intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: center;
+}
+
+.anniv-intro__text h3 {
+    font-size: 1.5rem;
+    margin-bottom: var(--space-sm);
+    color: var(--accent, #f4c941);
+}
+
+.anniv-intro__text p {
+    font-size: 1.1rem;
+    line-height: 1.7;
+}
+
+.anniv-intro__img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg);
+}
+
+.anniv-formule__features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+}
+
+.anniv-feature {
+    text-align: center;
+    padding: var(--space-lg) var(--space-md);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.anniv-feature__icon {
+    color: var(--accent, #f4c941);
+    margin-bottom: var(--space-sm);
+}
+
+.anniv-feature__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: var(--light, #f4f0e6);
+}
+
+.anniv-feature__desc {
+    font-size: 0.9rem;
+    color: var(--secondary, #cec3b6);
+}
+
+.anniv-form-wrapper {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .anniv-intro {
+        grid-template-columns: 1fr;
+    }
+
+    .anniv-formule__features {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   FORM CONDITIONAL FIELDS (contact page)
+   ============================================ */
+.form-conditional {
+    animation: fadeIn 0.3s ease;
+    padding: var(--space-md);
+    margin: var(--space-sm) 0;
+    background: rgba(7,68,89, 0.03);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(7,68,89, 0.1);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
