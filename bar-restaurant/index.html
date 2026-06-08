@@ -176,37 +176,18 @@
 <p class="photo-break-text">Grands écrans, bières artisanales et ambiance sportive</p>
 </div>
 </section>
-<!-- Sports Viewing Section -->
+<!-- Sports Viewing Section : flux FANZO -->
 <section class="section section-dark" id="soirees-sport">
 <div class="container">
 <div class="section-header center" data-animate="">
 <span class="section-header__label"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><rect height="15" rx="2" width="20" x="2" y="7"></rect><polyline points="17 2 12 7 7 2"></polyline></svg> En direct</span>
-<h2 class="section-header__title">Soirées sport</h2>
-<p class="section-header__text">Tous les grands événements sportifs sur nos écrans géants</p>
+<h2 class="section-header__title">Les matchs diffusés au Rebond</h2>
+<p class="section-header__text">Foot, rugby, NBA, F1, Roland-Garros, Champions League… Tous les sports en direct sur nos écrans (écran géant 3m × 2m + plusieurs TV).</p>
 </div>
-<div class="sports-events-grid" data-animate="" data-delay="100">
-<div class="sports-event-card">
-<div class="sports-event-content sports-event-content--soon">
-<span class="sports-soon-icon">⏳</span>
-<h4>Arrive prochainement</h4>
-<p>Le programme des soirées sport sera bientôt disponible</p>
+<div class="fanzo-fixtures" id="fanzo-fixtures" data-animate="" data-delay="100">
+<div class="fanzo-loading">Chargement des prochains matchs…</div>
 </div>
-</div>
-<div class="sports-event-card">
-<div class="sports-event-content sports-event-content--soon">
-<span class="sports-soon-icon">⏳</span>
-<h4>Arrive prochainement</h4>
-<p>Le programme des soirées sport sera bientôt disponible</p>
-</div>
-</div>
-<div class="sports-event-card">
-<div class="sports-event-content sports-event-content--soon">
-<span class="sports-soon-icon">⏳</span>
-<h4>Arrive prochainement</h4>
-<p>Le programme des soirées sport sera bientôt disponible</p>
-</div>
-</div>
-</div>
+<p class="fanzo-credit" data-animate="" data-delay="200">Fixtures fournies par <a href="https://www.fanzo.com/" target="_blank" rel="noopener">FANZO</a></p>
 </div>
 </section>
 <!-- Opening Hours Section -->
@@ -235,21 +216,6 @@
 </div>
 </div>
 </section>
-<!-- Section FANZO : matchs diffusés en direct -->
-<section class="section section-alt" id="sports-live">
-<div class="container">
-<div class="section-header center" data-animate="">
-<span class="section-header__label">📺 À l'affiche</span>
-<h2 class="section-header__title">Les matchs diffusés au Rebond</h2>
-<p class="section-header__text">Foot, rugby, NBA, F1, Roland-Garros, Champions League… Retrouvez tous les sports en direct sur nos écrans (écran géant 3m × 2m + plusieurs TV).</p>
-</div>
-<div class="fanzo-fixtures" id="fanzo-fixtures" data-animate="" data-delay="100">
-<div class="fanzo-loading">Chargement des prochains matchs…</div>
-</div>
-<p class="fanzo-credit" data-animate="" data-delay="200">Fixtures fournies par <a href="https://www.fanzo.com/" target="_blank" rel="noopener">FANZO</a></p>
-</div>
-</section>
-
 <style>
 .fanzo-fixtures {
     display: grid;
@@ -263,32 +229,33 @@
     grid-column: 1 / -1;
     text-align: center;
     padding: 2rem;
-    color: #888;
+    color: rgba(244, 240, 230, 0.6);
     font-style: italic;
 }
 .fanzo-fixture {
-    background: #fff;
-    border: 1px solid rgba(104, 9, 32, 0.15);
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(244, 240, 230, 0.15);
     border-radius: 14px;
     padding: 1rem 1.25rem;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s, background 0.15s;
     text-decoration: none;
-    color: inherit;
+    color: #f4f0e6;
 }
 .fanzo-fixture:hover {
     transform: translateY(-2px);
     border-color: #efa707;
-    box-shadow: 0 8px 24px rgba(104, 9, 32, 0.12);
+    background: rgba(239, 167, 7, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 .fanzo-fixture__head {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     font-size: 0.78rem;
-    color: #680920;
+    color: #efa707;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -298,20 +265,24 @@
     height: 24px;
     object-fit: contain;
     flex-shrink: 0;
+    background: rgba(244, 240, 230, 0.9);
+    border-radius: 4px;
+    padding: 1px;
 }
 .fanzo-fixture__compet {
     font-size: 0.75rem;
-    color: #888;
+    color: rgba(244, 240, 230, 0.7);
     text-transform: none;
     letter-spacing: 0;
     font-weight: 500;
     margin-left: auto;
+    text-align: right;
 }
 .fanzo-fixture__event {
     font-family: var(--font-display, 'Turret Road', sans-serif);
     font-weight: 800;
-    color: #1a1a1a;
-    font-size: 1rem;
+    color: #f4f0e6;
+    font-size: 1.05rem;
     line-height: 1.2;
 }
 .fanzo-fixture__teams {
@@ -324,33 +295,36 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-weight: 600;
-    color: #1a1a1a;
-    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f4f0e6;
+    font-size: 1rem;
 }
 .fanzo-fixture__team-logo {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
+    background: rgba(244, 240, 230, 0.95);
+    border-radius: 4px;
+    padding: 2px;
 }
 .fanzo-fixture__vs {
-    color: #888;
+    color: rgba(244, 240, 230, 0.5);
     font-size: 0.85rem;
 }
 .fanzo-fixture__time {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #680920;
+    color: #f4f0e6;
     font-size: 0.9rem;
     font-weight: 600;
-    border-top: 1px solid rgba(104, 9, 32, 0.08);
+    border-top: 1px solid rgba(244, 240, 230, 0.1);
     padding-top: 0.5rem;
     margin-top: auto;
 }
 .fanzo-fixture__time-day {
-    background: rgba(239, 167, 7, 0.15);
-    color: #efa707;
+    background: rgba(239, 167, 7, 0.18);
+    color: #f4c941;
     padding: 0.2rem 0.5rem;
     border-radius: 6px;
     font-weight: 800;
@@ -360,16 +334,16 @@
 }
 .fanzo-fixture__channel {
     margin-left: auto;
-    color: #888;
+    color: rgba(244, 240, 230, 0.65);
     font-size: 0.78rem;
 }
 .fanzo-credit {
     text-align: center;
     font-size: 0.78rem;
-    color: #888;
-    margin-top: 1rem;
+    color: rgba(244, 240, 230, 0.5);
+    margin-top: 1.5rem;
 }
-.fanzo-credit a { color: #680920; text-decoration: none; font-weight: 600; }
+.fanzo-credit a { color: #f4c941; text-decoration: none; font-weight: 600; }
 .fanzo-credit a:hover { text-decoration: underline; }
 </style>
 
