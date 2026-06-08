@@ -494,7 +494,7 @@
 
     function render(fixtures) {
         var wrap = document.getElementById('planning-wrap');
-        if (!wrap) return;
+        if (!wrap) { console.error('[FANZO] planning-wrap introuvable !'); return; }
 
         // Filtre : matchs à venir (tolérance 2h pour les matchs en cours)
         var nowMs = Date.now() - 2 * 3600 * 1000;
@@ -502,6 +502,7 @@
             var t = new Date(fx.startTimeUtc || fx.startTimeLocal).getTime();
             return !isNaN(t) && t >= nowMs;
         });
+        console.log('[FANZO] Après filtre temporel :', upcoming.length, 'matchs futurs');
 
         if (upcoming.length === 0) {
             wrap.innerHTML = '<div class="fanzo-empty">Aucun match programmé pour le moment. Revenez bientôt !</div>';
@@ -528,23 +529,31 @@
         });
 
         // Render
-        var html = keys.map(function (k) {
-            var grp = groups[k];
-            var hdr = formatDayHeader(grp.date, now);
-            var today = isSameDay(grp.date, now);
-            var nbTxt = grp.fixtures.length + ' match' + (grp.fixtures.length > 1 ? 's' : '');
-            return '<div class="planning-day">' +
-                '<div class="planning-day__head' + (today ? ' planning-day__head--today' : '') + '">' +
-                    '<span class="planning-day__date-num">' + hdr.num + '</span>' +
-                    '<span>' + escapeHtml(hdr.name) + ' · ' + escapeHtml(hdr.full) + '</span>' +
-                    '<span class="planning-day__count">' + nbTxt + '</span>' +
-                '</div>' +
-                '<div class="planning-fixtures">' +
-                    grp.fixtures.map(renderFixture).join('') +
-                '</div>' +
-            '</div>';
-        }).join('');
+        var html;
+        try {
+            html = keys.map(function (k) {
+                var grp = groups[k];
+                var hdr = formatDayHeader(grp.date, now);
+                var today = isSameDay(grp.date, now);
+                var nbTxt = grp.fixtures.length + ' match' + (grp.fixtures.length > 1 ? 's' : '');
+                return '<div class="planning-day">' +
+                    '<div class="planning-day__head' + (today ? ' planning-day__head--today' : '') + '">' +
+                        '<span class="planning-day__date-num">' + hdr.num + '</span>' +
+                        '<span>' + escapeHtml(hdr.name) + ' · ' + escapeHtml(hdr.full) + '</span>' +
+                        '<span class="planning-day__count">' + nbTxt + '</span>' +
+                    '</div>' +
+                    '<div class="planning-fixtures">' +
+                        grp.fixtures.map(renderFixture).join('') +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        } catch (e) {
+            console.error('[FANZO] Erreur rendu :', e);
+            wrap.innerHTML = '<div class="fanzo-error">Erreur d\'affichage : ' + (e.message || e) + '</div>';
+            return;
+        }
 
+        console.log('[FANZO] HTML généré, longueur :', html.length, '— injection dans le DOM');
         wrap.innerHTML = html;
     }
 
@@ -578,6 +587,23 @@
     } else {
         load();
     }
+})();
+</script>
+
+<script>
+(function() {
+    var MONTHS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    fetch("data/events.json").then(function(r){return r.json()}).then(function(data) {
+        var now = new Date(); now.setHours(0,0,0,0);
+        var events = data.events.sort(function(a,b){return a.date.localeCompare(b.date)});
+        var next = null;
+        for (var i = 0; i < events.length; i++) { if (new Date(events[i].date + "T23:59:59") >= now) { next = events[i]; break; } }
+        if (!next) { document.getElementById("event-banner").style.display="none"; document.body.classList.remove("has-event-banner"); return; }
+        var p = next.date.split("-"), day = parseInt(p[2]), month = MONTHS[parseInt(p[1])-1];
+        document.getElementById("event-banner-text").innerHTML = '<svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg> Prochain événement : ' + next.title + ' — ' + day + ' ' + month + ' · ' + next.time_start + ' - ' + next.time_end;
+        var link = document.getElementById("event-banner-link");
+        if (next.registration_link) { link.href = next.registration_link; link.target = "_blank"; link.rel = "noopener"; link.textContent = "S'inscrire →"; }
+    }).catch(function(){ document.getElementById("event-banner").style.display="none"; document.body.classList.remove("has-event-banner"); });
 })();
 </script>
 
