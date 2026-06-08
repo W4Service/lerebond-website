@@ -1,0 +1,181 @@
+/* ============================================
+   THEME V2 — Ajustements fins après find-replace global
+   Loyal Blue (#074459) remplace bordeaux
+   Softsun jaune (#f4c941) remplace doré
+   ============================================ */
+
+/* Boutons primary : sur jaune, texte doit être noir */
+.btn--primary,
+.btn--accent-bg {
+    color: #1a1a1a !important;
+}
+.btn--primary:hover,
+.btn--accent-bg:hover {
+    background: #efa707 !important; /* Filthy brown au hover */
+    color: #1a1a1a !important;
+}
+
+/* Pricing card featured (fond jaune) : titre + prix en noir */
+.pricing-card--featured,
+.pricing-card.featured {
+    color: #1a1a1a !important;
+}
+.pricing-card--featured .pricing-card__title,
+.pricing-card.featured .pricing-card__title,
+.pricing-card--featured .pricing-card__subtitle,
+.pricing-card.featured .pricing-card__subtitle,
+.pricing-card--featured .pricing-card__price,
+.pricing-card.featured .pricing-card__price,
+.pricing-card--featured .pricing-card__feature,
+.pricing-card.featured .pricing-card__feature {
+    color: #1a1a1a !important;
+}
+.pricing-card--featured .pricing-card__badge,
+.pricing-card.featured .pricing-card__badge {
+    background: #074459 !important;
+    color: #f4f0e6 !important;
+}
+
+/* Badge populaire sur les cartes glass (fond clair) : reste bleu */
+.pricing-card__badge {
+    background: #074459 !important;
+    color: #f4f0e6 !important;
+}
+
+/* Section v2 dark (LIGUES & TOURNOIS) : forcer jaune en fond */
+.section-v2--dark {
+    background: #f4c941 !important;
+    color: #1a1a1a !important;
+}
+.section-v2--dark .section-v2__title-light {
+    color: #074459 !important;
+}
+.section-v2--dark .section-v2__title-accent {
+    color: #1a1a1a !important;
+}
+.section-v2--dark .tarif-item-v2__name,
+.section-v2--dark .tarif-item-v2__price {
+    color: #074459 !important;
+}
+.section-v2--dark .tarif-item-v2__desc {
+    color: #1a1a1a !important;
+    opacity: 0.7;
+}
+.section-v2--dark .tarif-tile-v3 {
+    background: #074459 !important;
+    color: #f4f0e6 !important;
+}
+.section-v2--dark .tarif-tile-v3__label,
+.section-v2--dark .tarif-tile-v3__value {
+    color: #f4c941 !important;
+}
+.section-v2--dark .tarif-tile-v3__text {
+    color: rgba(244, 240, 230, 0.85) !important;
+}
+.section-v2--dark .btn--outline-light {
+    border-color: #074459 !important;
+    color: #074459 !important;
+}
+.section-v2--dark .btn--outline-light:hover {
+    background: #074459 !important;
+    color: #f4f0e6 !important;
+}
+
+/* Marquee jaune */
+.marquee-v2 {
+    background: #f4c941 !important;
+}
+.marquee-v2__item,
+.marquee-v2__separator {
+    color: #1a1a1a !important;
+}
+
+/* Mobile CTA : bleu foncé en fond, bouton jaune */
+.mobile-cta {
+    background: rgba(7, 68, 89, 0.95) !important;
+}
+.mobile-cta .btn--primary {
+    background: #f4c941 !important;
+    color: #1a1a1a !important;
+}
+.mobile-cta .btn--light {
+    background: #f4f0e6 !important;
+    color: #074459 !important;
+}
+
+/* Event banner — jaune dominant punch */
+.event-banner {
+    background: #f4c941 !important;
+}
+.event-banner__text,
+.event-banner__link {
+    color: #1a1a1a !important;
+}
+
+/* Promo popup */
+.promo-popup {
+    border: 2px solid #f4c941;
+}
+
+/* Hero stats : sur fond crème, valeurs en bleu foncé */
+.hero__stats .stat__number {
+    color: #074459 !important;
+}
+
+/* Section "Prêt à jouer ?" bg-primary qui est devenue bleu : boutons */
+.bg-primary .btn--primary {
+    background: #f4c941 !important;
+    color: #1a1a1a !important;
+}
+.bg-primary .btn--accent-bg {
+    background: #f4c941 !important;
+    color: #1a1a1a !important;
+}
+
+/* Body background — crème */
+body {
+    background: #f4f0e6;
+}
+
+/* Cards on light sections — bordure subtile bleue */
+.section .card,
+.section .pricing-card {
+    border: 1px solid rgba(7, 68, 89, 0.12);
+}
+
+/* Titles section-header sur fond clair : Loyal Blue */
+.section:not(.bg-primary):not(.bg-dark):not(.section-dark):not(.section-v2--dark) .section-header__title {
+    color: #074459;
+}
+.section:not(.bg-primary):not(.bg-dark):not(.section-dark):not(.section-v2--dark) .section-header__label {
+    color: #efa707;
+}
+
+/* Sur sections sombres */
+.bg-primary .section-header__label,
+.bg-dark .section-header__label,
+.section-dark .section-header__label {
+    color: #f4c941 !important;
+}
+
+/* FAQ items sur fond crème */
+.faq__item {
+    background: rgba(7, 68, 89, 0.04);
+    border: 1px solid rgba(7, 68, 89, 0.1);
+}
+.faq__question {
+    color: #074459 !important;
+}
+
+/* Contact info */
+.contact-info__title {
+    color: #074459 !important;
+}
+.contact-info__label {
+    color: #efa707 !important;
+}
+
+/* Particles canvas hue shift if needed */
+#particles-canvas {
+    opacity: 0.6;
+}

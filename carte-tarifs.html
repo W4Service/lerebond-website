@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Le Rebond - Carte des Tarifs</title>
+<style>
+@font-face {
+    font-family: 'Kanit';
+    src: url('fonts/Kanit-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Kanit';
+    src: url('fonts/Kanit-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Kanit';
+    src: url('fonts/Kanit-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Kanit';
+    src: url('fonts/Kanit-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Kanit';
+    src: url('fonts/Kanit-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Turret Road';
+    src: url('fonts/TurretRoad-ExtraBold.woff2') format('woff2');
+    font-weight: 800;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Turret Road';
+    src: url('fonts/TurretRoad-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 210mm;
+    height: 297mm;
+}
+
+body {
+    font-family: 'Kanit', sans-serif;
+    background: #680920;
+    color: #f4f0e6;
+    margin: 0;
+    padding: 0;
+}
+
+.carte {
+    width: 210mm;
+    height: 297mm;
+    background: #680920;
+    position: relative;
+    overflow: hidden;
+    padding: 8mm 9mm 6mm;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Fond décoratif */
+.carte::before {
+    content: '';
+    position: absolute;
+    top: -25%;
+    right: -20%;
+    width: 55%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(138, 18, 48, 0.5) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.carte::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    left: -15%;
+    width: 45%;
+    height: 50%;
+    background: radial-gradient(circle, rgba(90, 6, 25, 0.6) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Header */
+.carte-header {
+    text-align: center;
+    margin-bottom: 3mm;
+    position: relative;
+    z-index: 1;
+}
+
+.carte-logo {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 32pt;
+    color: #f4f0e6;
+    letter-spacing: 0.08em;
+    line-height: 1;
+}
+
+.carte-subtitle {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 300;
+    font-size: 9pt;
+    color: #f4f0e6;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-top: 1mm;
+}
+
+/* Titre section tarifs */
+.carte-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 15pt;
+    color: #efa707;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin-bottom: 3mm;
+    position: relative;
+    z-index: 1;
+}
+
+/* Badges créneaux */
+.creneau-badges {
+    display: flex;
+    justify-content: center;
+    gap: 2.5mm;
+    margin-bottom: 4mm;
+    position: relative;
+    z-index: 1;
+}
+
+.creneau-badge {
+    font-size: 7pt;
+    font-weight: 400;
+    color: #f4f0e6;
+    opacity: 0.7;
+    background: rgba(26, 26, 26, 0.3);
+    padding: 1mm 3.5mm;
+    border-radius: 20px;
+    border: 1px solid rgba(244, 240, 230, 0.1);
+}
+
+/* Séparateur */
+.divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 240, 230, 0.2), transparent);
+    margin: 3.5mm 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* Section sport */
+.sport-section {
+    position: relative;
+    z-index: 1;
+}
+
+.sport-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 17pt;
+    color: #efa707;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1mm;
+    display: flex;
+    align-items: center;
+    gap: 3mm;
+}
+
+.sport-title::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(239, 167, 7, 0.4), transparent);
+}
+
+.sport-info {
+    font-size: 8pt;
+    font-weight: 300;
+    color: #f4f0e6;
+    opacity: 0.6;
+    margin-bottom: 3mm;
+}
+
+/* Ligne tarif — style pill */
+.tarif-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 2mm;
+}
+
+.tarif-pill {
+    background: rgba(26, 26, 26, 0.35);
+    border: 1px solid rgba(244, 240, 230, 0.06);
+    border-radius: 12px;
+    padding: 2.5mm 4.5mm;
+    display: flex;
+    align-items: center;
+}
+
+.tarif-pill--accent {
+    background: rgba(239, 167, 7, 0.1);
+    border: 1px solid rgba(239, 167, 7, 0.15);
+}
+
+.tarif-pill__label {
+    flex: 1;
+}
+
+.tarif-pill__creneau {
+    font-weight: 600;
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tarif-pill__duree {
+    font-weight: 300;
+    font-size: 7.5pt;
+    opacity: 0.55;
+}
+
+.tarif-pill__price {
+    text-align: right;
+}
+
+.tarif-pill__joueur {
+    font-weight: 700;
+    font-size: 18pt;
+    color: #efa707;
+    line-height: 1;
+}
+
+.tarif-pill__joueur-suffix {
+    font-size: 9pt;
+    font-weight: 400;
+    opacity: 0.7;
+}
+
+.tarif-pill__total {
+    font-weight: 300;
+    font-size: 7pt;
+    color: #f4f0e6;
+    opacity: 0.45;
+    margin-top: 0.3mm;
+}
+
+/* Footer */
+.carte-footer {
+    margin-top: auto;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    padding-top: 3mm;
+    border-top: 1px solid rgba(244, 240, 230, 0.12);
+}
+
+.carte-footer__row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5mm;
+}
+
+.carte-footer p {
+    font-size: 7pt;
+    color: #f4f0e6;
+    opacity: 0.55;
+}
+
+.carte-footer .phone {
+    font-weight: 600;
+    color: #efa707;
+    font-size: 10pt;
+    opacity: 1;
+}
+
+.carte-footer .website {
+    font-weight: 600;
+    font-size: 8pt;
+    opacity: 0.9;
+    letter-spacing: 0.05em;
+}
+
+@media print {
+    body {
+        background: #680920;
+    }
+    .carte {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="carte">
+
+    <!-- Header -->
+    <div class="carte-header">
+        <div class="carte-logo">LE REBOND</div>
+        <div class="carte-subtitle">Padel &amp; Five &bull; Noyon</div>
+    </div>
+
+    <div class="carte-title">Tarifs Location Terrains</div>
+
+    <!-- Badges créneaux -->
+    <div class="creneau-badges">
+        <span class="creneau-badge">Heures creuses : 9h–12h &amp; 14h–18h en semaine</span>
+        <span class="creneau-badge">Heures pleines : soirs, week-ends &amp; jours fériés</span>
+    </div>
+
+    <!-- PADEL -->
+    <div class="sport-section">
+        <div class="sport-title">Padel</div>
+        <div class="sport-info">4 joueurs max &bull; Créneaux de 1h30</div>
+
+        <div class="tarif-pills">
+            <div class="tarif-pill tarif-pill--accent">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures creuses</div>
+                    <div class="tarif-pill__duree">1h30</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">10,50€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">42€ le terrain</div>
+                </div>
+            </div>
+            <div class="tarif-pill">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures pleines</div>
+                    <div class="tarif-pill__duree">1h30</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">15€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">60€ le terrain</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- FIVE -->
+    <div class="sport-section">
+        <div class="sport-title">Five</div>
+        <div class="sport-info">10 joueurs max</div>
+
+        <div class="tarif-pills">
+            <div class="tarif-pill tarif-pill--accent">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures creuses</div>
+                    <div class="tarif-pill__duree">1h</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">7€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">70€ le terrain</div>
+                </div>
+            </div>
+            <div class="tarif-pill tarif-pill--accent">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures creuses</div>
+                    <div class="tarif-pill__duree">1h30</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">10€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">100€ le terrain</div>
+                </div>
+            </div>
+            <div class="tarif-pill tarif-pill--accent">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures creuses</div>
+                    <div class="tarif-pill__duree">2h</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">13€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">130€ le terrain</div>
+                </div>
+            </div>
+            <div class="tarif-pill">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures pleines</div>
+                    <div class="tarif-pill__duree">1h</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">9€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">90€ le terrain</div>
+                </div>
+            </div>
+            <div class="tarif-pill">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures pleines</div>
+                    <div class="tarif-pill__duree">1h30</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">13€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">130€ le terrain</div>
+                </div>
+            </div>
+            <div class="tarif-pill">
+                <div class="tarif-pill__label">
+                    <div class="tarif-pill__creneau">Heures pleines</div>
+                    <div class="tarif-pill__duree">2h</div>
+                </div>
+                <div class="tarif-pill__price">
+                    <div class="tarif-pill__joueur">17€<span class="tarif-pill__joueur-suffix">/joueur</span></div>
+                    <div class="tarif-pill__total">170€ le terrain</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="carte-footer">
+        <div class="carte-footer__row">
+            <p class="address">403 rue de l'Europe, 60400 Noyon</p>
+            <p class="phone">03 44 26 12 98</p>
+            <p class="website">le-rebond.fr</p>
+        </div>
+        <p style="margin-top:1mm">Ouvert 7j/7 &bull; 9h–00h</p>
+    </div>
+
+</div>
+
+</body>
+</html>
