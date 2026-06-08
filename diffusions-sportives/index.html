@@ -555,8 +555,13 @@
                 return r.json();
             })
             .then(function (data) {
-                var fixtures = (data && data.result) ? data.result : (Array.isArray(data) ? data : []);
-                // Log de debug pour diagnostiquer "planning vide"
+                console.log('[FANZO] Réponse brute:', data);
+                var fixtures = [];
+                if (Array.isArray(data)) fixtures = data;
+                else if (data && Array.isArray(data.result)) fixtures = data.result;
+                else if (data && Array.isArray(data.data)) fixtures = data.data;
+                else if (data && Array.isArray(data.fixtures)) fixtures = data.fixtures;
+                else if (data && Array.isArray(data.items)) fixtures = data.items;
                 console.log('[FANZO] Reçu', fixtures.length, 'fixtures, première:', fixtures[0] || null);
                 console.log('[FANZO] Maintenant côté navigateur:', new Date().toISOString(), '(timestamp ms:', Date.now(), ')');
                 render(fixtures);
