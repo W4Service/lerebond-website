@@ -2790,6 +2790,26 @@
         showToast('Affichage TV : ' + labels[mode], 'ok');
     }
 
+    async function updateFormatScore(fmt) {
+        if (guardReadOnly()) return;
+        if (!fmt) return;
+        if (!confirm('Changer le format de score ?\n\nLes matchs en cours et à venir utiliseront le nouveau format. Les scores déjà saisis sur les matchs terminés restent intacts mais ne seront plus modifiables avec le nouveau format.')) return;
+        var res = await supa.from('tournois').update({ format_score: fmt, updated_at: new Date().toISOString() }).eq('id', currentTournoi.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+        currentTournoi = res.data;
+        render();
+        showToast('Format : ' + formatShortLabel(fmt), 'ok');
+    }
+
+    async function updateNoAd(checked) {
+        if (guardReadOnly()) return;
+        var res = await supa.from('tournois').update({ no_ad: !!checked, updated_at: new Date().toISOString() }).eq('id', currentTournoi.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+        currentTournoi = res.data;
+        render();
+        showToast('No-ad : ' + (checked ? 'activé' : 'désactivé'), 'ok');
+    }
+
     function renderHeader() {
         var card = el('div', { class: 'tournoi-card tournoi-header' });
         var info = el('div');
@@ -2842,6 +2862,44 @@
             tvSel.appendChild(opt);
         });
         terrainLine.appendChild(tvSel);
+
+        // Widget format de score (modifiable en cours de tournoi)
+        terrainLine.appendChild(el('span', { style: 'margin-left:1.5rem' }, '🎾 '));
+        var fmtSel = el('select', {
+            class: 'tournoi-input tournoi-input--mini',
+            style: 'width:auto',
+            title: 'Changer le format de score (s\'applique aux matchs non terminés)',
+            onchange: function (e) { updateFormatScore(e.target.value); }
+        });
+        [
+            { v: 'format_b', label: 'B · 2 sets + STB' },
+            { v: 'format_a', label: 'A · 3 sets' },
+            { v: 'format_c', label: 'C · 2 sets 4j + STB' },
+            { v: 'format_d', label: 'D · 1 set 9j' },
+            { v: 'format_e', label: 'E · STB unique' },
+            { v: '1set_6jeux', label: '1 set 6j' },
+            { v: '1set_5jeux', label: '1 set 5j' },
+            { v: '1set_4jeux', label: '1 set 4j' },
+            { v: 'americano', label: 'Americano' },
+            { v: 'libre', label: 'Libre' }
+        ].forEach(function (o) {
+            var opt = el('option', { value: o.v }, o.label);
+            if (currentTournoi.format_score === o.v) opt.selected = true;
+            fmtSel.appendChild(opt);
+        });
+        terrainLine.appendChild(fmtSel);
+
+        // Toggle No-ad
+        var noAdWrap = el('label', { class: 'tournoi-toggle-inline', style: 'margin-left:1rem' });
+        var noAdInp = el('input', {
+            type: 'checkbox',
+            onchange: function (e) { updateNoAd(e.target.checked); }
+        });
+        if (currentTournoi.no_ad) noAdInp.checked = true;
+        noAdWrap.appendChild(noAdInp);
+        noAdWrap.appendChild(el('span', null, ' No-ad'));
+        terrainLine.appendChild(noAdWrap);
+
         info.appendChild(terrainLine);
 
         card.appendChild(info);
