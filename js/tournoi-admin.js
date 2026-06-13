@@ -1343,6 +1343,95 @@
         showToast('Phase finale (maison 3p×4) générée : ' + res.data.length + ' matchs', 'ok');
     }
 
+    // Variante du mode maison 3p×4 où les places 7-9 et 10-12 sont jouées
+    // sous forme de triangulaire (chaque équipe joue les 2 autres).
+    // Identique à maison_3x4 pour le tableau principal (4 équipes) et les places 5-6.
+    async function genererPhaseFinaleMaison3x4Tri() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var rangs = poulesOrdonnees.map(function (p) { return computeClassement(p.id); });
+        if (rangs.length !== 3 || !rangs.every(function (c) { return c.length === 4; })) {
+            showToast('Format maison : il faut exactement 3 poules de 4 équipes.', 'error');
+            return;
+        }
+        var premiers = [
+            { equipe_id: rangs[0][0].id, stats: rangs[0][0] },
+            { equipe_id: rangs[1][0].id, stats: rangs[1][0] },
+            { equipe_id: rangs[2][0].id, stats: rangs[2][0] }
+        ];
+        var deuxiemes = [
+            { equipe_id: rangs[0][1].id, stats: rangs[0][1] },
+            { equipe_id: rangs[1][1].id, stats: rangs[1][1] },
+            { equipe_id: rangs[2][1].id, stats: rangs[2][1] }
+        ];
+        var troisiemes = [rangs[0][2], rangs[1][2], rangs[2][2]];
+        var quatriemes = [rangs[0][3], rangs[1][3], rangs[2][3]];
+
+        var deuxiemesTries = trierParStats(deuxiemes);
+        var meilleur2e = deuxiemesTries[0];
+        var autres2es = deuxiemesTries.slice(1);
+
+        var principal = trierParStats(premiers).concat([meilleur2e]);
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var newMatchs = [];
+        var ordre = 0;
+
+        // Tableau principal : demi 1, demi 2 (suite : finale + 3/4 générés à la fin du round 1)
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: principal[0].equipe_id, equipe_b_id: principal[3].equipe_id
+        }); ordre++;
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: principal[1].equipe_id, equipe_b_id: principal[2].equipe_id
+        }); ordre++;
+
+        // Places 5-6 : les 2 autres 2es
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_5_6',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: autres2es[0].equipe_id, equipe_b_id: autres2es[1].equipe_id
+        }); ordre++;
+
+        // Triangulaire 3èmes (places 7-8-9) : 3 matchs, chacun joue les 2 autres
+        var tri3 = [
+            [troisiemes[0].id, troisiemes[1].id],
+            [troisiemes[0].id, troisiemes[2].id],
+            [troisiemes[1].id, troisiemes[2].id]
+        ];
+        tri3.forEach(function (pair) {
+            newMatchs.push({
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_7_9',
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+                equipe_a_id: pair[0], equipe_b_id: pair[1]
+            }); ordre++;
+        });
+
+        // Triangulaire 4èmes (places 10-11-12) : 3 matchs
+        var tri4 = [
+            [quatriemes[0].id, quatriemes[1].id],
+            [quatriemes[0].id, quatriemes[2].id],
+            [quatriemes[1].id, quatriemes[2].id]
+        ];
+        tri4.forEach(function (pair) {
+            newMatchs.push({
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_10_12',
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+                equipe_a_id: pair[0], equipe_b_id: pair[1]
+            }); ordre++;
+        });
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await updateTournoi({ phase: 'finale' });
+        render();
+        showToast('Phase finale (maison 3p×4 + triangulaires) générée : ' + res.data.length + ' matchs', 'ok');
+    }
+
     // Est-on dans la config exacte 3 poules de 4 équipes (12 équipes) ?
     function isConfig3p4() {
         if (poules.length !== 3) return false;
@@ -1534,14 +1623,16 @@
             var choix = prompt(
                 'Choisis le format de phase finale :\n\n' +
                 '  1 — Générique (seeding standard, bracket adapté à la taille)\n' +
-                '  2 — Maison 3p×4 (demi+finale+3/4 + match 5-6, 7-8, 9-10, 11-12)\n\n' +
-                'Tape 1 ou 2 :',
-                '2'
+                '  2 — Maison 3p×4 (demi+finale+3/4 + match 5-6, 7-8, 9-10, 11-12)\n' +
+                '  3 — Maison 3p×4 + triangulaires (demi+finale+3/4, match 5-6,\n' +
+                '       triangulaire 3èmes pour places 7-9, triangulaire 4èmes pour places 10-12)\n\n' +
+                'Tape 1, 2 ou 3 :',
+                '3'
             );
             if (choix == null) return;
             choix = String(choix).trim();
-            if (choix !== '1' && choix !== '2') { showToast('Choix invalide', 'error'); return; }
-            mode = choix === '2' ? 'maison_3x4' : 'generique';
+            if (choix !== '1' && choix !== '2' && choix !== '3') { showToast('Choix invalide', 'error'); return; }
+            mode = choix === '2' ? 'maison_3x4' : (choix === '3' ? 'maison_3x4_tri' : 'generique');
         } else {
             mode = 'generique';
         }
@@ -1554,6 +1645,9 @@
 
         if (mode === 'maison_3x4') {
             return await genererPhaseFinaleMaison3x4();
+        }
+        if (mode === 'maison_3x4_tri') {
+            return await genererPhaseFinaleMaison3x4Tri();
         }
 
         // 1. Calculer le classement global
@@ -3457,6 +3551,54 @@
             }
         });
 
+        // Triangulaires (3 matchs, 3 équipes) : classement par stats (V puis ±sets puis ±jeux)
+        var triBrackets = [
+            { key: 'places_7_9', start: 7 },
+            { key: 'places_10_12', start: 10 }
+        ];
+        triBrackets.forEach(function (tb) {
+            var ms = byBracket[tb.key];
+            if (!ms || ms.length === 0) return;
+            // Collecter les 3 équipes participantes (unique sur a_id + b_id de tous les matchs)
+            var idsSet = {};
+            ms.forEach(function (m) {
+                if (m.equipe_a_id) idsSet[m.equipe_a_id] = true;
+                if (m.equipe_b_id) idsSet[m.equipe_b_id] = true;
+            });
+            var ids = Object.keys(idsSet);
+            // Stats par équipe sur ce bracket
+            var stats = {};
+            ids.forEach(function (id) { stats[id] = { id: id, v: 0, sg: 0, sp: 0, jg: 0, jp: 0 }; });
+            ms.forEach(function (m) {
+                if (m.status !== 'termine') return;
+                var w = winnerOf(m), l = loserOf(m);
+                if (w && stats[w]) stats[w].v++;
+                // Comptage sets/jeux : on parse score_a / score_b grossièrement
+                var parseScores = function (s) {
+                    return (s || '').toString().trim().split(/[\s,/;]+/).filter(Boolean).map(function (x) { return parseInt(x, 10); }).filter(function (n) { return !isNaN(n); });
+                };
+                var sa = parseScores(m.score_a), sb = parseScores(m.score_b);
+                var setsA = 0, setsB = 0;
+                for (var i = 0; i < Math.min(sa.length, sb.length); i++) {
+                    if (sa[i] > sb[i]) setsA++;
+                    else if (sb[i] > sa[i]) setsB++;
+                    if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].jg += sa[i]; stats[m.equipe_a_id].jp += sb[i]; }
+                    if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].jg += sb[i]; stats[m.equipe_b_id].jp += sa[i]; }
+                }
+                if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].sg += setsA; stats[m.equipe_a_id].sp += setsB; }
+                if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].sg += setsB; stats[m.equipe_b_id].sp += setsA; }
+            });
+            var ranked = ids.map(function (id) { return stats[id]; }).sort(function (a, b) {
+                if (b.v !== a.v) return b.v - a.v;
+                if ((b.sg - b.sp) !== (a.sg - a.sp)) return (b.sg - b.sp) - (a.sg - a.sp);
+                return (b.jg - b.jp) - (a.jg - a.jp);
+            });
+            ranked.forEach(function (s, idx) {
+                places.push({ place: tb.start + idx, equipe_id: s.id, nom: nomFor(s.id) });
+            });
+            offset = Math.max(offset, tb.start + 3);
+        });
+
         // Brackets génériques rang_K (K=2, 3, 4, ...) — calculer dans l'ordre
         var rangBrackets = Object.keys(byBracket)
             .filter(function (k) { return k.indexOf('rang_') === 0; })
@@ -3490,6 +3632,8 @@
         if (b === 'places_7_8') return '🥉 Match places 7-8';
         if (b === 'places_9_10') return '🎾 Match places 9-10';
         if (b === 'places_11_12') return '🎾 Match places 11-12';
+        if (b === 'places_7_9') return '🥉 Triangulaire 3èmes · places 7-9';
+        if (b === 'places_10_12') return '🎾 Triangulaire 4èmes · places 10-12';
         if (b && b.indexOf('places_') === 0) {
             var parts = b.replace('places_', '').split('_');
             return '🎾 Match places ' + parts.join('-');
