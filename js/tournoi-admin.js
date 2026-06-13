@@ -121,6 +121,26 @@
         return eq.nom || '— sans nom —';
     }
 
+    // Affichage 2 lignes (noms gros + prénoms petits dessous). Retourne un Node.
+    // Si pas de joueurs liés, retourne juste le texte legacy sur 1 ligne.
+    function equipeAffichage2L(eq) {
+        if (!eq) return document.createTextNode('?');
+        var j1 = findJoueur(eq.joueur_j1_id);
+        var j2 = findJoueur(eq.joueur_j2_id);
+        if (j1 || j2) {
+            var n1 = j1 && j1.nom ? j1.nom : '?';
+            var n2 = j2 && j2.nom ? j2.nom : '?';
+            var prenoms = [];
+            if (j1 && j1.prenom) prenoms.push(j1.prenom);
+            if (j2 && j2.prenom) prenoms.push(j2.prenom);
+            var wrap = el('span', { class: 'equipe-nom-2l' });
+            wrap.appendChild(el('span', { class: 'equipe-nom-2l__noms' }, n1 + ' / ' + n2));
+            if (prenoms.length) wrap.appendChild(el('span', { class: 'equipe-nom-2l__prenoms' }, prenoms.join(' · ')));
+            return wrap;
+        }
+        return document.createTextNode(eq.nom || '— sans nom —');
+    }
+
     // Crée ou retrouve un joueur (nom + prénom). Renvoie l'id.
     async function upsertJoueur(nom, prenom) {
         nom = (nom || '').trim();
@@ -2245,7 +2265,7 @@
 
             var card2 = el('div', { class: 'pointage-equipe' });
             var head = el('div', { class: 'pointage-equipe-head' });
-            head.appendChild(el('span', { class: 'pointage-equipe-nom' }, equipeAffichage(eq)));
+            head.appendChild(el('span', { class: 'pointage-equipe-nom' }, equipeAffichage2L(eq)));
             if (p) head.appendChild(el('span', { class: 'pointage-poule' }, p.nom));
             card2.appendChild(head);
 
@@ -3016,7 +3036,7 @@
             sortedUnassigned.forEach(function (eq) {
                 var item = el('div', { class: 'equipe-item equipe-item--draggable' });
                 item.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
-                item.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage(eq)));
+                item.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage2L(eq)));
                 item.appendChild(makeNiveauInput(eq));
                 item.appendChild(el('button', { class: 'icon-btn icon-btn--danger', onclick: function () { deleteEquipe(eq.id); }, title: 'Supprimer' }, '🗑'));
                 makeDraggableEquipe(item, eq);
@@ -3082,7 +3102,7 @@
                         if (s && s.mj > 0) {
                             row.appendChild(el('span', { class: 'poule-pos-badge', title: 'Position calculée' }, '#' + s.pos));
                         }
-                        row.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage(eq)));
+                        row.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage2L(eq)));
                         if (s && s.mj > 0) {
                             row.appendChild(el('span', { class: 'poule-stats', title: 'V-D · diff sets · diff jeux' },
                                 s.v + '-' + s.d + ' · ' + ((s.sg - s.sp) >= 0 ? '+' : '') + (s.sg - s.sp)
