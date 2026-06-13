@@ -100,21 +100,20 @@
         return e ? e.nom : '?';
     }
     // Renvoie [ligne1, ligne2] pour l'affichage 2 lignes (utilisé dans les cartes de match).
-    // Si les joueurs sont liés : "Prénom J1 / Prénom J2" en ligne 1, "Nom J1 · Nom J2" en ligne 2.
-    // Sinon : on split eq.nom sur " / " et on met les 2 parties sur 2 lignes.
+    // Ligne 1 (gros) = noms de famille J1 / J2. Ligne 2 (petit) = prénoms J1 · J2.
     function eqLines(equipes, joueurs, id) {
         var e = findEq(equipes, id);
         if (!e) return ['?', ''];
         var j1 = findJoueur(joueurs, e.joueur_j1_id);
         var j2 = findJoueur(joueurs, e.joueur_j2_id);
         if (j1 || j2) {
-            var p1 = j1 && j1.prenom ? j1.prenom : (j1 && j1.nom ? j1.nom : ((e.nom || '').split('/')[0] || '?'));
-            var p2 = j2 && j2.prenom ? j2.prenom : (j2 && j2.nom ? j2.nom : ((e.nom || '').split('/')[1] || '?'));
-            var l1 = String(p1).trim() + ' / ' + String(p2).trim();
-            var noms = [];
-            if (j1 && j1.prenom && j1.nom) noms.push(j1.nom);
-            if (j2 && j2.prenom && j2.nom) noms.push(j2.nom);
-            var l2 = noms.join(' · ');
+            var n1 = j1 && j1.nom ? j1.nom : (j1 && j1.prenom ? j1.prenom : ((e.nom || '').split('/')[0] || '?'));
+            var n2 = j2 && j2.nom ? j2.nom : (j2 && j2.prenom ? j2.prenom : ((e.nom || '').split('/')[1] || '?'));
+            var l1 = String(n1).trim() + ' / ' + String(n2).trim();
+            var prenoms = [];
+            if (j1 && j1.prenom) prenoms.push(j1.prenom);
+            if (j2 && j2.prenom) prenoms.push(j2.prenom);
+            var l2 = prenoms.join(' · ');
             return [l1, l2];
         }
         var parts = (e.nom || '').split('/');
