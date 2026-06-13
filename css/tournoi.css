@@ -948,6 +948,7 @@ select.tournoi-input option {
     color: #f4f0e6;
 }
 .match-equipe:last-child { text-align: right; }
+.match-equipe:last-child .equipe-nom-2l { align-items: flex-end; }
 .match-vs {
     color: rgba(244, 240, 230, 0.5);
     font-weight: 700;

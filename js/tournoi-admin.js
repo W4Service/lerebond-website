@@ -3616,6 +3616,16 @@
         return placeholderLabel(sOrdre, sType, sPouleId);
     }
 
+    // Version 2 lignes (Node) pour les cartes de match : si équipe résolue → nom gros + prénom petit.
+    function equipeLabelNode(m, side) {
+        var id = side === 'a' ? m.equipe_a_id : m.equipe_b_id;
+        if (id) {
+            var eq = equipes.find(function (e) { return e.id === id; });
+            if (eq) return equipeAffichage2L(eq);
+        }
+        return document.createTextNode(equipeLabel(m, side));
+    }
+
     // Combien d'inputs de score afficher selon le format
     // Renvoie { nbSets, labels, hasSuperTb } ou { libre: true }
     function scoreInputsForFormat(format) {
@@ -3925,7 +3935,7 @@
         card.appendChild(header);
 
         var body = el('div', { class: 'match-body' });
-        var spanA = el('span', { class: 'match-equipe' + (eqA ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'a'));
+        var spanA = el('span', { class: 'match-equipe' + (eqA ? '' : ' match-equipe--placeholder') }, equipeLabelNode(m, 'a'));
         // Drag activé si le match n'a pas démarré (refusé sinon par swapEquipesEntreMatchs)
         if (m.status === 'en_attente') makeMatchEquipeDraggable(spanA, m.id, 'a');
         body.appendChild(spanA);
@@ -3981,7 +3991,7 @@
             body.appendChild(el('span', { class: 'match-vs' }, 'vs'));
         }
 
-        var spanB = el('span', { class: 'match-equipe' + (eqB ? '' : ' match-equipe--placeholder') }, equipeLabel(m, 'b'));
+        var spanB = el('span', { class: 'match-equipe' + (eqB ? '' : ' match-equipe--placeholder') }, equipeLabelNode(m, 'b'));
         if (m.status === 'en_attente') makeMatchEquipeDraggable(spanB, m.id, 'b');
         body.appendChild(spanB);
         card.appendChild(body);
