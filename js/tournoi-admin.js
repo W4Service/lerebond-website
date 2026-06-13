@@ -733,16 +733,19 @@
             '  2 — Top 1 + meilleur 2e (' + (nbPoules + 1) + ' équipes au principal)\n';
         if (maison3x4) {
             menu += '  3 — Maison 3p×4 (demi + finale + 3/4 + matchs 5-6, 7-8, 9-10, 11-12)\n';
+            menu += '  5 — Maison 3p×4 + triangulaires (demi + finale + 3/4 + 5-6,\n' +
+                    '       triangulaires complets pour places 7-9 et 10-12)\n';
         }
-        menu += '  4 — Ne rien générer maintenant\n\nTape 1, 2' + (maison3x4 ? ', 3' : '') + ' ou 4 :';
+        menu += '  4 — Ne rien générer maintenant\n\nTape 1, 2' + (maison3x4 ? ', 3, 5' : '') + ' ou 4 :';
 
-        var choix = prompt(menu, maison3x4 ? '3' : '2');
+        var choix = prompt(menu, maison3x4 ? '5' : '2');
         if (choix == null) return;
         choix = String(choix).trim();
         if (choix === '4') return;
         if (choix === '1') return await genererSqueletteGenerique('top1');
         if (choix === '2') return await genererSqueletteGenerique('top1_plus_best2');
         if (choix === '3' && maison3x4) return await genererSqueletteMaison3x4();
+        if (choix === '5' && maison3x4) return await genererSqueletteMaison3x4Tri();
         showToast('Choix invalide', 'error');
     }
 
@@ -824,6 +827,78 @@
         if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
         matchs = matchs.concat(res.data);
         // Tente une 1re résolution au cas où certaines poules sont déjà avancées
+        await propagateRangPoule();
+    }
+
+    // Variante du squelette maison 3p×4 : remplace les matchs places 7-8, 9-10, 11-12
+    // par 2 triangulaires (3 matchs chacun) pour places 7-9 et 10-12.
+    async function genererSqueletteMaison3x4Tri() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        if (poulesOrdonnees.length !== 3) return;
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var base = function (bracket, ordre) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+        var rangP = function (pouleId, rang) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: rang, equipe_a_source_type: 'rang_poule'
+            };
+        };
+        var rangP_b = function (pouleId, rang) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: rang, equipe_b_source_type: 'rang_poule'
+            };
+        };
+        var best2eB = {
+            equipe_b_id: null,
+            equipe_b_source_poule_id: null, equipe_b_source_ordre: null, equipe_b_source_type: 'meilleur_2e'
+        };
+        var autres2eA = function (slot) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: null, equipe_a_source_ordre: slot, equipe_a_source_type: 'autres_2es'
+            };
+        };
+        var autres2eB = function (slot) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: null, equipe_b_source_ordre: slot, equipe_b_source_type: 'autres_2es'
+            };
+        };
+
+        var P1 = poulesOrdonnees[0].id;
+        var P2 = poulesOrdonnees[1].id;
+        var P3 = poulesOrdonnees[2].id;
+        var ordre = 0;
+        var newMatchs = [];
+
+        // Tableau principal (identique au mode maison_3x4)
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P1, 1), best2eB));
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P2, 1), rangP_b(P3, 1)));
+
+        // Places 5-6 : les 2 autres 2es
+        newMatchs.push(Object.assign({}, base('places_5_6', ordre++), autres2eA(1), autres2eB(2)));
+
+        // Triangulaire places 7-9 : 3es des poules P1×P2, P1×P3, P2×P3
+        newMatchs.push(Object.assign({}, base('places_7_9', ordre++), rangP(P1, 3), rangP_b(P2, 3)));
+        newMatchs.push(Object.assign({}, base('places_7_9', ordre++), rangP(P1, 3), rangP_b(P3, 3)));
+        newMatchs.push(Object.assign({}, base('places_7_9', ordre++), rangP(P2, 3), rangP_b(P3, 3)));
+
+        // Triangulaire places 10-12 : 4es des poules P1×P2, P1×P3, P2×P3
+        newMatchs.push(Object.assign({}, base('places_10_12', ordre++), rangP(P1, 4), rangP_b(P2, 4)));
+        newMatchs.push(Object.assign({}, base('places_10_12', ordre++), rangP(P1, 4), rangP_b(P3, 4)));
+        newMatchs.push(Object.assign({}, base('places_10_12', ordre++), rangP(P2, 4), rangP_b(P3, 4)));
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
         await propagateRangPoule();
     }
 
@@ -3717,6 +3792,23 @@
                 },
                 title: 'Crée le squelette de phase finale avec placeholders (qui se rempliront automatiquement)'
             }, '🏆 Pré-générer la phase finale'));
+        }
+
+        // === Regénérer le squelette : visible si finale existante mais aucun match commencé ===
+        if (matchsFinale.length > 0 && matchsFinale.every(function (m) { return m.status === 'en_attente'; })) {
+            card.appendChild(el('button', {
+                class: 'btn-live btn-live--outline',
+                style: 'width:100%;margin-top:0.5rem',
+                onclick: async function () {
+                    if (guardReadOnly()) return;
+                    if (!confirm('Supprimer la phase finale actuelle et la regénérer ?\n\nAucun match de la phase finale n\'a été commencé, donc rien à perdre.')) return;
+                    await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'finale');
+                    matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
+                    await squeletteAutoSelonConfig();
+                    render();
+                },
+                title: 'Efface la phase finale actuelle et propose un nouveau format'
+            }, '🔄 Regénérer la phase finale'));
         }
 
         // === Section Phase finale ===
