@@ -30,11 +30,19 @@
         letter-spacing: 0.05em;
         text-transform: uppercase;
         color: #efa707;
-        margin: 0 0 1rem;
+        margin: 0 0 1.25rem;
         text-align: center;
     }
+    .menu-pages {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+        max-width: 900px;
+        align-items: center;
+    }
     .menu-img {
-        max-width: 100%;
+        width: 100%;
         height: auto;
         display: block;
         background: #f4f0e6;
@@ -42,7 +50,7 @@
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     .menu-actions {
-        margin-top: 1.25rem;
+        margin-top: 1.5rem;
         display: flex;
         gap: 0.75rem;
         flex-wrap: wrap;
@@ -69,9 +77,13 @@
 <body>
 <div class="menu-wrap">
     <h1 class="menu-title">Le Rebond · Menu Bar &amp; Restaurant</h1>
-    <img class="menu-img" src="menu/menu.png" alt="Menu Le Rebond Bar &amp; Restaurant" loading="eager">
+    <div class="menu-pages">
+        <img class="menu-img" src="menu/5.png" alt="Menu Le Rebond — page 1" loading="eager">
+        <img class="menu-img" src="menu/6.png" alt="Menu Le Rebond — page 2" loading="lazy">
+        <img class="menu-img" src="menu/7.png" alt="Menu Le Rebond — page 3" loading="lazy">
+        <img class="menu-img" src="menu/8.png" alt="Menu Le Rebond — page 4" loading="lazy">
+    </div>
     <div class="menu-actions">
-        <a class="menu-link" href="menu/menu.png" download>📥 Télécharger</a>
         <a class="menu-link menu-link--ghost" href="reserver-restaurant/">Réserver une table</a>
     </div>
 </div>
