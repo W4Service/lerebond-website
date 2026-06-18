@@ -412,18 +412,35 @@
         document.getElementById('live-matchs').innerHTML = liveHtml;
 
         // Prochains matchs à lancer (en_attente, avec ou sans équipes assignées — on affiche
-        // les placeholders type "Gagnant M1", "PM2", "1er Poule A" pour les matchs avec dépendances)
-        var prochains = [];
+        // les placeholders type "Gagnant M1", "PM2", "1er Poule A" pour les matchs avec dépendances).
+        // Regroupés par terrain puis entrelacés (round-robin) pour qu'on voie tous les terrains.
+        var byTerrain = {};
         for (var p = 0; p < matchs.length; p++) {
             var m = matchs[p];
             if (m.phase !== 'poule') continue;
             if (m.status !== 'en_attente') continue;
-            prochains.push(m);
+            var t = m.terrain || 0;
+            (byTerrain[t] = byTerrain[t] || []).push(m);
         }
-        prochains.sort(function (a, b) {
-            if (a.terrain !== b.terrain) return (a.terrain || 99) - (b.terrain || 99);
-            return a.ordre - b.ordre;
+        var terrainKeys = Object.keys(byTerrain).map(Number).sort(function (a, b) { return a - b; });
+        terrainKeys.forEach(function (t) {
+            byTerrain[t].sort(function (a, b) { return a.ordre - b.ordre; });
         });
+        // Round-robin : 1 match du terrain 1, puis 1 du 2, puis 1 du 3, puis 2e du 1, etc.
+        var prochains = [];
+        var idx = 0;
+        var anyLeft = true;
+        while (anyLeft) {
+            anyLeft = false;
+            for (var ti = 0; ti < terrainKeys.length; ti++) {
+                var list = byTerrain[terrainKeys[ti]];
+                if (idx < list.length) {
+                    prochains.push(list[idx]);
+                    anyLeft = true;
+                }
+            }
+            idx++;
+        }
         var prochainsHtml = '';
         if (prochains.length === 0) {
             prochainsHtml = '<div class="tv-empty">Tous les matchs sont joués ou en cours</div>';
@@ -457,11 +474,31 @@
         }
         document.getElementById('live-matchs').innerHTML = liveHtml;
 
-        // Prochains matchs phase finale (avec ou sans équipes assignées, placeholders OK)
-        var prochains = matchs.filter(function (m) {
-            return m.phase === 'finale' && m.status === 'en_attente';
+        // Prochains matchs phase finale : entrelacés par terrain pour qu'on voie tous les terrains
+        var byTerrainF = {};
+        matchs.forEach(function (m) {
+            if (m.phase !== 'finale' || m.status !== 'en_attente') return;
+            var t = m.terrain || 0;
+            (byTerrainF[t] = byTerrainF[t] || []).push(m);
         });
-        prochains.sort(function (a, b) { return a.ordre - b.ordre; });
+        var terrainKeysF = Object.keys(byTerrainF).map(Number).sort(function (a, b) { return a - b; });
+        terrainKeysF.forEach(function (t) {
+            byTerrainF[t].sort(function (a, b) { return a.ordre - b.ordre; });
+        });
+        var prochains = [];
+        var idxF = 0;
+        var anyLeftF = true;
+        while (anyLeftF) {
+            anyLeftF = false;
+            for (var tiF = 0; tiF < terrainKeysF.length; tiF++) {
+                var listF = byTerrainF[terrainKeysF[tiF]];
+                if (idxF < listF.length) {
+                    prochains.push(listF[idxF]);
+                    anyLeftF = true;
+                }
+            }
+            idxF++;
+        }
         var prochainsHtml = '';
         if (prochains.length === 0) {
             prochainsHtml = '<div class="tv-empty">Aucun match programmé</div>';
