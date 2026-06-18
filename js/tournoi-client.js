@@ -463,9 +463,12 @@
         });
         root.appendChild(terrainsSection);
 
-        // Phase finale : brackets si la phase est démarrée
+        // Phase finale : on affiche seulement si la phase a vraiment démarré (pas juste un squelette pré-généré).
+        // Critère : currentTournoi.phase === 'finale' OU au moins un match finale a démarré.
         var matchsFinale = matchs.filter(function (m) { return m.phase === 'finale'; });
-        if (matchsFinale.length > 0) {
+        var finalePhaseDemarree = currentTournoi && currentTournoi.phase === 'finale';
+        var auMoinsUnMatchFinaleCommence = matchsFinale.some(function (m) { return m.status === 'en_cours' || m.status === 'termine'; });
+        if (matchsFinale.length > 0 && (finalePhaseDemarree || auMoinsUnMatchFinaleCommence)) {
             var finaleSection = el('div', { class: 'finale-live-section' });
             finaleSection.appendChild(el('h2', { class: 'live-section-title' }, '🏆 Phase finale'));
 
