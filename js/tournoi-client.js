@@ -416,12 +416,18 @@
             root.appendChild(liveSection);
         }
 
-        // Vue par terrain (matchs à venir + résultats)
+        // Vue par terrain (matchs à venir + résultats).
+        // On exclut le squelette de phase finale tant que celle-ci n'a pas démarré
+        // (sinon les placeholders "PM1 vs GM2" pollueraient la liste).
         var byTerrain = {};
         var maxTerrain = currentTournoi.nb_terrains || 1;
         for (var t = 1; t <= maxTerrain; t++) byTerrain[t] = [];
+        var finalePhaseActiveTerrains = (currentTournoi && currentTournoi.phase === 'finale')
+            || matchs.some(function (m) { return m.phase === 'finale' && (m.status === 'en_cours' || m.status === 'termine'); });
         matchs.forEach(function (m) {
-            if (m.terrain && byTerrain[m.terrain]) byTerrain[m.terrain].push(m);
+            if (!m.terrain || !byTerrain[m.terrain]) return;
+            if (m.phase === 'finale' && !finalePhaseActiveTerrains) return;
+            byTerrain[m.terrain].push(m);
         });
 
         var terrainsSection = el('div', { class: 'terrains-section' });
