@@ -2850,6 +2850,14 @@
         eqs.forEach(function (e) {
             stats[e.id] = { id: e.id, nom: equipeAffichage(e), mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
         });
+        // Fallback : si un match a poule_id=this mais que l'équipe a été déplacée
+        // dans une autre poule, on ajoute quand même une ligne de stats pour elle
+        // (sinon des matchs terminés étaient silencieusement ignorés).
+        var ajouterEquipeOrpheline = function (eqId) {
+            if (!eqId || stats[eqId]) return;
+            var e = equipes.find(function (x) { return x.id === eqId; });
+            if (e) stats[eqId] = { id: eqId, nom: equipeAffichage(e), mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0, orpheline: true };
+        };
         var fmt = currentTournoi && currentTournoi.format_score;
         var rule = FORMAT_RULES[fmt] || FORMAT_RULES.libre;
 
@@ -2858,6 +2866,8 @@
         });
 
         matchsPoule.forEach(function (m) {
+            ajouterEquipeOrpheline(m.equipe_a_id);
+            ajouterEquipeOrpheline(m.equipe_b_id);
             if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) return;
             stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
 
@@ -2894,6 +2904,92 @@
         arr.forEach(function (s, i) { s.pos = i + 1; });
         return arr;
     }
+
+    // Diagnostic du classement : identifie les matchs problématiques
+    // (équipes hors-poule, poule_id incohérent, vainqueur absent, etc.)
+    function diagnostiquerClassement() {
+        var rapport = [];
+        rapport.push('=== DIAGNOSTIC CLASSEMENT ===');
+        rapport.push('Tournoi : ' + (currentTournoi && currentTournoi.nom));
+        rapport.push('');
+
+        var equipesParPoule = {};
+        equipes.forEach(function (e) {
+            (equipesParPoule[e.poule_id] = equipesParPoule[e.poule_id] || []).push(e);
+        });
+
+        poules.forEach(function (p) {
+            rapport.push('--- POULE : ' + p.nom + ' (id=' + p.id + ') ---');
+            var eqsPoule = equipesParPoule[p.id] || [];
+            rapport.push('Équipes : ' + eqsPoule.length);
+            eqsPoule.forEach(function (e) {
+                rapport.push('  • ' + equipeAffichage(e) + ' (id=' + e.id + ')');
+            });
+
+            var matchsPoule = matchs.filter(function (m) {
+                return m.poule_id === p.id && m.phase === 'poule';
+            });
+            rapport.push('Matchs poule : ' + matchsPoule.length);
+            var matchsCompteurMJ = {};
+            eqsPoule.forEach(function (e) { matchsCompteurMJ[e.id] = 0; });
+
+            matchsPoule.forEach(function (m) {
+                var problemes = [];
+                if (m.status !== 'termine') problemes.push('STATUT=' + m.status);
+                var eqA = equipes.find(function (e) { return e.id === m.equipe_a_id; });
+                var eqB = equipes.find(function (e) { return e.id === m.equipe_b_id; });
+                if (!eqA) problemes.push('EQUIPE_A INCONNUE (id=' + m.equipe_a_id + ')');
+                else if (eqA.poule_id !== p.id) problemes.push('EQUIPE_A pas dans cette poule (elle est dans poule_id=' + eqA.poule_id + ')');
+                if (!eqB) problemes.push('EQUIPE_B INCONNUE (id=' + m.equipe_b_id + ')');
+                else if (eqB.poule_id !== p.id) problemes.push('EQUIPE_B pas dans cette poule (elle est dans poule_id=' + eqB.poule_id + ')');
+                if (m.status === 'termine' && !m.vainqueur_id) problemes.push('TERMINÉ mais vainqueur_id absent');
+                if (m.status === 'termine' && eqA && eqB && eqA.poule_id === p.id && eqB.poule_id === p.id) {
+                    matchsCompteurMJ[m.equipe_a_id]++;
+                    matchsCompteurMJ[m.equipe_b_id]++;
+                }
+                var ligne = '  Match #' + (m.ordre + 1) + ' [' + m.status + '] '
+                    + (eqA ? equipeAffichage(eqA) : '?') + ' vs '
+                    + (eqB ? equipeAffichage(eqB) : '?')
+                    + ' score=' + (m.score_a || '∅') + '/' + (m.score_b || '∅');
+                if (problemes.length > 0) ligne += '  ⚠️ ' + problemes.join(' | ');
+                rapport.push(ligne);
+            });
+
+            rapport.push('MJ comptés par équipe (matchs terminés cohérents) :');
+            eqsPoule.forEach(function (e) {
+                rapport.push('  • ' + equipeAffichage(e) + ' : ' + matchsCompteurMJ[e.id]);
+            });
+            rapport.push('');
+        });
+
+        // Matchs "poule" sans poule_id ou avec poule_id orphelin
+        var orphelins = matchs.filter(function (m) {
+            if (m.phase !== 'poule') return false;
+            return !poules.find(function (p) { return p.id === m.poule_id; });
+        });
+        if (orphelins.length > 0) {
+            rapport.push('⚠️ MATCHS POULE ORPHELINS (poule_id introuvable) : ' + orphelins.length);
+            orphelins.forEach(function (m) {
+                rapport.push('  Match poule_id=' + m.poule_id + ' status=' + m.status + ' equipe_a_id=' + m.equipe_a_id + ' equipe_b_id=' + m.equipe_b_id);
+            });
+        }
+
+        var txt = rapport.join('\n');
+        console.log(txt);
+        // Affiche aussi dans une fenêtre pour faciliter la copie
+        try {
+            var w = window.open('', '_blank');
+            if (w) {
+                w.document.write('<pre style="font-family:monospace;font-size:13px;padding:1rem;background:#222;color:#eee;white-space:pre-wrap">' + txt.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>');
+                w.document.title = 'Diagnostic classement';
+            } else {
+                showToast('Diagnostic dans la console (popup bloquée)', 'ok');
+            }
+        } catch (e) {
+            showToast('Diagnostic dans la console', 'ok');
+        }
+    }
+    window.diagnostiquerClassement = diagnostiquerClassement; // accessible depuis la console
 
     // Durée moyenne d'un match en minutes selon le format de score
     function dureeMatchMin(format, noAd) {

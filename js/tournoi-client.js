@@ -131,6 +131,12 @@
         eqs.forEach(function (e) {
             stats[e.id] = { id: e.id, nom: e.nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
         });
+        // Fallback : équipe déplacée mais qui a un match terminé dans cette poule → on l'ajoute
+        var ajouterEquipeOrpheline = function (eqId) {
+            if (!eqId || stats[eqId]) return;
+            var e = equipes.find(function (x) { return x.id === eqId; });
+            if (e) stats[eqId] = { id: eqId, nom: e.nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0, orpheline: true };
+        };
         var fmt = currentTournoi && currentTournoi.format_score;
         var hasSets = FORMAT_HAS_SETS[fmt];
 
@@ -138,6 +144,8 @@
             return m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine';
         });
         matchsPoule.forEach(function (m) {
+            ajouterEquipeOrpheline(m.equipe_a_id);
+            ajouterEquipeOrpheline(m.equipe_b_id);
             if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) return;
             stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
             if (m.vainqueur_id === m.equipe_a_id) { stats[m.equipe_a_id].v++; stats[m.equipe_b_id].d++; }
