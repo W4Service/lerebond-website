@@ -155,10 +155,22 @@
         for (var i2 = 0; i2 < eqs.length; i2++) {
             stats[eqs[i2].id] = { id: eqs[i2].id, nom: eqs[i2].nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
         }
+        // Fallback : équipe déplacée mais qui a un match terminé dans cette poule → on l'ajoute
+        var ajouterEquipeOrpheline = function (eqId) {
+            if (!eqId || stats[eqId]) return;
+            for (var ei = 0; ei < equipes.length; ei++) {
+                if (equipes[ei].id === eqId) {
+                    stats[eqId] = { id: eqId, nom: equipes[ei].nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0, orpheline: true };
+                    return;
+                }
+            }
+        };
         var splitter = /[\s,\/;]+/;
         for (var k = 0; k < matchs.length; k++) {
             var m = matchs[k];
             if (m.poule_id !== pouleId || m.phase !== 'poule' || m.status !== 'termine') continue;
+            ajouterEquipeOrpheline(m.equipe_a_id);
+            ajouterEquipeOrpheline(m.equipe_b_id);
             if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) continue;
             stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
             if (m.vainqueur_id === m.equipe_a_id) { stats[m.equipe_a_id].v++; stats[m.equipe_b_id].d++; }
