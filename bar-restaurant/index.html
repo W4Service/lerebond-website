@@ -169,9 +169,14 @@
 <h2 class="section-header__title">À manger &amp; à boire</h2>
 <p class="section-header__text">Une sélection gourmande pour tous les goûts</p>
 </div>
-<div class="text-center carte-placeholder" data-animate="" data-delay="100">
-<p class="text-muted carte-placeholder__title">Carte en cours d'établissement</p>
-<p class="carte-placeholder__sub">Notre carte sera bientôt disponible. Restez connectés !</p>
+<div class="carte-preview" data-animate="" data-delay="100">
+<a href="menu/" class="carte-preview__link" aria-label="Voir tout le menu">
+<img src="menu/5.png" alt="Aperçu du menu Le Rebond" class="carte-preview__img" loading="lazy">
+</a>
+<div class="carte-preview__actions">
+<a class="btn btn--primary" href="menu/">📖 Voir tout le menu</a>
+<a class="btn btn--secondary" href="menu/menu.pdf" download="menu-le-rebond.pdf">📥 Télécharger (PDF)</a>
+</div>
 </div>
 </div>
 </section>
@@ -226,11 +231,48 @@
 </div>
 </section>
 <style>
+.carte-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 2rem auto 1rem;
+}
+.carte-preview__link {
+    display: block;
+    max-width: 480px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.carte-preview__link:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+.carte-preview__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #f4f0e6;
+}
+.carte-preview__actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
 .fanzo-fixtures {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 1rem;
-    margin: 2rem 0 1rem;
+    margin: 2rem auto 1rem;
+}
+.fanzo-fixtures > .fanzo-fixture {
+    flex: 1 1 280px;
+    max-width: 360px;
 }
 .fanzo-loading,
 .fanzo-empty,
