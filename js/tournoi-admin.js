@@ -572,15 +572,19 @@
     // Ordonnance les nouveaux matchs en vagues sans conflit, sur T1/T2 (si 1 seule poule).
     async function genererMatchsRetour() {
         if (guardReadOnly()) return;
-        if (!tousMatchsAllerTermines()) {
-            showToast('Termine tous les matchs aller avant de lancer les retours.', 'error');
-            return;
-        }
         if (matchsRetourExistent()) {
             showToast('Les matchs retour ont déjà été générés.', 'error');
             return;
         }
-        if (!confirm('Lancer les matchs retour ?\n\nChaque équipe rejouera contre toutes les autres dans l\'autre sens. Le classement de poule prendra en compte aller + retour.')) return;
+        // On accepte de lancer les retours même si tous les matchs aller ne sont pas terminés.
+        // Les retours seront ajoutés à la fin de la programmation : les équipes joueront
+        // d'abord leur aller puis enchaîneront avec leur retour.
+        var allerTermines = tousMatchsAllerTermines();
+        var msg = 'Lancer les matchs retour ?\n\nChaque équipe rejouera contre toutes les autres dans l\'autre sens. Le classement de poule prendra en compte aller + retour.';
+        if (!allerTermines) {
+            msg = '⚠️ Tous les matchs aller ne sont pas terminés.\n\n' + msg + '\n\nLes matchs retour seront ajoutés à la programmation (les équipes finiront leur aller puis enchaîneront).';
+        }
+        if (!confirm(msg)) return;
 
         var seulePoule = poules.length === 1;
         var nbTerrains = currentTournoi.nb_terrains || 1;
@@ -3948,13 +3952,14 @@
             card.appendChild(pouleSection);
         }
 
-        // === Bouton "Lancer matchs retour" : visible quand l'aller est terminé et que les retours n'existent pas ===
-        if (tousMatchsAllerTermines() && !matchsRetourExistent()) {
+        // === Bouton "Lancer matchs retour" : visible dès qu'il y a au moins 1 match aller créé et que les retours n'existent pas
+        // (avant : nécessitait que TOUS les matchs aller soient terminés — trop restrictif pour poules courtes).
+        if (matchsPoule.some(function (m) { return !m.is_retour; }) && !matchsRetourExistent()) {
             card.appendChild(el('button', {
                 class: 'btn-live btn-live--outline',
                 style: 'width:100%;margin-top:1rem',
                 onclick: genererMatchsRetour,
-                title: 'Crée 6 matchs retour (paires inversées). Le classement de poule prendra en compte aller + retour.'
+                title: 'Crée les matchs retour (paires inversées) pour toutes les paires d\'équipes des poules. Le classement prendra en compte aller + retour.'
             }, '🔄 Lancer les matchs retour (optionnel)'));
         }
 
