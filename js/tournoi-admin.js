@@ -572,28 +572,85 @@
     // Ordonnance les nouveaux matchs en vagues sans conflit, sur T1/T2 (si 1 seule poule).
     async function genererMatchsRetour() {
         if (guardReadOnly()) return;
-        if (matchsRetourExistent()) {
-            showToast('Les matchs retour ont déjà été générés.', 'error');
+
+        // Sélection des poules concernées : si les poules ont des tailles différentes,
+        // on propose un menu pour choisir lesquelles. Sinon, toutes par défaut.
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var taillesParPoule = {};
+        poulesOrdonnees.forEach(function (p) {
+            taillesParPoule[p.id] = equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        var taillesUniques = Object.keys(taillesParPoule).map(function (k) { return taillesParPoule[k]; })
+            .filter(function (v, i, a) { return a.indexOf(v) === i; });
+
+        var poulesSelectionnees;
+        if (taillesUniques.length > 1 && poulesOrdonnees.length > 1) {
+            // Menu : 'all' / 'small' (poules de taille < max) / 'custom' par poule
+            var maxTaille = Math.max.apply(null, taillesUniques);
+            var minTaille = Math.min.apply(null, taillesUniques);
+            var lignes = poulesOrdonnees.map(function (p, idx) {
+                return '  ' + (idx + 1) + ' — ' + p.nom + ' (' + taillesParPoule[p.id] + ' équipes)';
+            });
+            var menu = 'Sur quelles poules veux-tu lancer les matchs retour ?\n\n' +
+                '  A — Toutes les poules\n' +
+                '  P — Uniquement les poules de ' + minTaille + ' équipes (' + poulesOrdonnees.filter(function (p) { return taillesParPoule[p.id] === minTaille; }).length + ' poule(s))\n' +
+                '  G — Uniquement les poules de ' + maxTaille + ' équipes\n' +
+                '  C — Choix personnalisé (saisir les numéros séparés par virgule, ex: "1,3")\n\n' +
+                'Poules disponibles :\n' + lignes.join('\n') + '\n\nTape A, P, G ou C :';
+            var choix = prompt(menu, 'P');
+            if (choix == null) return;
+            choix = String(choix).trim().toUpperCase();
+            if (choix === 'A') {
+                poulesSelectionnees = poulesOrdonnees.map(function (p) { return p.id; });
+            } else if (choix === 'P') {
+                poulesSelectionnees = poulesOrdonnees.filter(function (p) { return taillesParPoule[p.id] === minTaille; }).map(function (p) { return p.id; });
+            } else if (choix === 'G') {
+                poulesSelectionnees = poulesOrdonnees.filter(function (p) { return taillesParPoule[p.id] === maxTaille; }).map(function (p) { return p.id; });
+            } else if (choix === 'C') {
+                var saisie = prompt('Numéros des poules (séparés par virgule) :\n\n' + lignes.join('\n'), '1');
+                if (saisie == null) return;
+                var indices = saisie.split(',').map(function (s) { return parseInt(s.trim(), 10) - 1; }).filter(function (n) { return !isNaN(n) && n >= 0 && n < poulesOrdonnees.length; });
+                if (indices.length === 0) { showToast('Aucune poule valide sélectionnée', 'error'); return; }
+                poulesSelectionnees = indices.map(function (i) { return poulesOrdonnees[i].id; });
+            } else {
+                showToast('Choix invalide', 'error');
+                return;
+            }
+        } else {
+            poulesSelectionnees = poulesOrdonnees.map(function (p) { return p.id; });
+        }
+
+        // Vérif : aucune des poules sélectionnées n'a déjà des matchs retour
+        var poulesAvecRetour = poulesSelectionnees.filter(function (pid) {
+            return matchs.some(function (m) { return m.phase === 'poule' && m.is_retour && m.poule_id === pid; });
+        });
+        if (poulesAvecRetour.length > 0) {
+            var nomsConflit = poules.filter(function (p) { return poulesAvecRetour.indexOf(p.id) >= 0; }).map(function (p) { return p.nom; }).join(', ');
+            showToast('Les retours existent déjà pour : ' + nomsConflit, 'error');
             return;
         }
-        // On accepte de lancer les retours même si tous les matchs aller ne sont pas terminés.
-        // Les retours seront ajoutés à la fin de la programmation : les équipes joueront
-        // d'abord leur aller puis enchaîneront avec leur retour.
-        var allerTermines = tousMatchsAllerTermines();
-        var msg = 'Lancer les matchs retour ?\n\nChaque équipe rejouera contre toutes les autres dans l\'autre sens. Le classement de poule prendra en compte aller + retour.';
-        if (!allerTermines) {
-            msg = '⚠️ Tous les matchs aller ne sont pas terminés.\n\n' + msg + '\n\nLes matchs retour seront ajoutés à la programmation (les équipes finiront leur aller puis enchaîneront).';
+
+        // Confirmation finale + avertissement si l'aller n'est pas terminé sur les poules sélectionnées
+        var matchsAllerSel = matchs.filter(function (m) {
+            return m.phase === 'poule' && !m.is_retour && poulesSelectionnees.indexOf(m.poule_id) >= 0;
+        });
+        var allerTerminesSel = matchsAllerSel.length > 0 && matchsAllerSel.every(function (m) { return m.status === 'termine'; });
+        var nomsPoulesSel = poulesOrdonnees.filter(function (p) { return poulesSelectionnees.indexOf(p.id) >= 0; }).map(function (p) { return p.nom; }).join(', ');
+        var msg = 'Lancer les matchs retour pour : ' + nomsPoulesSel + ' ?\n\nChaque équipe rejouera contre toutes les autres dans l\'autre sens. Le classement prendra en compte aller + retour.';
+        if (!allerTerminesSel) {
+            msg = '⚠️ Tous les matchs aller des poules sélectionnées ne sont pas terminés.\n\n' + msg + '\n\nLes matchs retour seront ajoutés à la programmation.';
         }
         if (!confirm(msg)) return;
 
-        var seulePoule = poules.length === 1;
+        var seulePoule = poulesSelectionnees.length === 1 && poules.length === 1;
         var nbTerrains = currentTournoi.nb_terrains || 1;
         var nbTerrainsUtilises = seulePoule ? Math.min(2, nbTerrains) : 1;
 
-        // On regroupe les matchs aller par poule
+        // On regroupe les matchs aller par poule (seulement les poules sélectionnées)
         var byPoule = {};
         matchs.filter(function (m) {
-            return m.phase === 'poule' && !m.is_retour && m.equipe_a_id && m.equipe_b_id;
+            return m.phase === 'poule' && !m.is_retour && m.equipe_a_id && m.equipe_b_id
+                && poulesSelectionnees.indexOf(m.poule_id) >= 0;
         }).forEach(function (m) {
             (byPoule[m.poule_id] = byPoule[m.poule_id] || []).push(m);
         });
@@ -3952,14 +4009,19 @@
             card.appendChild(pouleSection);
         }
 
-        // === Bouton "Lancer matchs retour" : visible dès qu'il y a au moins 1 match aller créé et que les retours n'existent pas
-        // (avant : nécessitait que TOUS les matchs aller soient terminés — trop restrictif pour poules courtes).
-        if (matchsPoule.some(function (m) { return !m.is_retour; }) && !matchsRetourExistent()) {
+        // === Bouton "Lancer matchs retour" : visible s'il existe au moins une poule
+        // qui a des matchs aller mais pas encore de matchs retour
+        var poulesSansRetour = poules.filter(function (p) {
+            var aAller = matchsPoule.some(function (m) { return m.poule_id === p.id && !m.is_retour; });
+            var aRetour = matchsPoule.some(function (m) { return m.poule_id === p.id && m.is_retour; });
+            return aAller && !aRetour;
+        });
+        if (poulesSansRetour.length > 0) {
             card.appendChild(el('button', {
                 class: 'btn-live btn-live--outline',
                 style: 'width:100%;margin-top:1rem',
                 onclick: genererMatchsRetour,
-                title: 'Crée les matchs retour (paires inversées) pour toutes les paires d\'équipes des poules. Le classement prendra en compte aller + retour.'
+                title: 'Crée les matchs retour (paires inversées). Si les poules ont des tailles différentes, tu peux choisir lesquelles. Le classement prendra en compte aller + retour.'
             }, '🔄 Lancer les matchs retour (optionnel)'));
         }
 
