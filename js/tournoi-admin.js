@@ -705,6 +705,7 @@
     async function squeletteAutoSelonConfig() {
         if (guardReadOnly()) return;
         var maison3x4 = isConfig3p4();
+        var maison2x4 = isConfig2p4();
         var maison1p5 = isConfig1p5();
         var maison1p4 = isConfig1p4();
         var maison_4_4_5 = isConfig3p_4_4_5();
@@ -736,9 +737,18 @@
             menu += '  5 — Maison 3p×4 + triangulaires (demi + finale + 3/4 + 5-6,\n' +
                     '       triangulaires complets pour places 7-9 et 10-12)\n';
         }
-        menu += '  4 — Ne rien générer maintenant\n\nTape 1, 2' + (maison3x4 ? ', 3, 5' : '') + ' ou 4 :';
+        if (maison2x4) {
+            menu += '  6 — Maison 2p×4 — 2 tableaux complets (Tableau A places 1-4 avec\n' +
+                    '       1ers/2es, Tableau B places 5-8 avec 3es/4es : demi + finale + 3/4 chacun)\n';
+        }
+        var defauts = maison3x4 ? '5' : (maison2x4 ? '6' : '2');
+        var optionsList = ['1', '2'];
+        if (maison3x4) { optionsList.push('3'); optionsList.push('5'); }
+        if (maison2x4) optionsList.push('6');
+        optionsList.push('4');
+        menu += '  4 — Ne rien générer maintenant\n\nTape ' + optionsList.join(', ') + ' :';
 
-        var choix = prompt(menu, maison3x4 ? '5' : '2');
+        var choix = prompt(menu, defauts);
         if (choix == null) return;
         choix = String(choix).trim();
         if (choix === '4') return;
@@ -746,6 +756,7 @@
         if (choix === '2') return await genererSqueletteGenerique('top1_plus_best2');
         if (choix === '3' && maison3x4) return await genererSqueletteMaison3x4();
         if (choix === '5' && maison3x4) return await genererSqueletteMaison3x4Tri();
+        if (choix === '6' && maison2x4) return await genererSqueletteMaison2p4();
         showToast('Choix invalide', 'error');
     }
 
@@ -895,6 +906,54 @@
         newMatchs.push(Object.assign({}, base('places_10_12', ordre++), rangP(P1, 4), rangP_b(P2, 4)));
         newMatchs.push(Object.assign({}, base('places_10_12', ordre++), rangP(P1, 4), rangP_b(P3, 4)));
         newMatchs.push(Object.assign({}, base('places_10_12', ordre++), rangP(P2, 4), rangP_b(P3, 4)));
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
+    // Mode maison 2 poules de 4 : 2 tableaux complets (demi + finale + 3/4 chacun).
+    // Tableau A (places 1-4) = bracket 'principal' avec 1ers et 2es des poules.
+    // Tableau B (places 5-8) = bracket 'tableau_b' avec 3es et 4es des poules.
+    // Pour chaque tableau : demi 1 (rang 1/2 P1 vs rang 1/2 P2 croisés) puis finale + 3/4 générés par tour suivant.
+    async function genererSqueletteMaison2p4() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        if (poulesOrdonnees.length !== 2) return;
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var base = function (bracket, ordre) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+        var rangP = function (pouleId, rang) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: rang, equipe_a_source_type: 'rang_poule'
+            };
+        };
+        var rangP_b = function (pouleId, rang) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: rang, equipe_b_source_type: 'rang_poule'
+            };
+        };
+
+        var P1 = poulesOrdonnees[0].id;
+        var P2 = poulesOrdonnees[1].id;
+        var ordre = 0;
+        var newMatchs = [];
+
+        // === Tableau A (places 1-4) : 2 demi croisées (1er P1 vs 2e P2) et (1er P2 vs 2e P1)
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P1, 1), rangP_b(P2, 2)));
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P2, 1), rangP_b(P1, 2)));
+
+        // === Tableau B (places 5-8) : 2 demi croisées (3e P1 vs 4e P2) et (3e P2 vs 4e P1)
+        newMatchs.push(Object.assign({}, base('tableau_b', ordre++), rangP(P1, 3), rangP_b(P2, 4)));
+        newMatchs.push(Object.assign({}, base('tableau_b', ordre++), rangP(P2, 3), rangP_b(P1, 4)));
 
         var res = await supa.from('matchs').insert(newMatchs).select();
         if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
@@ -1528,6 +1587,15 @@
         return nb === 4;
     }
 
+    // Config 2 poules de 4 équipes (8 équipes total)
+    function isConfig2p4() {
+        if (poules.length !== 2) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        return tailles.every(function (n) { return n === 4; });
+    }
+
     // Config 3 poules : deux de 4 équipes + une de 5 (total 13 équipes)
     function isConfig3p_4_4_5() {
         if (poules.length !== 3) return false;
@@ -1812,8 +1880,8 @@
         var nextMatchs = [];
         var nextOrdre = bracketMatchs.length;
 
-        // Tableau principal : structure standard bracket à élimination
-        if (bracket === 'principal') {
+        // Tableau principal (et tableau_b en mode 2p4) : structure standard bracket à élimination
+        if (bracket === 'principal' || bracket === 'tableau_b') {
             // Cas spécial 1p×5 : 1 seule demi → créer finale (1er de poule vs vainqueur demi)
             if (bracketMatchs.length === 1 && isConfig1p5()) {
                 var demi = bracketMatchs[0];
@@ -2016,6 +2084,11 @@
         // Mode 1p×4 : principal = 1 seul match (la finale), fini dès qu'il est joué
         if (bracket === 'principal' && isConfig1p4()) {
             return b.length >= 1 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
+        // Mode maison 2p×4 : principal et tableau_b = 4 matchs chacun (2 demis + finale + 3e/4e)
+        if (isConfig2p4() && (bracket === 'principal' || bracket === 'tableau_b')) {
+            return b.length >= 4 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
         }
 
         // Mode maison 3p (4+4+5) : principal = 4 matchs (2 demis + finale + 3e/4e),
@@ -3704,6 +3777,14 @@
             offset += partPrincipal.length;
         }
 
+        // Mode maison 2p×4 : Tableau B (places 5-8) — même structure que le principal
+        var tableauB = byBracket['tableau_b'] || [];
+        if (tableauB.length > 0) {
+            var partTableauB = placesPourBracket(tableauB, offset, true);
+            places = places.concat(partTableauB);
+            offset += partTableauB.length;
+        }
+
         // Mode maison : brackets places_X_Y (1 match chacun, place déjà encodée dans le nom)
         var maisonBrackets = [
             { key: 'places_3_4', w: 3, l: 4 },
@@ -3805,6 +3886,7 @@
         if (b === 'places_11_12') return '🎾 Match places 11-12';
         if (b === 'places_7_9') return '🥉 Triangulaire 3èmes · places 7-9';
         if (b === 'places_10_12') return '🎾 Triangulaire 4èmes · places 10-12';
+        if (b === 'tableau_b') return '🥈 Tableau B · places 5-8';
         if (b && b.indexOf('places_') === 0) {
             var parts = b.replace('places_', '').split('_');
             return '🎾 Match places ' + parts.join('-');
