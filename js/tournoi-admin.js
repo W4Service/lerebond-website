@@ -767,6 +767,7 @@
         if (guardReadOnly()) return;
         var maison3x4 = isConfig3p4();
         var maison2x4 = isConfig2p4();
+        var maison3p334 = isConfig3p_3_3_4();
         var maison1p5 = isConfig1p5();
         var maison1p4 = isConfig1p4();
         var maison_4_4_5 = isConfig3p_4_4_5();
@@ -783,6 +784,10 @@
         // 3 poules (4+4+5) = 13 équipes : auto, pas de popup
         if (maison_4_4_5) {
             return await genererSqueletteMaison3p_4_4_5();
+        }
+        // 3 poules (3+3+4) = 10 équipes : auto, pas de popup
+        if (maison3p334) {
+            return await genererSqueletteMaison3p334();
         }
 
         if (nbPoules < 2) {
@@ -1015,6 +1020,87 @@
         // === Tableau B (places 5-8) : 2 demi croisées (3e P1 vs 4e P2) et (3e P2 vs 4e P1)
         newMatchs.push(Object.assign({}, base('tableau_b', ordre++), rangP(P1, 3), rangP_b(P2, 4)));
         newMatchs.push(Object.assign({}, base('tableau_b', ordre++), rangP(P2, 3), rangP_b(P1, 4)));
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
+    // Squelette phase finale pour config 3 poules (3+3+4) = 10 équipes.
+    // Tableau principal : 1ers des 3 poules + meilleur 2e (seeding standard).
+    // Places 5-6 : les 2 autres 2es.
+    // Places 7-8 : 3es des 2 poules de 3.
+    // Places 9-10 : 3e + 4e de la poule de 4.
+    async function genererSqueletteMaison3p334() {
+        // Identifier les poules par taille (P3a, P3b dans l'ordre, P4)
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var poulesP3 = poulesOrdonnees.filter(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 3;
+        });
+        var poulesP4 = poulesOrdonnees.filter(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 4;
+        });
+        if (poulesP3.length !== 2 || poulesP4.length !== 1) return;
+        var P3a = poulesP3[0].id, P3b = poulesP3[1].id, P4 = poulesP4[0].id;
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var base = function (bracket, ordre) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+        var rangP = function (pouleId, rang) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: rang, equipe_a_source_type: 'rang_poule'
+            };
+        };
+        var rangP_b = function (pouleId, rang) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: rang, equipe_b_source_type: 'rang_poule'
+            };
+        };
+        var best2eA = {
+            equipe_a_id: null,
+            equipe_a_source_poule_id: null, equipe_a_source_ordre: null, equipe_a_source_type: 'meilleur_2e'
+        };
+        var best2eB = {
+            equipe_b_id: null,
+            equipe_b_source_poule_id: null, equipe_b_source_ordre: null, equipe_b_source_type: 'meilleur_2e'
+        };
+        var autres2eA = function (slot) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: null, equipe_a_source_ordre: slot, equipe_a_source_type: 'autres_2es'
+            };
+        };
+        var autres2eB = function (slot) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: null, equipe_b_source_ordre: slot, equipe_b_source_type: 'autres_2es'
+            };
+        };
+
+        var ordre = 0;
+        var newMatchs = [];
+
+        // === Tableau principal : 2 demi croisées
+        // Demi 1 : 1er P-A vs meilleur 2e ; Demi 2 : 1er P-B (poule de 4) vs 1er P-C
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P3a, 1), best2eB));
+        newMatchs.push(Object.assign({}, base('principal', ordre++), rangP(P4, 1), rangP_b(P3b, 1)));
+
+        // === Places 5-6 : les 2 autres 2es
+        newMatchs.push(Object.assign({}, base('places_5_6', ordre++), autres2eA(1), autres2eB(2)));
+
+        // === Places 7-8 : 3e P3a vs 3e P3b
+        newMatchs.push(Object.assign({}, base('places_7_8', ordre++), rangP(P3a, 3), rangP_b(P3b, 3)));
+
+        // === Places 9-10 : 3e P4 vs 4e P4
+        newMatchs.push(Object.assign({}, base('places_9_10', ordre++), rangP(P4, 3), rangP_b(P4, 4)));
 
         var res = await supa.from('matchs').insert(newMatchs).select();
         if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
