@@ -1655,15 +1655,36 @@
             return;
         }
 
-        // Entrants du tableau principal (4 équipes)
+        // Compare 2 équipes par PRORATA : valeurs/MJ (poule de 3 joue 2 matchs, poule de 4 en joue 3
+        // → comparer brut désavantagerait la poule de 3). On compare V/MJ, ±sets/MJ, ±jeux/MJ.
+        var trierParProrata = function (arr) {
+            return arr.slice().sort(function (sa, sb) {
+                var mjA = sa.mj || 1, mjB = sb.mj || 1;
+                var vA = sa.v / mjA, vB = sb.v / mjB;
+                if (vB !== vA) return vB - vA;
+                var dsA = (sa.sg - sa.sp) / mjA, dsB = (sb.sg - sb.sp) / mjB;
+                if (dsB !== dsA) return dsB - dsA;
+                var djA = (sa.jg - sa.jp) / mjA, djB = (sb.jg - sb.jp) / mjB;
+                if (djB !== djA) return djB - djA;
+                return 0;
+            });
+        };
+
+        // Récupérer le meilleur 2e (au prorata) parmi les 3 deuxièmes
+        var deuxiemes = [classP3a[1], classP3b[1], classP4[1]];
+        var deuxiemesProrata = trierParProrata(deuxiemes);
+        var meilleur2e = deuxiemesProrata[0];
+        var autres2es = deuxiemesProrata.slice(1); // 2 équipes pour les places 5-6
+
+        // Entrants du tableau principal : 1er des 3 poules + meilleur 2e
         var entrantsPrincipal = [
             classP3a[0], // 1er P3a
             classP3b[0], // 1er P3b
             classP4[0],  // 1er P4
-            classP4[1]   // 2e P4
+            meilleur2e   // meilleur 2e au prorata
         ];
-        // Trier par stats (mêmes critères que trierParStats : V puis ±sets puis ±jeux)
-        var seeds = trierParStats(entrantsPrincipal.map(function (s) { return { equipe_id: s.id, stats: s }; }));
+        // Seeding par prorata aussi
+        var seeds = trierParProrata(entrantsPrincipal);
         // seeds[0] = meilleur, [3] = pire. Demi : seed 0 vs 3, seed 1 vs 2.
 
         var nbT = currentTournoi.nb_terrains || 1;
@@ -1675,29 +1696,29 @@
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
             status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
-            equipe_a_id: seeds[0].equipe_id, equipe_b_id: seeds[3].equipe_id
+            equipe_a_id: seeds[0].id, equipe_b_id: seeds[3].id
         }); ordre++;
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
             status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
-            equipe_a_id: seeds[1].equipe_id, equipe_b_id: seeds[2].equipe_id
+            equipe_a_id: seeds[1].id, equipe_b_id: seeds[2].id
         }); ordre++;
 
-        // === Places 5-6 : 2e P3a vs 2e P3b
+        // === Places 5-6 : les 2 autres 2es (pas le meilleur)
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_5_6',
             status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
-            equipe_a_id: classP3a[1].id, equipe_b_id: classP3b[1].id
+            equipe_a_id: autres2es[0].id, equipe_b_id: autres2es[1].id
         }); ordre++;
 
-        // === Places 7-8 : 3e P3a vs 3e P3b
+        // === Places 7-8 : 3e P3a vs 3e P3b (les 3es des poules de 3)
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_7_8',
             status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
             equipe_a_id: classP3a[2].id, equipe_b_id: classP3b[2].id
         }); ordre++;
 
-        // === Places 9-10 : 3e P4 vs 4e P4
+        // === Places 9-10 : 3e P4 vs 4e P4 (la poule de 4 garde son duo 3-4)
         newMatchs.push({
             tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_9_10',
             status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
@@ -1936,11 +1957,10 @@
             var choix334 = prompt(
                 'Choisis le format de phase finale :\n\n' +
                 '  1 — Générique (seeding standard)\n' +
-                '  2 — Maison 3p (3+3+4) : tableau principal avec les 4 meilleurs\n' +
-                '       (1ers des 2 poules de 3 + 1er et 2e de la poule de 4),\n' +
-                '       seeding par stats (V → ±sets → ±jeux).\n' +
-                '       Brackets classement : places 5-6 (2es poules de 3),\n' +
-                '       places 7-8 (3es poules de 3), places 9-10 (3e+4e poule de 4).\n\n' +
+                '  2 — Maison 3p (3+3+4) : tableau principal = 1ers des 3 poules + meilleur 2e\n' +
+                '       (comparaison par prorata car les poules de 3 jouent moins de matchs).\n' +
+                '       Brackets classement : places 5-6 (les 2 autres 2es),\n' +
+                '       places 7-8 (3es des poules de 3), places 9-10 (3e+4e poule de 4).\n\n' +
                 'Tape 1 ou 2 :',
                 '2'
             );
