@@ -1627,6 +1627,91 @@
         showToast('Phase finale (maison 3p×4 + triangulaires) générée : ' + res.data.length + ' matchs', 'ok');
     }
 
+    // Phase finale pour config 3 poules (3+3+4) = 10 équipes.
+    // Tableau principal : 1er des 2 poules de 3 + 1er et 2e de la poule de 4 (= 4 entrants).
+    //   Seeding par stats globales (V → ±sets → ±jeux), demi seed1vs4 / seed2vs3, finale + 3/4.
+    // Places 5-6 : 2es des 2 poules de 3.
+    // Places 7-8 : 3es des 2 poules de 3.
+    // Places 9-10 : 3e et 4e de la poule de 4.
+    async function genererPhaseFinaleMaison3p334() {
+        // Identifier les poules par taille
+        var poulesP3 = poules.filter(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 3;
+        }).sort(function (a, b) { return a.ordre - b.ordre; });
+        var poulesP4 = poules.filter(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 4;
+        });
+        if (poulesP3.length !== 2 || poulesP4.length !== 1) {
+            showToast('Format maison 3p (3+3+4) : il faut 2 poules de 3 et 1 poule de 4.', 'error');
+            return;
+        }
+        var P3a = poulesP3[0], P3b = poulesP3[1], P4 = poulesP4[0];
+
+        var classP3a = computeClassement(P3a.id);
+        var classP3b = computeClassement(P3b.id);
+        var classP4 = computeClassement(P4.id);
+        if (classP3a.length < 3 || classP3b.length < 3 || classP4.length < 4) {
+            showToast('Classements incomplets — termine toutes les poules.', 'error');
+            return;
+        }
+
+        // Entrants du tableau principal (4 équipes)
+        var entrantsPrincipal = [
+            classP3a[0], // 1er P3a
+            classP3b[0], // 1er P3b
+            classP4[0],  // 1er P4
+            classP4[1]   // 2e P4
+        ];
+        // Trier par stats (mêmes critères que trierParStats : V puis ±sets puis ±jeux)
+        var seeds = trierParStats(entrantsPrincipal.map(function (s) { return { equipe_id: s.id, stats: s }; }));
+        // seeds[0] = meilleur, [3] = pire. Demi : seed 0 vs 3, seed 1 vs 2.
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var newMatchs = [];
+        var ordre = 0;
+
+        // === Tableau principal : 2 demis (finale + 3/4 générés par genererTourSuivant)
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: seeds[0].equipe_id, equipe_b_id: seeds[3].equipe_id
+        }); ordre++;
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: seeds[1].equipe_id, equipe_b_id: seeds[2].equipe_id
+        }); ordre++;
+
+        // === Places 5-6 : 2e P3a vs 2e P3b
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_5_6',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: classP3a[1].id, equipe_b_id: classP3b[1].id
+        }); ordre++;
+
+        // === Places 7-8 : 3e P3a vs 3e P3b
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_7_8',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: classP3a[2].id, equipe_b_id: classP3b[2].id
+        }); ordre++;
+
+        // === Places 9-10 : 3e P4 vs 4e P4
+        newMatchs.push({
+            tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_9_10',
+            status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+            equipe_a_id: classP4[2].id, equipe_b_id: classP4[3].id
+        }); ordre++;
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await updateTournoi({ phase: 'finale' });
+        render();
+        showToast('Phase finale (maison 3p 3+3+4) générée : ' + res.data.length + ' matchs', 'ok');
+    }
+
     // Est-on dans la config exacte 3 poules de 4 équipes (12 équipes) ?
     function isConfig3p4() {
         if (poules.length !== 3) return false;
@@ -1646,6 +1731,15 @@
         if (poules.length !== 1) return false;
         var nb = equipes.filter(function (e) { return e.poule_id === poules[0].id; }).length;
         return nb === 4;
+    }
+
+    // Config 3 poules : 2 de 3 et 1 de 4 (10 équipes total)
+    function isConfig3p_3_3_4() {
+        if (poules.length !== 3) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        }).sort();
+        return tailles[0] === 3 && tailles[1] === 3 && tailles[2] === 4;
     }
 
     // Config 2 poules de 4 équipes (8 équipes total)
@@ -1822,6 +1916,7 @@
 
         // Choix du mode
         var modeMaisonDispo = isConfig3p4();
+        var mode334Dispo = isConfig3p_3_3_4();
         var mode;
         if (modeMaisonDispo) {
             var choix = prompt(
@@ -1837,6 +1932,22 @@
             choix = String(choix).trim();
             if (choix !== '1' && choix !== '2' && choix !== '3') { showToast('Choix invalide', 'error'); return; }
             mode = choix === '2' ? 'maison_3x4' : (choix === '3' ? 'maison_3x4_tri' : 'generique');
+        } else if (mode334Dispo) {
+            var choix334 = prompt(
+                'Choisis le format de phase finale :\n\n' +
+                '  1 — Générique (seeding standard)\n' +
+                '  2 — Maison 3p (3+3+4) : tableau principal avec les 4 meilleurs\n' +
+                '       (1ers des 2 poules de 3 + 1er et 2e de la poule de 4),\n' +
+                '       seeding par stats (V → ±sets → ±jeux).\n' +
+                '       Brackets classement : places 5-6 (2es poules de 3),\n' +
+                '       places 7-8 (3es poules de 3), places 9-10 (3e+4e poule de 4).\n\n' +
+                'Tape 1 ou 2 :',
+                '2'
+            );
+            if (choix334 == null) return;
+            choix334 = String(choix334).trim();
+            if (choix334 !== '1' && choix334 !== '2') { showToast('Choix invalide', 'error'); return; }
+            mode = choix334 === '2' ? 'maison_3p_334' : 'generique';
         } else {
             mode = 'generique';
         }
@@ -1852,6 +1963,9 @@
         }
         if (mode === 'maison_3x4_tri') {
             return await genererPhaseFinaleMaison3x4Tri();
+        }
+        if (mode === 'maison_3p_334') {
+            return await genererPhaseFinaleMaison3p334();
         }
 
         // 1. Calculer le classement global
@@ -2149,6 +2263,11 @@
 
         // Mode maison 2p×4 : principal et tableau_b = 4 matchs chacun (2 demis + finale + 3e/4e)
         if (isConfig2p4() && (bracket === 'principal' || bracket === 'tableau_b')) {
+            return b.length >= 4 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
+        // Mode maison 3p (3+3+4) : principal = 4 matchs (2 demis + finale + 3e/4e)
+        if (isConfig3p_3_3_4() && bracket === 'principal') {
             return b.length >= 4 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
         }
 
