@@ -1634,6 +1634,7 @@
     // Places 7-8 : 3es des 2 poules de 3.
     // Places 9-10 : 3e et 4e de la poule de 4.
     async function genererPhaseFinaleMaison3p334() {
+        console.log('[3p334] === Début génération phase finale 3+3+4 ===');
         // Identifier les poules par taille
         var poulesP3 = poules.filter(function (p) {
             return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 3;
@@ -1641,6 +1642,7 @@
         var poulesP4 = poules.filter(function (p) {
             return equipes.filter(function (e) { return e.poule_id === p.id; }).length === 4;
         });
+        console.log('[3p334] Poules détectées :', { p3: poulesP3.map(function(p){return p.nom;}), p4: poulesP4.map(function(p){return p.nom;}) });
         if (poulesP3.length !== 2 || poulesP4.length !== 1) {
             showToast('Format maison 3p (3+3+4) : il faut 2 poules de 3 et 1 poule de 4.', 'error');
             return;
@@ -1650,8 +1652,14 @@
         var classP3a = computeClassement(P3a.id);
         var classP3b = computeClassement(P3b.id);
         var classP4 = computeClassement(P4.id);
+        console.log('[3p334] Classements :', {
+            P3a: classP3a.map(function(c){return c.nom + ' (mj='+c.mj+')';}),
+            P3b: classP3b.map(function(c){return c.nom + ' (mj='+c.mj+')';}),
+            P4: classP4.map(function(c){return c.nom + ' (mj='+c.mj+')';})
+        });
         if (classP3a.length < 3 || classP3b.length < 3 || classP4.length < 4) {
             showToast('Classements incomplets — termine toutes les poules.', 'error');
+            console.error('[3p334] STOP : classements incomplets', { p3a: classP3a.length, p3b: classP3b.length, p4: classP4.length });
             return;
         }
 
@@ -1725,8 +1733,10 @@
             equipe_a_id: classP4[2].id, equipe_b_id: classP4[3].id
         }); ordre++;
 
+        console.log('[3p334] Matchs à insérer :', newMatchs.length, newMatchs.map(function(m){return m.bracket + ' (a='+m.equipe_a_id+', b='+m.equipe_b_id+')';}));
         var res = await supa.from('matchs').insert(newMatchs).select();
-        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error('[3p334] Erreur Supabase :', res.error); return; }
+        console.log('[3p334] Matchs insérés en base :', res.data.length, res.data.map(function(m){return m.bracket;}));
         matchs = matchs.concat(res.data);
         await updateTournoi({ phase: 'finale' });
         render();
