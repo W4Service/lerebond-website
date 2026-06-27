@@ -3009,16 +3009,25 @@
     function setWinner(a, b, rule) {
         if (isNaN(a) || isNaN(b)) return null;
         var target = rule.jeux;
-        var tbCap = rule.tb;     // valeur max du jeu décisif (ex: 7)
-        var tbAt = target;        // TB joué à target-target (ex: 6-6 ou 4-4 ou 8-8 pour set de 9)
-        // Cas particulier set de 9 : TB se joue à 8-8 jusqu'à 7
-        if (target === 9) tbAt = 8;
+        // Score qui déclenche le TB (target-1 pour set de 9 = TB à 8-8 ; target pour les autres)
+        var tbAt;
+        // Score final du set quand le TB est gagné
+        var winScoreOnTb;
+        if (target === 9) {
+            // Set de 9 : TB joué à 8-8, score final 9-8
+            tbAt = 8;
+            winScoreOnTb = 9;
+        } else {
+            // Set classique (4, 5, 6) : TB joué à target-target, score final (target+1)-target
+            tbAt = target;
+            winScoreOnTb = target + 1;
+        }
         // Victoire classique : atteint target avec 2 d'écart
         if (a >= target && a - b >= 2) return 'a';
         if (b >= target && b - a >= 2) return 'b';
-        // Victoire au TB : tbAt+1 à tbAt
-        if (a === tbCap && b === tbAt) return 'a';
-        if (b === tbCap && a === tbAt) return 'b';
+        // Victoire au TB
+        if (a === winScoreOnTb && b === tbAt) return 'a';
+        if (b === winScoreOnTb && a === tbAt) return 'b';
         return null;
     }
 
