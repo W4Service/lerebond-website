@@ -264,6 +264,13 @@
             places = places.concat(part);
             offset += part.length;
         }
+        // Tableau B (mode maison 2p×4) : places 5-8 après le principal
+        var tableauB = byBracket['tableau_b'] || [];
+        if (tableauB.length > 0) {
+            var partB = placesPourBracket(tableauB, offset);
+            places = places.concat(partB);
+            offset += partB.length;
+        }
         var maisonBrackets = [
             { key: 'places_3_4', w: 3, l: 4 },
             { key: 'places_4_5', w: 4, l: 5 },
@@ -493,11 +500,13 @@
             });
             var order = function (b) {
                 if (b === 'principal') return 0;
+                if (b === 'tableau_b') return 1;
                 if (b.indexOf('rang_') === 0) return parseInt(b.split('_')[1], 10);
                 return 99;
             };
             var label = function (b) {
                 if (b === 'principal') return '🏆 Tableau principal';
+                if (b === 'tableau_b') return '🥈 Tableau B · places 5-8';
                 if (b === 'rang_2') return '🥈 Places 5-6';
                 if (b === 'rang_3') return '🥉 Places 7-9';
                 if (b === 'rang_4') return '🎾 Places 10-12';

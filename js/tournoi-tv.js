@@ -311,6 +311,7 @@
 
     function bracketLabel(b) {
         if (b === 'principal') return '🏆 Principal';
+        if (b === 'tableau_b') return '🥈 Tableau B · 5-8';
         if (b === 'rang_2') return '🥈 Places 5-7';
         if (b === 'rang_3') return '🥉 Places 8-10';
         if (b === 'rang_4') return 'Places 11-13';
