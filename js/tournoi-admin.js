@@ -2822,16 +2822,58 @@
         var payeFlag = 'paye_' + suffix;
         var on1 = !!eq[presentFlag];
         var on2 = !!eq[payeFlag];
+        var joueurId = suffix === 'j1' ? eq.joueur_j1_id : eq.joueur_j2_id;
 
         var row = el('div', { class: 'pointage-joueur' + (on1 ? ' pointage-joueur--present' : '') + (on2 ? ' pointage-joueur--paye' : '') });
         row.appendChild(el('span', { class: 'pointage-joueur-nom' }, nomJoueur));
 
         var toggles = el('div', { class: 'pointage-toggles' });
+        if (joueurId) {
+            var renameBtn = el('button', {
+                class: 'toggle-btn',
+                title: 'Modifier nom / prénom',
+                onclick: function () { renommerJoueur(joueurId); }
+            });
+            renameBtn.appendChild(el('span', { class: 'toggle-icon' }, '✏️'));
+            renameBtn.appendChild(el('span', { class: 'toggle-label' }, 'Renommer'));
+            toggles.appendChild(renameBtn);
+        }
         toggles.appendChild(renderJoueurToggle(eq, presentFlag, '✅', 'Présent'));
         toggles.appendChild(renderJoueurToggle(eq, payeFlag, '💰', 'Payé'));
         row.appendChild(toggles);
 
         return row;
+    }
+
+    // Modifie le nom et/ou le prénom d'un joueur (impacte tous les tournois où il participe).
+    async function renommerJoueur(joueurId) {
+        if (guardReadOnly()) return;
+        var j = findJoueur(joueurId);
+        if (!j) { showToast('Joueur introuvable', 'error'); return; }
+        var nouveauPrenom = prompt('Prénom :', j.prenom || '');
+        if (nouveauPrenom == null) return;
+        var nouveauNom = prompt('Nom :', j.nom || '');
+        if (nouveauNom == null) return;
+        nouveauPrenom = nouveauPrenom.trim();
+        nouveauNom = nouveauNom.trim();
+        if (!nouveauPrenom || !nouveauNom) {
+            showToast('Nom et prénom obligatoires', 'error');
+            return;
+        }
+        var res = await supa.from('joueurs').update({
+            prenom: nouveauPrenom,
+            nom: nouveauNom
+        }).eq('id', joueurId).select().single();
+        if (res.error) {
+            showToast('Erreur : ' + res.error.message, 'error');
+            console.error(res.error);
+            return;
+        }
+        // Mise à jour du cache local
+        var idx = joueurs.findIndex(function (x) { return x.id === joueurId; });
+        if (idx >= 0) joueurs[idx] = res.data;
+        showToast('Joueur renommé : ' + nouveauPrenom + ' ' + nouveauNom, 'ok');
+        render();
     }
 
     function renderJoueurToggle(eq, flag, icon, label) {
