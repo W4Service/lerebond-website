@@ -51,15 +51,18 @@
         closedTournois = resCloses.data || [];
 
         var wantedId = tournoiIdFromHash();
+        console.log('[tournoi-client] loadAll · hash wantedId =', wantedId, '· tournois cloturés =', closedTournois.length, '· tournoi actif =', resActif.data && resActif.data[0] ? resActif.data[0].nom : '(aucun)');
         var chosen = null;
         if (wantedId) {
             chosen = closedTournois.find(function (t) { return t.id === wantedId; });
             if (!chosen && resActif.data && resActif.data[0] && resActif.data[0].id === wantedId) {
                 chosen = resActif.data[0];
             }
+            console.log('[tournoi-client] wantedId trouvé ?', chosen ? '✓ ' + chosen.nom + ' (' + chosen.status + ')' : '✗ INTROUVABLE');
         }
         if (!chosen && resActif.data && resActif.data.length > 0) {
             chosen = resActif.data[0];
+            console.log('[tournoi-client] fallback sur tournoi actif :', chosen.nom);
         }
 
         if (!chosen) {
