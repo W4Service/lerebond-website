@@ -344,6 +344,7 @@
     // ===== Répartition automatique par niveau =====
 
     async function repartirParNiveau() {
+        console.log('[repartirParNiveau] appelé · readonly =', isReadOnly(), '· nb poules =', poules.length, '· nb équipes =', equipes.length);
         if (guardReadOnly()) return;
         if (poules.length === 0) { showToast('Crée au moins une poule avant de répartir.', 'error'); return; }
         if (equipes.length === 0) { showToast('Ajoute au moins une équipe.', 'error'); return; }
@@ -433,10 +434,13 @@
         render();
     }
 
-    async function deletePoule(id) { if (guardReadOnly()) return;
-        if (!confirm('Supprimer cette poule ? Les équipes et matchs liés seront détachés.')) return;
+    async function deletePoule(id) {
+        console.log('[deletePoule] appelé avec id =', id, '· readonly =', isReadOnly(), '· status tournoi =', currentTournoi && currentTournoi.status);
+        if (guardReadOnly()) return;
+        if (!confirm('Supprimer cette poule ? Les équipes et matchs liés seront détachés.')) { console.log('[deletePoule] annulé par l\'utilisateur'); return; }
         var res = await supa.from('poules').delete().eq('id', id);
-        if (res.error) { showToast('Erreur', 'error'); console.error(res.error); return; }
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error('[deletePoule] erreur Supabase :', res.error); return; }
+        console.log('[deletePoule] poule supprimée en base');
         poules = poules.filter(function (p) { return p.id !== id; });
         equipes.forEach(function (e) { if (e.poule_id === id) e.poule_id = null; });
         matchs = matchs.filter(function (m) { return m.poule_id !== id; });
