@@ -101,6 +101,14 @@
             if (k === 'class') e.className = attrs[k];
             else if (k === 'style') e.style.cssText = attrs[k];
             else if (k === 'html') e.innerHTML = attrs[k];
+            // Handlers passés en fonction (onclick, etc.) : attacher un vrai
+            // listener. setAttribute stringifierait la fonction (closures perdues,
+            // ReferenceError) → le preventDefault ne s'exécute pas et le href
+            // "#t=..." prend le dessus (avec <base href>, ça part vers la racine
+            // du site → clic mort sur les cartes de l'historique).
+            else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') {
+                e.addEventListener(k.slice(2), attrs[k]);
+            }
             else e.setAttribute(k, attrs[k]);
         });
         if (children) {
