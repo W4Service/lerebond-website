@@ -673,22 +673,28 @@
             var paires = byPoule[pouleId].map(function (m) {
                 return { a: m.equipe_b_id, b: m.equipe_a_id };
             });
-            // Ordonnancer en vagues pour éviter qu'une équipe joue 2 matchs en parallèle
+            // Ordonnancer en vagues pour éviter qu'une équipe joue 2 matchs en parallèle.
+            // On parcourt les paires dans l'ordre des matchs aller (croissant) pour que
+            // le retour recommence par les premiers matchs, pas par les derniers.
             var planifies = [];
             var restant = paires.slice();
             while (restant.length > 0) {
                 var vague = [];
                 var equipesVague = {};
-                for (var i = restant.length - 1; i >= 0; i--) {
+                var reste = [];
+                for (var i = 0; i < restant.length; i++) {
                     var p = restant[i];
-                    if (equipesVague[p.a] || equipesVague[p.b]) continue;
-                    if (seulePoule && vague.length >= nbTerrainsUtilises) continue;
+                    if (equipesVague[p.a] || equipesVague[p.b]
+                        || (seulePoule && vague.length >= nbTerrainsUtilises)) {
+                        reste.push(p);
+                        continue;
+                    }
                     equipesVague[p.a] = true;
                     equipesVague[p.b] = true;
                     vague.push(p);
-                    restant.splice(i, 1);
                 }
-                planifies.push(vague.reverse());
+                restant = reste;
+                planifies.push(vague);
             }
             planifies.forEach(function (vague) {
                 vague.forEach(function (pair, idxDansVague) {
