@@ -298,6 +298,53 @@
                 offset = Math.max(offset, b.l + 1);
             }
         });
+        // Triangulaires (bracket places_X_Y à 3 matchs / 3 équipes) : chaque équipe
+        // joue les 2 autres, classement par victoires puis ±sets puis ±jeux.
+        var triBrackets = [
+            { key: 'places_5_7', start: 5 },
+            { key: 'places_7_9', start: 7 },
+            { key: 'places_10_12', start: 10 }
+        ];
+        triBrackets.forEach(function (tb) {
+            var ms = byBracket[tb.key];
+            if (!ms || ms.length < 3) return;
+            var idsSet = {};
+            ms.forEach(function (m) {
+                if (m.equipe_a_id) idsSet[m.equipe_a_id] = true;
+                if (m.equipe_b_id) idsSet[m.equipe_b_id] = true;
+            });
+            var ids = Object.keys(idsSet);
+            var stats = {};
+            ids.forEach(function (id) { stats[id] = { id: id, v: 0, sg: 0, sp: 0, jg: 0, jp: 0 }; });
+            ms.forEach(function (m) {
+                if (m.status !== 'termine') return;
+                var w = winnerOf(m);
+                if (w && stats[w]) stats[w].v++;
+                var parseScores = function (s) {
+                    return (s || '').toString().trim().split(/[\s,/;]+/).filter(Boolean)
+                        .map(function (x) { return parseInt(x, 10); })
+                        .filter(function (n) { return !isNaN(n); });
+                };
+                var sa = parseScores(m.score_a), sb = parseScores(m.score_b);
+                var setsA = 0, setsB = 0;
+                for (var i = 0; i < Math.min(sa.length, sb.length); i++) {
+                    if (sa[i] > sb[i]) setsA++; else if (sb[i] > sa[i]) setsB++;
+                    if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].jg += sa[i]; stats[m.equipe_a_id].jp += sb[i]; }
+                    if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].jg += sb[i]; stats[m.equipe_b_id].jp += sa[i]; }
+                }
+                if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].sg += setsA; stats[m.equipe_a_id].sp += setsB; }
+                if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].sg += setsB; stats[m.equipe_b_id].sp += setsA; }
+            });
+            var ranked = ids.map(function (id) { return stats[id]; }).sort(function (a, b) {
+                if (b.v !== a.v) return b.v - a.v;
+                if ((b.sg - b.sp) !== (a.sg - a.sp)) return (b.sg - b.sp) - (a.sg - a.sp);
+                return (b.jg - b.jp) - (a.jg - a.jp);
+            });
+            ranked.forEach(function (s, idx) {
+                places.push({ place: tb.start + idx, equipe_id: s.id, nom: nomFor(s.id) });
+            });
+            offset = Math.max(offset, tb.start + ranked.length);
+        });
         var rangBrackets = Object.keys(byBracket)
             .filter(function (k) { return k.indexOf('rang_') === 0; })
             .map(function (k) { return { key: k, n: parseInt(k.split('_')[1], 10) }; })
