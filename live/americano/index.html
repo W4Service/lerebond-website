@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tournoi Americano — Le Rebond</title>
+<meta name="robots" content="noindex, nofollow">
+<meta content="#680920" name="theme-color">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+
+<style>
+@font-face { font-family: 'Turret Road'; src: url('fonts/TurretRoad-ExtraBold.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
+</style>
+<link rel="stylesheet" href="css/live.css">
+<link rel="stylesheet" href="css/americano.css">
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','%%GTM_ID%%');</script>
+</head>
+<body>
+<noscript><iframe height="0" src="https://www.googletagmanager.com/ns.html?id=%%GTM_ID%%" style="display:none" width="0"></iframe></noscript>
+
+<!-- LOGIN -->
+<div class="live-body" id="am-login-view">
+<div class="live-wrap">
+<img src="img/logo-blanc.webp" alt="Le Rebond" class="live-logo" onerror="this.src='img/logo-8.webp'">
+<div class="live-title">Tournoi Americano</div>
+<div class="live-subtitle">Connectez-vous pour piloter le tournoi</div>
+
+<form id="am-login-form">
+<h2>Connexion</h2>
+<div class="field">
+<label for="am-login-email">Email</label>
+<input type="email" id="am-login-email" required autocomplete="username">
+</div>
+<div class="field">
+<label for="am-login-password">Mot de passe</label>
+<input type="password" id="am-login-password" required autocomplete="current-password">
+</div>
+<div id="am-login-error"></div>
+<div style="margin-top:1rem">
+<button type="submit" class="btn-live btn-live--primary" style="width:100%">Se connecter</button>
+</div>
+</form>
+</div>
+</div>
+
+<!-- APPLICATION -->
+<div class="americano-wrap" id="am-app" style="display:none">
+<div id="americano-root"></div>
+<div class="am-panel am-no-print" style="padding-top:0">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:0.85rem;opacity:0.65;padding:1rem 0">
+<span>👤 <span id="am-user-email">…</span></span>
+<button type="button" id="am-logout" style="background:none;border:0;text-decoration:underline;cursor:pointer;font-size:0.85rem;color:inherit">Déconnexion</button>
+</div>
+</div>
+</div>
+
+<script src="js/vendor/supabase.min.js"></script>
+<script src="js/resa-config.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/americano-engine.js"></script>
+<script src="js/americano-app.js"></script>
+<script>
+(function () {
+    var supa = window.LeRebondSupa;
+    var loginView = document.getElementById('am-login-view');
+    var app = document.getElementById('am-app');
+    var form = document.getElementById('am-login-form');
+    var err = document.getElementById('am-login-error');
+
+    function showApp(user) {
+        loginView.style.display = 'none';
+        app.style.display = '';
+        document.getElementById('am-user-email').textContent = user.email;
+        window.Americano.init();
+    }
+    function showLogin() {
+        loginView.style.display = '';
+        app.style.display = 'none';
+    }
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        err.textContent = '';
+        var res = await supa.auth.signInWithPassword({
+            email: document.getElementById('am-login-email').value.trim(),
+            password: document.getElementById('am-login-password').value
+        });
+        if (res.error) { err.textContent = 'Erreur : ' + res.error.message; return; }
+        showApp(res.data.user);
+    });
+
+    document.getElementById('am-logout').addEventListener('click', async function () {
+        await supa.auth.signOut();
+        showLogin();
+    });
+
+    supa.auth.getSession().then(function (res) {
+        if (res.data && res.data.session) showApp(res.data.session.user);
+        else showLogin();
+    });
+})();
+</script>
+</body>
+</html>
