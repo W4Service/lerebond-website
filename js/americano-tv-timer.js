@@ -98,6 +98,11 @@
                 '<div class="amtv-timer-label" id="amtv-label">' + label + '</div>' +
                 '<div class="amtv-timer-time' + clsTime + '" id="amtv-time">' + AP.fmtTemps(c.restant) + '</div>' +
             '</div>' +
+            (c.status === 'idle'
+                ? '<div class="amtv-timer-attente-wrap"><div class="amtv-timer-attente">' +
+                      '⏱ En attente du lancement au comptoir' +
+                  '</div></div>'
+                : '') +
             '<div class="amtv-timer-bar">' +
                 '<div class="amtv-timer-fill' + (c.restant <= 0 ? ' amtv-timer-fill--fin' : '') + '" id="amtv-fill" style="width:' + pct + '%"></div>' +
             '</div>' +
