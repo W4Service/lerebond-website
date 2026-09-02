@@ -1,0 +1,240 @@
+/* ============================================
+   AMERICANO — Vue publique joueurs (mobile)
+   Lue par les joueurs sur leur téléphone pendant le tournoi.
+   ============================================ */
+
+.amp-body {
+    background: linear-gradient(135deg, #680920 0%, #4d061a 100%);
+    color: #f0ece3;
+    min-height: 100vh;
+    padding-bottom: 3rem;
+}
+.amp-body * { font-family: 'Kanit', sans-serif; }
+
+.amp-header {
+    text-align: center;
+    padding: 1.2rem 1rem 1rem;
+    border-bottom: 1px solid rgba(240,236,227,0.12);
+}
+.amp-logo { height: 34px; max-width: 130px; object-fit: contain; margin-bottom: 0.6rem; }
+.amp-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 1.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #f4c941;
+    line-height: 1.15;
+}
+.amp-sub { font-size: 0.85rem; opacity: 0.75; margin-top: 0.25rem; }
+
+.amp-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
+
+/* Bandeau chrono */
+.amp-chrono {
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(244,201,65,0.3);
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+.amp-chrono-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+}
+.amp-chrono-time {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 3rem;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    color: #f4c941;
+}
+.amp-chrono-time--fin { color: #ff8080; animation: amp-flash 0.9s steps(1) infinite; }
+.amp-chrono-time--idle { opacity: 0.45; }
+@keyframes amp-flash { 50% { opacity: 0.3; } }
+
+/* Onglets */
+.amp-tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+.amp-tab {
+    flex: 1;
+    padding: 0.75rem 0.4rem;
+    border: 1px solid rgba(240,236,227,0.2);
+    background: rgba(0,0,0,0.15);
+    color: rgba(240,236,227,0.7);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.amp-tab--on {
+    background: #f4c941;
+    color: #4d061a;
+    border-color: #f4c941;
+}
+
+/* Section */
+.amp-section-title {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.95rem;
+    color: #f4c941;
+    margin: 1.2rem 0 0.6rem;
+}
+
+/* Match en cours */
+.amp-match {
+    background: rgba(240,236,227,0.07);
+    border: 1px solid rgba(240,236,227,0.15);
+    border-radius: 12px;
+    padding: 0.85rem;
+    margin-bottom: 0.7rem;
+}
+.amp-match-head {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #f4c941;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+}
+.amp-match-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.35rem 0;
+}
+.amp-paire { font-size: 1.05rem; font-weight: 600; line-height: 1.35; }
+.amp-score {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    min-width: 2ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.amp-score--vide { opacity: 0.3; }
+.amp-vs {
+    text-align: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    opacity: 0.4;
+    font-weight: 700;
+    padding: 0.15rem 0;
+}
+
+/* Repos */
+.amp-repos {
+    background: rgba(244,201,65,0.12);
+    border: 1px dashed rgba(244,201,65,0.45);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.7rem;
+}
+.amp-repos-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #f4c941;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+}
+.amp-repos-noms { font-size: 1.05rem; font-weight: 600; line-height: 1.4; }
+
+/* Classement */
+.amp-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.amp-table th {
+    text-align: right;
+    padding: 0.6rem 0.4rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #f4c941;
+    border-bottom: 2px solid rgba(244,201,65,0.35);
+    white-space: nowrap;
+}
+.amp-table th:first-child, .amp-table th:nth-child(2) { text-align: left; }
+.amp-table td {
+    padding: 0.6rem 0.4rem;
+    border-bottom: 1px solid rgba(240,236,227,0.1);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.amp-table td:first-child, .amp-table td:nth-child(2) { text-align: left; }
+.amp-rang {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4c941;
+    font-size: 1.05rem;
+}
+.amp-nom { font-weight: 600; }
+.amp-cle { font-weight: 800; color: #f4c941; }
+.amp-top1 td { background: rgba(244,201,65,0.14); }
+.amp-top2 td { background: rgba(240,236,227,0.07); }
+.amp-top3 td { background: rgba(216,169,122,0.12); }
+
+.amp-note {
+    background: rgba(244,201,65,0.14);
+    border-left: 3px solid #f4c941;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    margin-bottom: 0.8rem;
+}
+.amp-empty { text-align: center; padding: 3rem 1rem; opacity: 0.65; }
+.amp-refresh {
+    text-align: center;
+    font-size: 0.75rem;
+    opacity: 0.45;
+    padding: 1.2rem 0 0;
+}
+
+/* Grille complète */
+.amp-grille-tour { margin-bottom: 1rem; }
+.amp-grille-head {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #f4c941;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid rgba(244,201,65,0.3);
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
+    display: flex;
+    justify-content: space-between;
+}
+.amp-grille-badge {
+    font-family: 'Kanit', sans-serif;
+    background: #f4c941;
+    color: #4d061a;
+    font-size: 0.68rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 20px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.amp-grille-line {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(240,236,227,0.07);
+}
+.amp-grille-t { color: #f4c941; font-weight: 700; font-size: 0.75rem; }
+.amp-grille-repos { font-size: 0.8rem; font-style: italic; opacity: 0.6; padding-top: 0.3rem; }

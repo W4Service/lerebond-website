@@ -103,6 +103,17 @@
 
     /* ---------- chrono ---------- */
 
+    // Le chrono est publié en base pour que les TV et la vue publique
+    // affichent exactement le même décompte. L'affichage local reste
+    // calculé en local (fluide), la base ne sert qu'à la synchronisation.
+    async function publierChrono(patch) {
+        if (!tournoi) return;
+        Object.keys(patch).forEach(function (k) { tournoi[k] = patch[k]; });
+        var res = await supa.from('americano_tournois')
+            .update(patch).eq('id', tournoi.id).select().single();
+        if (!res.error && res.data) tournoi = res.data;
+    }
+
     function chronoDemarrer() {
         if (!tournoi) return;
         if (chrono.enMarche) return;
@@ -112,6 +123,13 @@
         chrono.sonne = false;
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         tickChrono();
+        // On publie la date de fin implicite : les autres écrans recalculent
+        // le restant depuis tour_demarre_a + duree.
+        publierChrono({
+            chrono_status: 'running',
+            tour_demarre_a: new Date(Date.now() - (tournoi.duree_tour_min * 60 - restant) * 1000).toISOString(),
+            chrono_restant: null
+        });
     }
 
     function chronoPause() {
@@ -119,6 +137,7 @@
         chrono.restant = Math.max(0, (chrono.finAt - Date.now()) / 1000);
         chrono.enMarche = false;
         majChronoDisplay();
+        publierChrono({ chrono_status: 'paused', chrono_restant: Math.round(chrono.restant) });
     }
 
     function chronoReset() {
@@ -127,6 +146,35 @@
         chrono.restant = tournoi ? tournoi.duree_tour_min * 60 : 0;
         chrono.sonne = false;
         majChronoDisplay();
+        publierChrono({ chrono_status: 'idle', tour_demarre_a: null, chrono_restant: null });
+    }
+
+    // Reprend l'état du chrono tel qu'il est en base : si le staff recharge
+    // la page en plein tour, le décompte continue au bon endroit.
+    function adopterChronoDeLaBase() {
+        if (!tournoi) { chrono.enMarche = false; chrono.restant = 0; chrono.finAt = null; return; }
+        var total = tournoi.duree_tour_min * 60;
+        var st = tournoi.chrono_status || 'idle';
+        chrono.sonne = false;
+        if (st === 'running' && tournoi.tour_demarre_a) {
+            var ecoule = (Date.now() - new Date(tournoi.tour_demarre_a).getTime()) / 1000;
+            var reste = total - ecoule;
+            if (reste > 0) {
+                chrono.enMarche = true;
+                chrono.finAt = Date.now() + reste * 1000;
+                tickChrono();
+            } else {
+                chrono.enMarche = false; chrono.restant = 0; chrono.sonne = true;
+            }
+        } else if (st === 'paused') {
+            chrono.enMarche = false;
+            chrono.restant = tournoi.chrono_restant !== null && tournoi.chrono_restant !== undefined
+                ? tournoi.chrono_restant : total;
+        } else if (st === 'finished') {
+            chrono.enMarche = false; chrono.restant = 0; chrono.sonne = true;
+        } else {
+            chrono.enMarche = false; chrono.restant = total;
+        }
     }
 
     function chronoRestant() {
@@ -145,6 +193,7 @@
                     chrono.restant = 0;
                     bip();
                     majChronoDisplay();
+                    publierChrono({ chrono_status: 'finished', chrono_restant: 0 });
                     return;
                 }
                 chronoTimer = requestAnimationFrame(boucle);
@@ -184,7 +233,7 @@
 
         tournoi = res.data[0];
         await chargerDetails();
-        chronoReset();
+        adopterChronoDeLaBase();
         vue = 'tour';
         rendre();
     }
@@ -403,14 +452,13 @@
         }
 
         var btn = document.getElementById('am-creer');
-        btn.disabled = true;
-        btn.textContent = 'Calcul de la grille…';
+        if (btn) { btn.disabled = true; btn.textContent = 'Calcul de la grille…'; }
 
         // Grille figée à la création : les joueurs veulent la voir d'avance.
         var grille = Engine.genererGrille(noms.length, nbTerrains, nbTours);
         if (!grille.length) {
             toast('Configuration impossible : pas assez de joueurs.', 'error');
-            btn.disabled = false; btn.textContent = 'Créer le tournoi';
+            if (btn) { btn.disabled = false; btn.textContent = 'Créer le tournoi'; }
             return;
         }
 
@@ -423,7 +471,7 @@
 
         if (resT.error) {
             toast('Erreur : ' + resT.error.message, 'error');
-            btn.disabled = false; btn.textContent = 'Créer le tournoi';
+            if (btn) { btn.disabled = false; btn.textContent = 'Créer le tournoi'; }
             return;
         }
         tournoi = resT.data;
@@ -436,7 +484,7 @@
 
         if (resJ.error) {
             toast('Erreur joueurs : ' + resJ.error.message, 'error');
-            btn.disabled = false; btn.textContent = 'Créer le tournoi';
+            if (btn) { btn.disabled = false; btn.textContent = 'Créer le tournoi'; }
             return;
         }
         joueurs = (resJ.data || []).sort(function (a, b) { return a.ordre - b.ordre; });
@@ -460,7 +508,7 @@
         var resM = await supa.from('americano_matchs').insert(lignes).select();
         if (resM.error) {
             toast('Erreur matchs : ' + resM.error.message, 'error');
-            btn.disabled = false; btn.textContent = 'Créer le tournoi';
+            if (btn) { btn.disabled = false; btn.textContent = 'Créer le tournoi'; }
             return;
         }
         matchs = resM.data || [];
@@ -596,6 +644,9 @@
             '<button class="am-btn am-btn--danger" id="am-reset-tournoi">🗑 Réinitialiser le tournoi</button>' +
         '</div>';
 
+        // Écrans à diffuser (joueurs + TV)
+        html += blocEcrans();
+
         // Barre collée en bas
         html += '<div class="am-sticky-bar">' +
             '<button class="am-btn am-btn--primary" id="am-valider">' +
@@ -633,12 +684,45 @@
             });
         });
 
+        brancherEcrans();
+
         var btnCorr = document.getElementById('am-corriger');
         if (btnCorr) btnCorr.addEventListener('click', corrigerTourPrecedent);
         document.getElementById('am-reset-tournoi').addEventListener('click', reinitialiser);
         document.getElementById('am-valider').addEventListener('click', validerTour);
 
         majChronoDisplay();
+    }
+
+    /* ---------- Écrans à diffuser ---------- */
+
+    var URL_JOUEURS = 'https://le-rebond.fr/live/americano/live/';
+    var URL_TV      = 'https://le-rebond.fr/live/americano/tv/';
+    var URL_TIMER   = 'https://le-rebond.fr/live/americano/tv/timer/';
+
+    function blocEcrans() {
+        return '<div class="am-card" style="margin-top:1.2rem">' +
+            '<div class="am-card-title">Écrans à diffuser</div>' +
+            '<div class="am-note">Les joueurs suivent le classement sur leur téléphone, ' +
+                'les TV affichent les matchs et le chrono. Le chrono ci-dessus pilote tous ces écrans.</div>' +
+            '<div class="am-btn-row">' +
+                '<button class="am-btn am-btn--outline" id="am-qr-joueurs">📱 QR joueurs</button>' +
+                '<a class="am-btn am-btn--outline" href="live/americano/tv/" target="_blank" rel="noopener">📺 Écran TV</a>' +
+                '<a class="am-btn am-btn--outline" href="live/americano/tv/timer/" target="_blank" rel="noopener">⏱ TV Timer</a>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function brancherEcrans() {
+        var b = document.getElementById('am-qr-joueurs');
+        if (!b) return;
+        b.addEventListener('click', function () {
+            if (window.TournoiQR && window.TournoiQR.open) {
+                window.TournoiQR.open(URL_JOUEURS, 'Suivre le tournoi');
+            } else {
+                window.open(URL_JOUEURS, '_blank');
+            }
+        });
     }
 
     function padScore(matchId, cote) {
@@ -684,8 +768,7 @@
         }
 
         var btn = document.getElementById('am-valider');
-        btn.disabled = true;
-        btn.textContent = 'Enregistrement…';
+        if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
         for (var i = 0; i < lst.length; i++) {
             var m = lst[i];
@@ -694,7 +777,7 @@
                 .eq('id', m.id).select().single();
             if (res.error) {
                 toast('Erreur : ' + res.error.message, 'error');
-                btn.disabled = false;
+                if (btn) btn.disabled = false;
                 return;
             }
             m.valide = true;
@@ -706,7 +789,7 @@
             : { tour_courant: t + 1, updated_at: new Date().toISOString() };
 
         var resT = await supa.from('americano_tournois').update(maj).eq('id', tournoi.id).select().single();
-        if (resT.error) { toast('Erreur : ' + resT.error.message, 'error'); btn.disabled = false; return; }
+        if (resT.error) { toast('Erreur : ' + resT.error.message, 'error'); if (btn) btn.disabled = false; return; }
         tournoi = resT.data;
 
         chronoReset();
