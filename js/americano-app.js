@@ -111,7 +111,20 @@
         Object.keys(patch).forEach(function (k) { tournoi[k] = patch[k]; });
         var res = await supa.from('americano_tournois')
             .update(patch).eq('id', tournoi.id).select().single();
-        if (!res.error && res.data) tournoi = res.data;
+
+        // Un échec ici ne casse pas le chrono local, mais les écrans TV
+        // resteraient figés sans que personne ne s'en aperçoive : on le dit.
+        if (res.error) {
+            console.error('[americano] chrono non publié :', res.error);
+            toast('Chrono non synchronisé avec les écrans : ' + res.error.message, 'error');
+            return;
+        }
+        if (!res.data) {
+            console.error('[americano] chrono non publié : aucune ligne modifiée (droits ?)');
+            toast('Chrono non synchronisé : les écrans TV ne suivront pas.', 'error');
+            return;
+        }
+        tournoi = res.data;
     }
 
     function chronoDemarrer() {
