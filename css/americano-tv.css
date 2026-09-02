@@ -244,8 +244,22 @@ html, body {
     letter-spacing: 0.01em;
 }
 .amtv-timer-time--fin { color: #ff6b6b; animation: amtv-flash 0.8s steps(1) infinite; }
-.amtv-timer-time--idle { opacity: 0.4; }
+.amtv-timer-time--idle { color: rgba(240,236,227,0.75); }
 @keyframes amtv-flash { 50% { opacity: 0.2; } }
+
+.amtv-timer-attente {
+    text-align: center;
+    font-size: 2.2vh;
+    font-weight: 600;
+    color: #f4c941;
+    background: rgba(244,201,65,0.14);
+    border: 0.2vh solid rgba(244,201,65,0.4);
+    border-radius: 1vh;
+    padding: 0.8vh 1.5vw;
+    margin: 0 auto 1.2vh;
+    display: inline-block;
+}
+.amtv-timer-attente-wrap { text-align: center; }
 
 .amtv-timer-bar {
     height: 1.6vh;
