@@ -341,7 +341,42 @@
         return eq.niveau == null ? null : eq.niveau;
     }
 
+    // ===== Têtes de série =====
+    // Rang de tête de série d'une équipe : 1 = meilleur poids de paire (points FFT
+    // en mode FFT, niveau sinon). Les équipes sans poids saisi n'en ont pas.
+    // On limite l'affichage aux N meilleures, N = nombre de poules (une TS par poule),
+    // et au minimum aux 4 meilleures quand il y a moins de poules.
+    function tetesDeSerie() {
+        var avecPoids = equipes.filter(function (e) { return equipePoids(e) != null; });
+        if (avecPoids.length === 0) return {};
+
+        var tries = avecPoids.slice().sort(function (a, b) {
+            var pa = equipePoids(a), pb = equipePoids(b);
+            if (pb !== pa) return pb - pa;
+            return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
+        });
+
+        var nbTS = Math.max(poules.length, Math.min(4, tries.length));
+        var out = {};
+        tries.slice(0, nbTS).forEach(function (eq, i) {
+            out[eq.id] = { rang: i + 1, poids: equipePoids(eq) };
+        });
+        return out;
+    }
+
+    // Badge "TS n" à accrocher à côté d'un nom d'équipe. null si pas tête de série.
+    function badgeTS(ts, equipeId) {
+        var t = ts && ts[equipeId];
+        if (!t) return null;
+        var modeFFT = currentTournoi && currentTournoi.mode_classement === 'fft';
+        return el('span', {
+            class: 'ts-badge' + (t.rang === 1 ? ' ts-badge--1' : ''),
+            title: 'Tête de série n°' + t.rang + ' · ' + (modeFFT ? t.poids + ' pts FFT (paire)' : 'niveau ' + t.poids)
+        }, 'TS' + t.rang);
+    }
+
     // ===== Répartition automatique par niveau =====
+
 
     async function repartirParNiveau() {
         console.log('[repartirParNiveau] appelé · readonly =', isReadOnly(), '· nb poules =', poules.length, '· nb équipes =', equipes.length);
@@ -777,6 +812,7 @@
         if (guardReadOnly()) return;
         var maison3x4 = isConfig3p4();
         var maison2x4 = isConfig2p4();
+        var maison3p3 = isConfig3p3();
         var maison3p334 = isConfig3p_3_3_4();
         var maison1p5 = isConfig1p5();
         var maison1p4 = isConfig1p4();
@@ -795,6 +831,10 @@
         // 3 poules (4+4+5) = 13 équipes : auto, pas de popup
         if (maison_4_4_5) {
             return await genererSqueletteMaison3p_4_4_5();
+        }
+        // 3 poules de 3 = 9 équipes : auto, pas de popup
+        if (maison3p3) {
+            return await genererSquelette3p3();
         }
         // 3 poules (3+3+4) = 10 équipes : auto, pas de popup
         if (maison3p334) {
@@ -1091,6 +1131,61 @@
         newMatchs.push(Object.assign({}, base('places_5_7', ordre++), rang(P4, 3, 'a'), rang(P4, 4, 'b')));
         newMatchs.push(Object.assign({}, base('places_5_7', ordre++), rang(P4, 3, 'a'), rang(P3, 3, 'b')));
         newMatchs.push(Object.assign({}, base('places_5_7', ordre++), rang(P4, 4, 'a'), rang(P3, 3, 'b')));
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
+    // Poules de classement du format 9 équipes (3 poules de 3).
+    // rang = rang dans la poule initiale dont sortent les 3 équipes ;
+    // offset = première place attribuée par cette poule de classement.
+    var BRACKETS_3P3 = [
+        { bracket: 'classement_or',     rang: 1, offset: 1, nom: 'Poule Or · places 1-3' },
+        { bracket: 'classement_argent', rang: 2, offset: 4, nom: 'Poule Argent · places 4-6' },
+        { bracket: 'classement_bronze', rang: 3, offset: 7, nom: 'Poule Bronze · places 7-9' }
+    ];
+
+    // Squelette phase finale pour config 3 poules de 3 = 9 équipes.
+    // Trois poules de classement, chacune en triangulaire complet (chaque paire
+    // joue les 2 autres, soit 3 matchs par poule) :
+    //   Poule Or     (places 1-3) : les 1ers des 3 poules
+    //   Poule Argent (places 4-6) : les 2es des 3 poules
+    //   Poule Bronze (places 7-9) : les 3es des 3 poules
+    // Le classement de chaque poule de classement donne directement les places.
+    async function genererSquelette3p3() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        if (poulesOrdonnees.length !== 3) return;
+        var P = poulesOrdonnees.map(function (p) { return p.id; });
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var rangA = function (pouleId, rang) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: rang, equipe_a_source_type: 'rang_poule'
+            };
+        };
+        var rangB = function (pouleId, rang) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: rang, equipe_b_source_type: 'rang_poule'
+            };
+        };
+
+        var ordre = 0;
+        var newMatchs = [];
+        // Pour chaque rang (1er, 2e, 3e), un triangulaire entre les 3 poules.
+        BRACKETS_3P3.forEach(function (b) {
+            [[0, 1], [0, 2], [1, 2]].forEach(function (pair) {
+                newMatchs.push(Object.assign({
+                    tournoi_id: currentTournoi.id, phase: 'finale', bracket: b.bracket,
+                    status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+                }, rangA(P[pair[0]], b.rang), rangB(P[pair[1]], b.rang)));
+                ordre++;
+            });
+        });
 
         var res = await supa.from('matchs').insert(newMatchs).select();
         if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
@@ -1784,6 +1879,43 @@
         showToast('Phase finale (maison 3p×4 + triangulaires) générée : ' + res.data.length + ' matchs', 'ok');
     }
 
+    // Phase finale pour config 3 poules de 3 (9 équipes), avec les équipes réelles.
+    // Trois poules de classement en triangulaire complet :
+    //   Or = les 1ers (places 1-3), Argent = les 2es (4-6), Bronze = les 3es (7-9).
+    async function genererPhaseFinale3p3() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var rangs = poulesOrdonnees.map(function (p) { return computeClassement(p.id); });
+        if (rangs.length !== 3 || !rangs.every(function (c) { return c.length === 3; })) {
+            showToast('Format 9 équipes : il faut exactement 3 poules de 3 équipes.', 'error');
+            return;
+        }
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var ordre = 0;
+        var newMatchs = [];
+
+        BRACKETS_3P3.forEach(function (b) {
+            // Les 3 équipes de cette poule de classement, une par poule initiale.
+            var trio = rangs.map(function (c) { return c[b.rang - 1].id; });
+            [[0, 1], [0, 2], [1, 2]].forEach(function (pair) {
+                newMatchs.push({
+                    tournoi_id: currentTournoi.id, phase: 'finale', bracket: b.bracket,
+                    status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+                    equipe_a_id: trio[pair[0]], equipe_b_id: trio[pair[1]]
+                });
+                ordre++;
+            });
+        });
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await updateTournoi({ phase: 'finale' });
+        render();
+        showToast('Poules de classement (9 équipes) générées : ' + res.data.length + ' matchs', 'ok');
+    }
+
     // Phase finale pour config 2 poules : une de 4 et une de 3 (7 équipes).
     // Les 2 premiers de chaque poule sortent → tableau principal à 4 (demi croisées
     // 1er/2e, puis finale + petite finale). Les 3 restants (3e+4e de la poule de 4,
@@ -1986,6 +2118,15 @@
         return nb === 4;
     }
 
+    // Config 3 poules de 3 équipes (9 équipes total)
+    function isConfig3p3() {
+        if (poules.length !== 3) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        return tailles.every(function (n) { return n === 3; });
+    }
+
     // Config 3 poules : 2 de 3 et 1 de 4 (10 équipes total)
     function isConfig3p_3_3_4() {
         if (poules.length !== 3) return false;
@@ -2177,6 +2318,16 @@
         }
 
         // Choix du mode
+        // 3 poules de 3 (9 équipes) : un seul format possible, pas de popup.
+        if (isConfig3p3()) {
+            if (matchs.some(function (m) { return m.phase === 'finale'; })) {
+                if (!confirm('Des matchs de phase finale existent déjà. Tout regénérer (les scores existants seront perdus) ?')) return;
+                await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'finale');
+                matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
+            }
+            return await genererPhaseFinale3p3();
+        }
+
         var modeMaisonDispo = isConfig3p4();
         var mode334Dispo = isConfig3p_3_3_4();
         var mode243Dispo = isConfig2p_4_3();
@@ -2526,6 +2677,12 @@
         var b = matchs.filter(function (m) { return m.phase === 'finale' && m.bracket === bracket; });
         if (b.length === 0) return false;
 
+        // Poules de classement (format 9 équipes) : triangulaire complet de 3 matchs,
+        // pas de tour suivant — le classement du triangulaire donne directement les places.
+        if (bracket.indexOf('classement_') === 0) {
+            return b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
         // Brackets "places_X_Y" du mode maison : 1 seul match attendu, fini dès qu'il est joué
         if (bracket.indexOf('places_') === 0) {
             return b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
@@ -2747,31 +2904,77 @@
             score_a: scoreA,
             score_b: scoreB,
             vainqueur_id: vainqueurId,
+            issue: 'normal',
             status: 'termine',
             finished_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         }).eq('id', matchId).select().single();
 
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
-        var i = matchs.findIndex(function (m) { return m.id === matchId });
-        if (i >= 0) matchs[i] = res.data;
+        await apresMatchTermine(matchId, res.data);
+        showToast('Score enregistré', 'ok');
+    }
+
+    // Propagation commune à tout match qui vient d'être terminé (score, WO ou disqualification) :
+    // matchs dépendants, squelette de phase finale, puis tour suivant du bracket.
+    async function apresMatchTermine(matchId, data) {
+        var i = matchs.findIndex(function (m) { return m.id === matchId; });
+        if (i >= 0) matchs[i] = data;
 
         // Si un vainqueur est désigné, propager aux matchs dépendants de cette poule
-        if (vainqueurId && res.data.poule_id) {
-            await propagateDependencies(res.data.poule_id);
+        if (data.vainqueur_id && data.poule_id) {
+            await propagateDependencies(data.poule_id);
         }
         // Propager aussi vers le squelette de phase finale si présent
-        if (res.data.phase === 'poule') {
+        if (data.phase === 'poule') {
             await propagateRangPoule();
         }
         // Auto-générer le tour suivant en phase finale si le round courant est complet
-        if (res.data.phase === 'finale' && res.data.bracket) {
-            if (bracketTourComplet(res.data.bracket)) {
-                try { await genererTourSuivant(res.data.bracket); } catch (err) { console.error(err); }
+        if (data.phase === 'finale' && data.bracket) {
+            if (bracketTourComplet(data.bracket)) {
+                try { await genererTourSuivant(data.bracket); } catch (err) { console.error(err); }
             }
         }
         render();
-        showToast('Score enregistré', 'ok');
+    }
+
+    // Enregistre un match gagné par forfait (WO) ou par disqualification de l'adversaire.
+    // Aucun score n'est saisi : en tournoi homologué le perdant prend -2 (WO) ou -1
+    // (disqualification) au lieu de 1 pt, et aucun set ni jeu n'entre dans le départage.
+    async function saveIssue(matchId, issue) {
+        if (guardReadOnly()) return;
+        var match = matchs.find(function (m) { return m.id === matchId; });
+        if (!match) return;
+
+        var vainqueurSel = document.getElementById('vainqueur-' + matchId);
+        var vainqueurId = vainqueurSel ? vainqueurSel.value || null : null;
+        if (!vainqueurId) {
+            showToast('Sélectionne d\'abord l\'équipe qui GAGNE le match.', 'error');
+            return;
+        }
+
+        var label = issue === 'wo' ? 'forfait (WO)' : 'disqualification';
+        var eqPerdante = equipes.find(function (e) {
+            return e.id === (vainqueurId === match.equipe_a_id ? match.equipe_b_id : match.equipe_a_id);
+        });
+        if (!confirm('Enregistrer une défaite par ' + label + ' pour ' + equipeAffichage(eqPerdante) + ' ?\n\n'
+            + 'Le score saisi sera effacé.'
+            + (currentTournoi && currentTournoi.homologue
+                ? '\nBarème FFT : ' + (issue === 'wo' ? '-2' : '-1') + ' pt pour le perdant.'
+                : ''))) return;
+
+        var res = await supa.from('matchs').update({
+            score_a: null, score_b: null,
+            vainqueur_id: vainqueurId,
+            issue: issue,
+            status: 'termine',
+            finished_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }).eq('id', matchId).select().single();
+
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        await apresMatchTermine(matchId, res.data);
+        showToast('Défaite par ' + label + ' enregistrée', 'ok');
     }
 
     async function resetMatch(matchId) {
@@ -2780,6 +2983,7 @@
         var match = matchs.find(function (m) { return m.id === matchId; });
         var res = await supa.from('matchs').update({
             score_a: null, score_b: null, vainqueur_id: null,
+            issue: 'normal',
             status: 'en_attente', started_at: null, finished_at: null,
             updated_at: new Date().toISOString()
         }).eq('id', matchId).select().single();
@@ -3432,66 +3636,28 @@
     }
 
     // ===== Calcul du classement de poule en temps réel =====
-    // Critères : victoires (desc) > diff sets (desc) > diff jeux (desc) > nom (asc)
+    // Délègue à TournoiClassement (js/tournoi-classement.js), source unique partagée
+    // avec la page joueurs et la page TV.
+    //   - tournoi homologué : barème FFT (2/1/-1/-2) + départage officiel
+    //     (confrontation directe à 2, ±sets puis ±jeux à 3+)
+    //   - sinon : tri historique victoires > ±sets > ±jeux
     function computeClassement(pouleId) {
-        var eqs = equipes.filter(function (e) { return e.poule_id === pouleId; });
-        var stats = {};
-        eqs.forEach(function (e) {
-            stats[e.id] = { id: e.id, nom: equipeAffichage(e), mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
-        });
-        // Fallback : si un match a poule_id=this mais que l'équipe a été déplacée
-        // dans une autre poule, on ajoute quand même une ligne de stats pour elle
-        // (sinon des matchs terminés étaient silencieusement ignorés).
-        var ajouterEquipeOrpheline = function (eqId) {
-            if (!eqId || stats[eqId]) return;
-            var e = equipes.find(function (x) { return x.id === eqId; });
-            if (e) stats[eqId] = { id: eqId, nom: equipeAffichage(e), mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0, orpheline: true };
-        };
         var fmt = currentTournoi && currentTournoi.format_score;
         var rule = FORMAT_RULES[fmt] || FORMAT_RULES.libre;
 
-        var matchsPoule = matchs.filter(function (m) {
-            return m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine';
-        });
-
-        matchsPoule.forEach(function (m) {
-            ajouterEquipeOrpheline(m.equipe_a_id);
-            ajouterEquipeOrpheline(m.equipe_b_id);
-            if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) return;
-            stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
-
-            // Victoire / défaite
-            if (m.vainqueur_id === m.equipe_a_id) { stats[m.equipe_a_id].v++; stats[m.equipe_b_id].d++; }
-            else if (m.vainqueur_id === m.equipe_b_id) { stats[m.equipe_b_id].v++; stats[m.equipe_a_id].d++; }
-
-            // Sets et jeux (si le format les utilise)
-            if (!rule.libre && !rule.superTbOnly) {
-                var sides = parseScoreSides(m.score_a, m.score_b);
-                var n = Math.min(sides.a.length, sides.b.length);
-                for (var i = 0; i < n; i++) {
-                    var aRaw = manche(sides.a[i]);
-                    var bRaw = manche(sides.b[i]);
-                    if (isNaN(aRaw) || isNaN(bRaw)) continue;
-                    stats[m.equipe_a_id].jg += aRaw; stats[m.equipe_a_id].jp += bRaw;
-                    stats[m.equipe_b_id].jg += bRaw; stats[m.equipe_b_id].jp += aRaw;
-                    if (aRaw > bRaw) { stats[m.equipe_a_id].sg++; stats[m.equipe_b_id].sp++; }
-                    else if (bRaw > aRaw) { stats[m.equipe_b_id].sg++; stats[m.equipe_a_id].sp++; }
-                }
+        return TournoiClassement.classerPoule({
+            equipes: equipes.filter(function (e) { return e.poule_id === pouleId; })
+                .map(function (e) { return { id: e.id, nom: equipeAffichage(e) }; }),
+            matchs: matchs.filter(function (m) {
+                return m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine';
+            }),
+            compteSets: !rule.libre && !rule.superTbOnly,
+            homologue: !!(currentTournoi && currentTournoi.homologue),
+            nomPourId: function (eqId) {
+                var e = equipes.find(function (x) { return x.id === eqId; });
+                return e ? equipeAffichage(e) : null;
             }
         });
-
-        var arr = Object.keys(stats).map(function (k) { return stats[k]; });
-        arr.sort(function (a, b) {
-            if (b.v !== a.v) return b.v - a.v;
-            var dsA = a.sg - a.sp, dsB = b.sg - b.sp;
-            if (dsB !== dsA) return dsB - dsA;
-            var djA = a.jg - a.jp, djB = b.jg - b.jp;
-            if (djB !== djA) return djB - djA;
-            return a.nom.localeCompare(b.nom);
-        });
-        // Position
-        arr.forEach(function (s, i) { s.pos = i + 1; });
-        return arr;
     }
 
     // Diagnostic du classement : identifie les matchs problématiques
@@ -3664,6 +3830,18 @@
         showToast('No-ad : ' + (checked ? 'activé' : 'désactivé'), 'ok');
     }
 
+    // Tournoi homologué FFT : active le barème officiel en poule
+    // (2 pts victoire / 1 pt défaite / -1 disqualification / -2 WO) et le départage
+    // officiel (confrontation directe à 2, ±sets puis ±jeux à 3 ou plus).
+    async function updateHomologue(checked) {
+        if (guardReadOnly()) return;
+        var res = await supa.from('tournois').update({ homologue: !!checked, updated_at: new Date().toISOString() }).eq('id', currentTournoi.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+        currentTournoi = res.data;
+        render();
+        showToast('Tournoi homologué : ' + (checked ? 'activé (barème FFT)' : 'désactivé'), 'ok');
+    }
+
     function renderHeader() {
         var card = el('div', { class: 'tournoi-card tournoi-header' });
         var info = el('div');
@@ -3675,6 +3853,7 @@
         parts.push('Phase : <strong>' + currentTournoi.phase + '</strong>');
         if (fmtLabel) parts.push('🎾 <strong>' + fmtLabel + '</strong>');
         if (currentTournoi.no_ad) parts.push('<strong>No-ad</strong>');
+        if (currentTournoi.homologue) parts.push('🏅 <strong>Homologué FFT</strong>');
         if (currentTournoi.mode_classement === 'fft') parts.push('🏅 <strong>FFT</strong>');
         if (currentTournoi.status === 'cloture') parts.push('<strong class="readonly-badge">🔒 Clôturé</strong>');
         // Estimation de durée restante (matchs non terminés)
@@ -3753,6 +3932,21 @@
         noAdWrap.appendChild(noAdInp);
         noAdWrap.appendChild(el('span', null, ' No-ad'));
         terrainLine.appendChild(noAdWrap);
+
+        // Toggle Homologué FFT (barème de points en poule + départage officiel)
+        var homoWrap = el('label', {
+            class: 'tournoi-toggle-inline',
+            style: 'margin-left:1rem',
+            title: 'Barème FFT en poule : 2 pts victoire, 1 pt défaite, -1 disqualification, -2 WO. Départage officiel.'
+        });
+        var homoInp = el('input', {
+            type: 'checkbox',
+            onchange: function (e) { updateHomologue(e.target.checked); }
+        });
+        if (currentTournoi.homologue) homoInp.checked = true;
+        homoWrap.appendChild(homoInp);
+        homoWrap.appendChild(el('span', null, ' Homologué FFT'));
+        terrainLine.appendChild(homoWrap);
 
         info.appendChild(terrainLine);
 
@@ -3938,17 +4132,21 @@
                 ? 'Aucune équipe. Ajoute-en ci-dessus.'
                 : 'Toutes les équipes sont assignées. Dépose ici pour retirer d\'une poule.'));
         } else {
-            // Tri par niveau desc pour mettre les plus forts en haut
+            // Tri par poids de paire desc (points FFT ou niveau) : les têtes de série en haut.
+            var tsUnassigned = tetesDeSerie();
             var sortedUnassigned = unassigned.slice().sort(function (a, b) {
-                var na = a.niveau == null ? -1 : a.niveau;
-                var nb = b.niveau == null ? -1 : b.niveau;
+                var pa = equipePoids(a), pb = equipePoids(b);
+                var na = pa == null ? -1 : pa;
+                var nb = pb == null ? -1 : pb;
                 if (nb !== na) return nb - na;
-                return a.nom.localeCompare(b.nom);
+                return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
             });
             sortedUnassigned.forEach(function (eq) {
                 var item = el('div', { class: 'equipe-item equipe-item--draggable' });
                 item.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
                 item.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage2L(eq)));
+                var tsU = badgeTS(tsUnassigned, eq.id);
+                if (tsU) item.appendChild(tsU);
                 item.appendChild(makeNiveauInput(eq));
                 item.appendChild(el('button', { class: 'icon-btn icon-btn--danger', onclick: function () { deleteEquipe(eq.id); }, title: 'Supprimer' }, '🗑'));
                 makeDraggableEquipe(item, eq);
@@ -3979,6 +4177,7 @@
 
         // Liste poules + équipes dedans
         if (poules.length > 0) {
+            var tsPoules = tetesDeSerie();
             var grid = el('div', { class: 'poules-grid' });
             poules.forEach(function (p) {
                 var pcard = el('div', { class: 'poule-card' });
@@ -4015,6 +4214,8 @@
                             row.appendChild(el('span', { class: 'poule-pos-badge', title: 'Position calculée' }, '#' + s.pos));
                         }
                         row.appendChild(el('span', { class: 'equipe-nom' }, equipeAffichage2L(eq)));
+                        var tsBadge = badgeTS(tsPoules, eq.id);
+                        if (tsBadge) row.appendChild(tsBadge);
                         if (s && s.mj > 0) {
                             row.appendChild(el('span', { class: 'poule-stats', title: 'V-D · diff sets · diff jeux' },
                                 s.v + '-' + s.d + ' · ' + ((s.sg - s.sp) >= 0 ? '+' : '') + (s.sg - s.sp)
@@ -4099,9 +4300,17 @@
         var fmt = currentTournoi && currentTournoi.format_score;
         var rule = FORMAT_RULES[fmt] || FORMAT_RULES.libre;
         var showSets = !rule.libre && !rule.superTbOnly;
+        var homologue = !!(currentTournoi && currentTournoi.homologue);
+        var tsClmt = tetesDeSerie();
 
         var wrap = el('div', { class: 'phase-section' });
         wrap.appendChild(el('h4', { class: 'phase-section-title' }, '📊 Classements de poule'));
+        if (homologue) {
+            wrap.appendChild(el('p', { class: 'tournoi-hint' },
+                '🏅 Barème FFT : 2 pts victoire · 1 pt défaite · −1 disqualification · −2 WO. '
+                + 'Départage : 2 paires à égalité → confrontation directe ; 3 paires ou plus → '
+                + '±sets puis ±jeux sur toute la poule, puis entre les paires encore à égalité.'));
+        }
         var grid = el('div', { class: 'classements-poules-grid' });
         poules.slice().sort(function (a, b) { return a.ordre - b.ordre; }).forEach(function (p) {
             var pcard = el('div', { class: 'classement-poule-card' });
@@ -4117,6 +4326,7 @@
             thead.appendChild(el('th', null, '#'));
             thead.appendChild(el('th', { style: 'text-align:left' }, 'Équipe'));
             thead.appendChild(el('th', { title: 'Matchs joués' }, 'MJ'));
+            if (homologue) thead.appendChild(el('th', { title: 'Points (2 victoire / 1 défaite / −1 disq. / −2 WO)' }, 'Pts'));
             thead.appendChild(el('th', { title: 'Victoires' }, 'V'));
             if (showSets) thead.appendChild(el('th', { title: 'Diff. sets' }, '±S'));
             if (showSets) thead.appendChild(el('th', { title: 'Diff. jeux' }, '±J'));
@@ -4124,8 +4334,12 @@
             classement.forEach(function (s) {
                 var row = el('tr');
                 row.appendChild(el('td', { class: 'poule-pos' }, s.mj > 0 ? '#' + s.pos : '·'));
-                row.appendChild(el('td', { class: 'poule-eq' }, s.nom));
+                var eqTd = el('td', { class: 'poule-eq' }, s.nom);
+                var tsB = badgeTS(tsClmt, s.id);
+                if (tsB) eqTd.appendChild(tsB);
+                row.appendChild(eqTd);
                 row.appendChild(el('td', { class: 'poule-stat' }, String(s.mj)));
+                if (homologue) row.appendChild(el('td', { class: 'poule-stat poule-stat--pts' }, String(s.pts)));
                 row.appendChild(el('td', { class: 'poule-stat poule-stat--v' }, String(s.v)));
                 if (showSets) {
                     var ds = s.sg - s.sp;
@@ -4147,6 +4361,28 @@
     // === Classement final générique ===
     // Reconstruit les places à partir des brackets de phase finale présents.
     // Renvoie un tableau ordonné de { place, equipe_id, nom }. Slots non résolus = nom null.
+    // Classement d'un mini-groupe joué en triangulaire (poules de classement).
+    // Délègue au même moteur que les poules, pour que le barème et le départage
+    // soient identiques partout.
+    function classementBracketTriangulaire(ms) {
+        var ids = {};
+        ms.forEach(function (m) {
+            if (m.equipe_a_id) ids[m.equipe_a_id] = true;
+            if (m.equipe_b_id) ids[m.equipe_b_id] = true;
+        });
+        var fmt = currentTournoi && currentTournoi.format_score;
+        var rule = FORMAT_RULES[fmt] || FORMAT_RULES.libre;
+        return TournoiClassement.classerPoule({
+            equipes: Object.keys(ids).map(function (id) {
+                var e = equipes.find(function (x) { return x.id === id; });
+                return { id: id, nom: e ? equipeAffichage(e) : '?' };
+            }),
+            matchs: ms.filter(function (m) { return m.status === 'termine'; }),
+            compteSets: !rule.libre && !rule.superTbOnly,
+            homologue: !!(currentTournoi && currentTournoi.homologue)
+        });
+    }
+
     function computeClassementFinal() {
         var byBracket = {};
         matchs.filter(function (m) { return m.phase === 'finale'; }).forEach(function (m) {
@@ -4328,44 +4564,25 @@
         triBrackets.forEach(function (tb) {
             var ms = byBracket[tb.key];
             if (!ms || ms.length === 0) return;
-            // Collecter les 3 équipes participantes (unique sur a_id + b_id de tous les matchs)
-            var idsSet = {};
-            ms.forEach(function (m) {
-                if (m.equipe_a_id) idsSet[m.equipe_a_id] = true;
-                if (m.equipe_b_id) idsSet[m.equipe_b_id] = true;
+            // Même moteur que les poules : barème FFT si le tournoi est homologué.
+            var ranked = classementBracketTriangulaire(ms);
+            ranked.forEach(function (l, idx) {
+                places.push({ place: tb.start + idx, equipe_id: l.id, nom: nomFor(l.id) });
             });
-            var ids = Object.keys(idsSet);
-            // Stats par équipe sur ce bracket
-            var stats = {};
-            ids.forEach(function (id) { stats[id] = { id: id, v: 0, sg: 0, sp: 0, jg: 0, jp: 0 }; });
-            ms.forEach(function (m) {
-                if (m.status !== 'termine') return;
-                var w = winnerOf(m), l = loserOf(m);
-                if (w && stats[w]) stats[w].v++;
-                // Comptage sets/jeux : on parse score_a / score_b grossièrement
-                var parseScores = function (s) {
-                    return (s || '').toString().trim().split(/[\s,/;]+/).filter(Boolean).map(function (x) { return parseInt(x, 10); }).filter(function (n) { return !isNaN(n); });
-                };
-                var sa = parseScores(m.score_a), sb = parseScores(m.score_b);
-                var setsA = 0, setsB = 0;
-                for (var i = 0; i < Math.min(sa.length, sb.length); i++) {
-                    if (sa[i] > sb[i]) setsA++;
-                    else if (sb[i] > sa[i]) setsB++;
-                    if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].jg += sa[i]; stats[m.equipe_a_id].jp += sb[i]; }
-                    if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].jg += sb[i]; stats[m.equipe_b_id].jp += sa[i]; }
-                }
-                if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].sg += setsA; stats[m.equipe_a_id].sp += setsB; }
-                if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].sg += setsB; stats[m.equipe_b_id].sp += setsA; }
+            offset = Math.max(offset, tb.start + ranked.length);
+        });
+
+        // Poules de classement du format 9 équipes (triangulaires complets).
+        // On réutilise le moteur de classement de poule : même barème, même départage
+        // que les poules initiales (donc FFT si le tournoi est homologué).
+        BRACKETS_3P3.forEach(function (b) {
+            var ms = byBracket[b.bracket];
+            if (!ms || ms.length === 0) return;
+            var ranked = classementBracketTriangulaire(ms);
+            ranked.forEach(function (l, idx) {
+                places.push({ place: b.offset + idx, equipe_id: l.id, nom: nomFor(l.id) });
             });
-            var ranked = ids.map(function (id) { return stats[id]; }).sort(function (a, b) {
-                if (b.v !== a.v) return b.v - a.v;
-                if ((b.sg - b.sp) !== (a.sg - a.sp)) return (b.sg - b.sp) - (a.sg - a.sp);
-                return (b.jg - b.jp) - (a.jg - a.jp);
-            });
-            ranked.forEach(function (s, idx) {
-                places.push({ place: tb.start + idx, equipe_id: s.id, nom: nomFor(s.id) });
-            });
-            offset = Math.max(offset, tb.start + 3);
+            offset = Math.max(offset, b.offset + ranked.length);
         });
 
         // Brackets génériques rang_K (K=2, 3, 4, ...) — calculer dans l'ordre
@@ -4391,6 +4608,9 @@
 
     function bracketLabel(b) {
         if (b === 'principal') return '🏆 Tableau principal';
+        if (b === 'classement_or') return '🥇 Poule Or · places 1-3';
+        if (b === 'classement_argent') return '🥈 Poule Argent · places 4-6';
+        if (b === 'classement_bronze') return '🥉 Poule Bronze · places 7-9';
         if (b === 'rang_2') return '🥈 Places 5-6';
         if (b === 'rang_3') return '🥉 Places 7-9';
         if (b === 'rang_4') return '🎾 Places 10-12';
@@ -4905,6 +5125,16 @@
         var metaSpan = el('span', { class: 'match-meta', html: dragHandle + escapeHtml(metaText) });
         header.appendChild(metaSpan);
 
+        // Match gagné sans avoir été joué : on le signale, sinon l'absence de score intrigue.
+        if (m.issue === 'wo' || m.issue === 'disqualification') {
+            header.appendChild(el('span', {
+                class: 'match-issue-badge',
+                title: m.issue === 'wo'
+                    ? 'Victoire par forfait — le perdant ne s\'est pas présenté'
+                    : 'Victoire par disqualification de l\'adversaire'
+            }, m.issue === 'wo' ? 'WO' : 'DISQ.'));
+        }
+
         // Durée du match (chrono live si en cours, durée totale si terminé)
         var dureeSec = dureeMatchSecondes(m);
         if (dureeSec != null) {
@@ -5018,6 +5248,17 @@
             actions.appendChild(vSelect);
 
             actions.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: function () { saveScore(m.id); } }, '💾 Valider'));
+            // Défaites sans score : choisir le vainqueur dans le select, puis cliquer.
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small',
+                title: 'Victoire par forfait : le perdant ne s\'est pas présenté (barème FFT : -2 pts)',
+                onclick: function () { saveIssue(m.id, 'wo'); }
+            }, 'WO'));
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small',
+                title: 'Victoire par disqualification de l\'adversaire (barème FFT : -1 pt)',
+                onclick: function () { saveIssue(m.id, 'disqualification'); }
+            }, 'Disq.'));
             actions.appendChild(el('button', { class: 'btn-live btn-live--outline btn-live--small', onclick: function () { resetMatch(m.id); } }, '↺'));
         }
 

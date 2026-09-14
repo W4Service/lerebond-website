@@ -1625,3 +1625,50 @@ select.tournoi-input option {
     background: #efa707;
     color: #1a1a1a;
 }
+
+/* ===== Tournois homologués : colonne Points du barème FFT ===== */
+.poule-stat--pts {
+    color: #f4f0e6;
+    font-weight: 800;
+    font-family: 'Turret Road', sans-serif;
+}
+
+/* ===== Têtes de série ===== */
+/* Rang calculé sur le poids de paire (points FFT ou niveau). */
+.ts-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    padding: 0.22rem 0.38rem;
+    border-radius: 5px;
+    color: rgba(244, 240, 230, 0.9);
+    background: rgba(244, 240, 230, 0.1);
+    border: 1px solid rgba(244, 240, 230, 0.22);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.ts-badge--1 {
+    color: #1a1016;
+    background: #f4c941;
+    border-color: #f4c941;
+}
+
+/* ===== Match gagné sans être joué (WO / disqualification) ===== */
+.match-issue-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.22rem 0.4rem;
+    border-radius: 5px;
+    color: #ffb4a8;
+    background: rgba(255, 120, 100, 0.14);
+    border: 1px solid rgba(255, 120, 100, 0.35);
+    white-space: nowrap;
+}

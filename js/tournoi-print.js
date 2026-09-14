@@ -70,6 +70,9 @@
     }
 
     function bracketLabel(b) {
+        if (b === 'classement_or') return '🥇 Poule Or · places 1-3';
+        if (b === 'classement_argent') return '🥈 Poule Argent · places 4-6';
+        if (b === 'classement_bronze') return '🥉 Poule Bronze · places 7-9';
         if (b === 'principal') return '🏆 Tableau principal';
         if (b === 'places_5_6') return 'Match places 5-6';
         if (b === 'places_7_8') return 'Match places 7-8';
@@ -252,6 +255,9 @@
             matchsFinale.forEach(function (m) { (byBracket[m.bracket] = byBracket[m.bracket] || []).push(m); });
             var order = function (b) {
                 if (b === 'principal') return 0;
+                if (b === 'classement_or') return 1;
+                if (b === 'classement_argent') return 4;
+                if (b === 'classement_bronze') return 7;
                 if (b === 'places_5_6') return 5;
                 if (b === 'places_7_8') return 7;
                 if (b === 'places_9_10') return 9;
