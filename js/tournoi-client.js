@@ -243,6 +243,13 @@
                 out.push({ place: offset + 3, equipe_id: loserOf(d3b), nom: nomFor(loserOf(d3b)) });
                 return out;
             }
+            // 8 matchs : 4 quarts + 2 demis + finale + petite finale
+            // (format 4 TS + 2 poules de 3). Les places 5-8 viennent de la consolation.
+            if (nb === 8) {
+                pairPlaces(ms[6], offset, offset + 1, out);
+                pairPlaces(ms[7], offset + 2, offset + 3, out);
+                return out;
+            }
             var finalGen = ms[ms.length - 1];
             pairPlaces(finalGen, offset, offset + 1, out);
             ms.slice(0, -1).forEach(function (mm, idx) {
@@ -528,6 +535,7 @@
             });
             var order = function (b) {
                 if (b === 'principal') return 0;
+                if (b === 'consolation_5_8') return 5;
                 if (b === 'classement_or') return 0.1;
                 if (b === 'classement_argent') return 0.2;
                 if (b === 'classement_bronze') return 0.3;
@@ -549,6 +557,7 @@
                 if (b === 'rang_2') return '🥈 Places 5-6';
                 if (b === 'rang_3') return '🥉 Places 7-9';
                 if (b === 'rang_4') return '🎾 Places 10-12';
+                if (b === 'consolation_5_8') return '🎾 Consolation · places 5-8';
                 if (b === 'places_1_2') return '🏆 Finale · places 1-2';
                 if (b === 'places_3_4') return '🥉 Places 3-4';
                 if (b === 'places_5_6') return '🥈 Places 5-6';

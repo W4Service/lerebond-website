@@ -288,6 +288,7 @@
         if (b === 'rang_2') return '🥈 Places 5-7';
         if (b === 'rang_3') return '🥉 Places 8-10';
         if (b === 'rang_4') return 'Places 11-13';
+        if (b === 'consolation_5_8') return '🎾 Consolation · 5-8';
         if (b === 'places_1_2') return '🏆 Finale · 1-2';
         if (b === 'places_3_4') return 'Match 3ᵉ place';
         if (b === 'places_4_5') return 'Places 4-5';
@@ -509,6 +510,7 @@
         });
         var bracketOrder = function (b) {
             if (b === 'principal') return 0;
+            if (b === 'consolation_5_8') return 5;
             if (b === 'classement_or') return 1;
             if (b === 'classement_argent') return 4;
             if (b === 'classement_bronze') return 7;
