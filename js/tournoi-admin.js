@@ -812,6 +812,7 @@
         if (guardReadOnly()) return;
         var maison3x4 = isConfig3p4();
         var maison2x4 = isConfig2p4();
+        var maison2p5 = isConfig2p5();
         var maison3p3 = isConfig3p3();
         var maison3p334 = isConfig3p_3_3_4();
         var maison1p5 = isConfig1p5();
@@ -831,6 +832,10 @@
         // 3 poules (4+4+5) = 13 équipes : auto, pas de popup
         if (maison_4_4_5) {
             return await genererSqueletteMaison3p_4_4_5();
+        }
+        // 2 poules de 5 = 10 équipes : auto, pas de popup
+        if (maison2p5) {
+            return await genererSquelette2p5();
         }
         // 3 poules de 3 = 9 équipes : auto, pas de popup
         if (maison3p3) {
@@ -1131,6 +1136,48 @@
         newMatchs.push(Object.assign({}, base('places_5_7', ordre++), rang(P4, 3, 'a'), rang(P4, 4, 'b')));
         newMatchs.push(Object.assign({}, base('places_5_7', ordre++), rang(P4, 3, 'a'), rang(P3, 3, 'b')));
         newMatchs.push(Object.assign({}, base('places_5_7', ordre++), rang(P4, 4, 'a'), rang(P3, 3, 'b')));
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
+    // Matchs de classement du format 10 équipes (2 poules de 5).
+    // Chaque rang de poule donne un match : les deux 1ers jouent les places 1-2,
+    // les deux 2es les places 3-4, et ainsi de suite jusqu'aux 5es (places 9-10).
+    var BRACKETS_2P5 = [
+        { bracket: 'places_1_2',  rang: 1, w: 1, l: 2 },
+        { bracket: 'places_3_4',  rang: 2, w: 3, l: 4 },
+        { bracket: 'places_5_6',  rang: 3, w: 5, l: 6 },
+        { bracket: 'places_7_8',  rang: 4, w: 7, l: 8 },
+        { bracket: 'places_9_10', rang: 5, w: 9, l: 10 }
+    ];
+
+    // Squelette phase finale pour config 2 poules de 5 = 10 équipes.
+    // 5 matchs de classement, un par rang, avec des placeholders rang_poule
+    // résolus au fil des résultats de poule par propagateRangPoule().
+    async function genererSquelette2p5() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        if (poulesOrdonnees.length !== 2) return;
+        var P1 = poulesOrdonnees[0].id, P2 = poulesOrdonnees[1].id;
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+
+        var ordre = 0;
+        var newMatchs = BRACKETS_2P5.map(function (b) {
+            var m = {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: b.bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+                equipe_a_id: null,
+                equipe_a_source_poule_id: P1, equipe_a_source_ordre: b.rang, equipe_a_source_type: 'rang_poule',
+                equipe_b_id: null,
+                equipe_b_source_poule_id: P2, equipe_b_source_ordre: b.rang, equipe_b_source_type: 'rang_poule'
+            };
+            ordre++;
+            return m;
+        });
 
         var res = await supa.from('matchs').insert(newMatchs).select();
         if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
@@ -1879,6 +1926,39 @@
         showToast('Phase finale (maison 3p×4 + triangulaires) générée : ' + res.data.length + ' matchs', 'ok');
     }
 
+    // Phase finale pour config 2 poules de 5 (10 équipes), avec les équipes réelles.
+    // Un match de classement par rang : 1er vs 1er (places 1-2), 2e vs 2e (3-4), etc.
+    async function genererPhaseFinale2p5() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var rangs = poulesOrdonnees.map(function (p) { return computeClassement(p.id); });
+        if (rangs.length !== 2 || !rangs.every(function (c) { return c.length === 5; })) {
+            showToast('Format 10 équipes : il faut exactement 2 poules de 5 équipes.', 'error');
+            return;
+        }
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+
+        var ordre = 0;
+        var newMatchs = BRACKETS_2P5.map(function (b) {
+            var m = {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: b.bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre),
+                equipe_a_id: rangs[0][b.rang - 1].id,
+                equipe_b_id: rangs[1][b.rang - 1].id
+            };
+            ordre++;
+            return m;
+        });
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await updateTournoi({ phase: 'finale' });
+        render();
+        showToast('Matchs de classement (10 équipes) générés : ' + res.data.length + ' matchs', 'ok');
+    }
+
     // Phase finale pour config 3 poules de 3 (9 équipes), avec les équipes réelles.
     // Trois poules de classement en triangulaire complet :
     //   Or = les 1ers (places 1-3), Argent = les 2es (4-6), Bronze = les 3es (7-9).
@@ -2145,6 +2225,15 @@
         return tailles.every(function (n) { return n === 4; });
     }
 
+    // Config 2 poules de 5 équipes (10 équipes total)
+    function isConfig2p5() {
+        if (poules.length !== 2) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        return tailles.every(function (n) { return n === 5; });
+    }
+
     // Config 3 poules : deux de 4 équipes + une de 5 (total 13 équipes)
     function isConfig3p_4_4_5() {
         if (poules.length !== 3) return false;
@@ -2318,6 +2407,16 @@
         }
 
         // Choix du mode
+        // 2 poules de 5 (10 équipes) : un seul format possible, pas de popup.
+        if (isConfig2p5()) {
+            if (matchs.some(function (m) { return m.phase === 'finale'; })) {
+                if (!confirm('Des matchs de phase finale existent déjà. Tout regénérer (les scores existants seront perdus) ?')) return;
+                await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'finale');
+                matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
+            }
+            return await genererPhaseFinale2p5();
+        }
+
         // 3 poules de 3 (9 équipes) : un seul format possible, pas de popup.
         if (isConfig3p3()) {
             if (matchs.some(function (m) { return m.phase === 'finale'; })) {
@@ -4539,6 +4638,7 @@
 
         // Mode maison : brackets places_X_Y (1 match chacun, place déjà encodée dans le nom)
         var maisonBrackets = [
+            { key: 'places_1_2', w: 1, l: 2 },
             { key: 'places_3_4', w: 3, l: 4 },
             { key: 'places_4_5', w: 4, l: 5 },
             { key: 'places_5_6', w: 5, l: 6 },
@@ -4615,6 +4715,7 @@
         if (b === 'rang_3') return '🥉 Places 7-9';
         if (b === 'rang_4') return '🎾 Places 10-12';
         // Mode maison
+        if (b === 'places_1_2') return '🏆 Finale · places 1-2';
         if (b === 'places_3_4') return '🥉 Match 3ᵉ place';
         if (b === 'places_4_5') return '🎾 Match places 4-5';
         if (b === 'places_5_6') return '🥈 Match places 5-6';
@@ -4748,6 +4849,14 @@
             // Ordre d'affichage des brackets : principal d'abord, puis rang_2, rang_3...
             var bracketOrder = function (b) {
                 if (b === 'principal') return 0;
+                if (b === 'classement_or') return 1;
+                if (b === 'classement_argent') return 4;
+                if (b === 'classement_bronze') return 7;
+                // places_X_Y : on classe sur la première place du match.
+                if (b.indexOf('places_') === 0) {
+                    var np = parseInt(b.split('_')[1], 10);
+                    if (!isNaN(np)) return np;
+                }
                 if (b.indexOf('rang_') === 0) return parseInt(b.split('_')[1], 10);
                 return 99;
             };

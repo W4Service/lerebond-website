@@ -74,6 +74,7 @@
         if (b === 'classement_argent') return '🥈 Poule Argent · places 4-6';
         if (b === 'classement_bronze') return '🥉 Poule Bronze · places 7-9';
         if (b === 'principal') return '🏆 Tableau principal';
+        if (b === 'places_1_2') return 'Finale · places 1-2';
         if (b === 'places_5_6') return 'Match places 5-6';
         if (b === 'places_7_8') return 'Match places 7-8';
         if (b === 'places_9_10') return 'Match places 9-10';
@@ -258,6 +259,8 @@
                 if (b === 'classement_or') return 1;
                 if (b === 'classement_argent') return 4;
                 if (b === 'classement_bronze') return 7;
+                if (b === 'places_1_2') return 1;
+                if (b === 'places_3_4') return 3;
                 if (b === 'places_5_6') return 5;
                 if (b === 'places_7_8') return 7;
                 if (b === 'places_9_10') return 9;

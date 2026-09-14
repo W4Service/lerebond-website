@@ -288,6 +288,7 @@
         if (b === 'rang_2') return '🥈 Places 5-7';
         if (b === 'rang_3') return '🥉 Places 8-10';
         if (b === 'rang_4') return 'Places 11-13';
+        if (b === 'places_1_2') return '🏆 Finale · 1-2';
         if (b === 'places_3_4') return 'Match 3ᵉ place';
         if (b === 'places_4_5') return 'Places 4-5';
         if (b === 'places_5_6') return 'Places 5-6';
@@ -508,11 +509,17 @@
         });
         var bracketOrder = function (b) {
             if (b === 'principal') return 0;
-            if (b === 'places_3_4') return 0.5;
-            if (b === 'rang_2' || b === 'places_5_6') return 1;
-            if (b === 'rang_3' || b === 'places_7_8') return 2;
-            if (b === 'rang_4' || b === 'places_9_10') return 3;
-            if (b === 'places_11_12') return 4;
+            if (b === 'classement_or') return 1;
+            if (b === 'classement_argent') return 4;
+            if (b === 'classement_bronze') return 7;
+            // places_X_Y : on classe sur la première place du match (places_1_2 en tête).
+            if (b.indexOf('places_') === 0) {
+                var np = parseInt(b.split('_')[1], 10);
+                if (!isNaN(np)) return np;
+            }
+            if (b === 'rang_2') return 5;
+            if (b === 'rang_3') return 7;
+            if (b === 'rang_4') return 9;
             return 99;
         };
         var keys = Object.keys(byBracket).sort(function (a, b) { return bracketOrder(a) - bracketOrder(b); });

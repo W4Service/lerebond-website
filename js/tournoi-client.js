@@ -268,6 +268,7 @@
             offset += partB.length;
         }
         var maisonBrackets = [
+            { key: 'places_1_2', w: 1, l: 2 },
             { key: 'places_3_4', w: 3, l: 4 },
             { key: 'places_4_5', w: 4, l: 5 },
             { key: 'places_5_6', w: 5, l: 6 },
@@ -532,6 +533,11 @@
                 if (b === 'classement_bronze') return 0.3;
                 if (b === 'tableau_b') return 1;
                 if (b.indexOf('rang_') === 0) return parseInt(b.split('_')[1], 10);
+                // places_X_Y : on classe sur la première place du match (places_1_2 en tête).
+                if (b.indexOf('places_') === 0) {
+                    var n = parseInt(b.split('_')[1], 10);
+                    if (!isNaN(n)) return n;
+                }
                 return 99;
             };
             var label = function (b) {
@@ -543,6 +549,8 @@
                 if (b === 'rang_2') return '🥈 Places 5-6';
                 if (b === 'rang_3') return '🥉 Places 7-9';
                 if (b === 'rang_4') return '🎾 Places 10-12';
+                if (b === 'places_1_2') return '🏆 Finale · places 1-2';
+                if (b === 'places_3_4') return '🥉 Places 3-4';
                 if (b === 'places_5_6') return '🥈 Places 5-6';
                 if (b === 'places_7_8') return '🥉 Places 7-8';
                 if (b === 'places_9_10') return '🎾 Places 9-10';
