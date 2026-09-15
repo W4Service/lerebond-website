@@ -136,57 +136,42 @@
         var m = String(raw).match(/^(\d+)/);
         return m ? parseInt(m[1], 10) : NaN;
     }
+    // Classement de poule : délègue à TournoiClassement (source unique partagée
+    // avec l'admin et la page TV).
     function computeClassement(pouleId) {
-        var eqs = equipes.filter(function (e) { return e.poule_id === pouleId; });
-        var stats = {};
-        eqs.forEach(function (e) {
-            stats[e.id] = { id: e.id, nom: e.nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
-        });
-        // Fallback : équipe déplacée mais qui a un match terminé dans cette poule → on l'ajoute
-        var ajouterEquipeOrpheline = function (eqId) {
-            if (!eqId || stats[eqId]) return;
-            var e = equipes.find(function (x) { return x.id === eqId; });
-            if (e) stats[eqId] = { id: eqId, nom: e.nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0, orpheline: true };
-        };
         var fmt = currentTournoi && currentTournoi.format_score;
-        var hasSets = FORMAT_HAS_SETS[fmt];
-
-        var matchsPoule = matchs.filter(function (m) {
-            return m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine';
-        });
-        matchsPoule.forEach(function (m) {
-            ajouterEquipeOrpheline(m.equipe_a_id);
-            ajouterEquipeOrpheline(m.equipe_b_id);
-            if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) return;
-            stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
-            if (m.vainqueur_id === m.equipe_a_id) { stats[m.equipe_a_id].v++; stats[m.equipe_b_id].d++; }
-            else if (m.vainqueur_id === m.equipe_b_id) { stats[m.equipe_b_id].v++; stats[m.equipe_a_id].d++; }
-            if (hasSets) {
-                var splitter = /[\s,/;]+/;
-                var aArr = (m.score_a || '').trim().split(splitter).filter(Boolean);
-                var bArr = (m.score_b || '').trim().split(splitter).filter(Boolean);
-                var n = Math.min(aArr.length, bArr.length);
-                for (var i = 0; i < n; i++) {
-                    var a = manche(aArr[i]), b = manche(bArr[i]);
-                    if (isNaN(a) || isNaN(b)) continue;
-                    stats[m.equipe_a_id].jg += a; stats[m.equipe_a_id].jp += b;
-                    stats[m.equipe_b_id].jg += b; stats[m.equipe_b_id].jp += a;
-                    if (a > b) { stats[m.equipe_a_id].sg++; stats[m.equipe_b_id].sp++; }
-                    else if (b > a) { stats[m.equipe_b_id].sg++; stats[m.equipe_a_id].sp++; }
-                }
+        return TournoiClassement.classerPoule({
+            equipes: equipes.filter(function (e) { return e.poule_id === pouleId; })
+                .map(function (e) { return { id: e.id, nom: e.nom }; }),
+            matchs: matchs.filter(function (m) {
+                return m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine';
+            }),
+            compteSets: !!FORMAT_HAS_SETS[fmt],
+            homologue: !!(currentTournoi && currentTournoi.homologue),
+            nomPourId: function (eqId) {
+                var e = equipes.find(function (x) { return x.id === eqId; });
+                return e ? e.nom : null;
             }
         });
-        var arr = Object.keys(stats).map(function (k) { return stats[k]; });
-        arr.sort(function (a, b) {
-            if (b.v !== a.v) return b.v - a.v;
-            var dsA = a.sg - a.sp, dsB = b.sg - b.sp;
-            if (dsB !== dsA) return dsB - dsA;
-            var djA = a.jg - a.jp, djB = b.jg - b.jp;
-            if (djB !== djA) return djB - djA;
-            return a.nom.localeCompare(b.nom);
+    }
+
+    // Classement d'un mini-groupe joué en triangulaire (poules de classement,
+    // brackets places_X_Y à 3 équipes) : même moteur que les poules de qualification.
+    function classementBracketTriangulaire(ms, nomFor) {
+        var idsSet = {};
+        ms.forEach(function (m) {
+            if (m.equipe_a_id) idsSet[m.equipe_a_id] = true;
+            if (m.equipe_b_id) idsSet[m.equipe_b_id] = true;
         });
-        arr.forEach(function (s, i) { s.pos = i + 1; });
-        return arr;
+        var fmt = currentTournoi && currentTournoi.format_score;
+        return TournoiClassement.classerPoule({
+            equipes: Object.keys(idsSet).map(function (id) {
+                return { id: id, nom: (nomFor && nomFor(id)) || '?' };
+            }),
+            matchs: ms.filter(function (m) { return m.status === 'termine'; }),
+            compteSets: !!FORMAT_HAS_SETS[fmt],
+            homologue: !!(currentTournoi && currentTournoi.homologue)
+        });
     }
 
     // Classement final côté client (même logique que côté admin)
@@ -258,6 +243,13 @@
                 out.push({ place: offset + 3, equipe_id: loserOf(d3b), nom: nomFor(loserOf(d3b)) });
                 return out;
             }
+            // 8 matchs : 4 quarts + 2 demis + finale + petite finale
+            // (format 4 TS + 2 poules de 3). Les places 5-8 viennent de la consolation.
+            if (nb === 8) {
+                pairPlaces(ms[6], offset, offset + 1, out);
+                pairPlaces(ms[7], offset + 2, offset + 3, out);
+                return out;
+            }
             var finalGen = ms[ms.length - 1];
             pairPlaces(finalGen, offset, offset + 1, out);
             ms.slice(0, -1).forEach(function (mm, idx) {
@@ -283,6 +275,7 @@
             offset += partB.length;
         }
         var maisonBrackets = [
+            { key: 'places_1_2', w: 1, l: 2 },
             { key: 'places_3_4', w: 3, l: 4 },
             { key: 'places_4_5', w: 4, l: 5 },
             { key: 'places_5_6', w: 5, l: 6 },
@@ -308,43 +301,27 @@
         triBrackets.forEach(function (tb) {
             var ms = byBracket[tb.key];
             if (!ms || ms.length < 3) return;
-            var idsSet = {};
-            ms.forEach(function (m) {
-                if (m.equipe_a_id) idsSet[m.equipe_a_id] = true;
-                if (m.equipe_b_id) idsSet[m.equipe_b_id] = true;
-            });
-            var ids = Object.keys(idsSet);
-            var stats = {};
-            ids.forEach(function (id) { stats[id] = { id: id, v: 0, sg: 0, sp: 0, jg: 0, jp: 0 }; });
-            ms.forEach(function (m) {
-                if (m.status !== 'termine') return;
-                var w = winnerOf(m);
-                if (w && stats[w]) stats[w].v++;
-                var parseScores = function (s) {
-                    return (s || '').toString().trim().split(/[\s,/;]+/).filter(Boolean)
-                        .map(function (x) { return parseInt(x, 10); })
-                        .filter(function (n) { return !isNaN(n); });
-                };
-                var sa = parseScores(m.score_a), sb = parseScores(m.score_b);
-                var setsA = 0, setsB = 0;
-                for (var i = 0; i < Math.min(sa.length, sb.length); i++) {
-                    if (sa[i] > sb[i]) setsA++; else if (sb[i] > sa[i]) setsB++;
-                    if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].jg += sa[i]; stats[m.equipe_a_id].jp += sb[i]; }
-                    if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].jg += sb[i]; stats[m.equipe_b_id].jp += sa[i]; }
-                }
-                if (stats[m.equipe_a_id]) { stats[m.equipe_a_id].sg += setsA; stats[m.equipe_a_id].sp += setsB; }
-                if (stats[m.equipe_b_id]) { stats[m.equipe_b_id].sg += setsB; stats[m.equipe_b_id].sp += setsA; }
-            });
-            var ranked = ids.map(function (id) { return stats[id]; }).sort(function (a, b) {
-                if (b.v !== a.v) return b.v - a.v;
-                if ((b.sg - b.sp) !== (a.sg - a.sp)) return (b.sg - b.sp) - (a.sg - a.sp);
-                return (b.jg - b.jp) - (a.jg - a.jp);
-            });
-            ranked.forEach(function (s, idx) {
-                places.push({ place: tb.start + idx, equipe_id: s.id, nom: nomFor(s.id) });
+            var ranked = classementBracketTriangulaire(ms, nomFor);
+            ranked.forEach(function (l, idx) {
+                places.push({ place: tb.start + idx, equipe_id: l.id, nom: nomFor(l.id) });
             });
             offset = Math.max(offset, tb.start + ranked.length);
         });
+        // Poules de classement du format 9 équipes (triangulaires complets).
+        [
+            { bracket: 'classement_or', offset: 1 },
+            { bracket: 'classement_argent', offset: 4 },
+            { bracket: 'classement_bronze', offset: 7 }
+        ].forEach(function (b) {
+            var ms = byBracket[b.bracket];
+            if (!ms || ms.length === 0) return;
+            var ranked = classementBracketTriangulaire(ms, nomFor);
+            ranked.forEach(function (l, idx) {
+                places.push({ place: b.offset + idx, equipe_id: l.id, nom: nomFor(l.id) });
+            });
+            offset = Math.max(offset, b.offset + ranked.length);
+        });
+
         var rangBrackets = Object.keys(byBracket)
             .filter(function (k) { return k.indexOf('rang_') === 0; })
             .map(function (k) { return { key: k, n: parseInt(k.split('_')[1], 10) }; })
@@ -558,16 +535,31 @@
             });
             var order = function (b) {
                 if (b === 'principal') return 0;
+                if (b === 'consolation_5_8') return 5;
+                if (b === 'classement_or') return 0.1;
+                if (b === 'classement_argent') return 0.2;
+                if (b === 'classement_bronze') return 0.3;
                 if (b === 'tableau_b') return 1;
                 if (b.indexOf('rang_') === 0) return parseInt(b.split('_')[1], 10);
+                // places_X_Y : on classe sur la première place du match (places_1_2 en tête).
+                if (b.indexOf('places_') === 0) {
+                    var n = parseInt(b.split('_')[1], 10);
+                    if (!isNaN(n)) return n;
+                }
                 return 99;
             };
             var label = function (b) {
                 if (b === 'principal') return '🏆 Tableau principal';
+                if (b === 'classement_or') return '🥇 Poule Or · places 1-3';
+                if (b === 'classement_argent') return '🥈 Poule Argent · places 4-6';
+                if (b === 'classement_bronze') return '🥉 Poule Bronze · places 7-9';
                 if (b === 'tableau_b') return '🥈 Tableau B · places 5-8';
                 if (b === 'rang_2') return '🥈 Places 5-6';
                 if (b === 'rang_3') return '🥉 Places 7-9';
                 if (b === 'rang_4') return '🎾 Places 10-12';
+                if (b === 'consolation_5_8') return '🎾 Consolation · places 5-8';
+                if (b === 'places_1_2') return '🏆 Finale · places 1-2';
+                if (b === 'places_3_4') return '🥉 Places 3-4';
                 if (b === 'places_5_6') return '🥈 Places 5-6';
                 if (b === 'places_7_8') return '🥉 Places 7-8';
                 if (b === 'places_9_10') return '🎾 Places 9-10';
@@ -717,6 +709,7 @@
         var classement = computeClassement(p.id);
         var fmt = currentTournoi && currentTournoi.format_score;
         var showSets = FORMAT_HAS_SETS[fmt];
+        var homologue = !!(currentTournoi && currentTournoi.homologue);
 
         var table = el('table', { class: 'poule-live-table' });
         // En-tête
@@ -724,6 +717,7 @@
         thead.appendChild(el('th', null, '#'));
         thead.appendChild(el('th', { style: 'text-align:left' }, 'Équipe'));
         thead.appendChild(el('th', { title: 'Matchs joués' }, 'MJ'));
+        if (homologue) thead.appendChild(el('th', { title: 'Points (2 victoire / 1 défaite / −1 disq. / −2 WO)' }, 'Pts'));
         thead.appendChild(el('th', { title: 'Victoires' }, 'V'));
         if (showSets) thead.appendChild(el('th', { title: 'Diff. sets' }, '±S'));
         if (showSets) thead.appendChild(el('th', { title: 'Diff. jeux' }, '±J'));
@@ -737,6 +731,7 @@
             if (eq && eq.qualifie) nomTd.appendChild(document.createTextNode(' ✓'));
             row.appendChild(nomTd);
             row.appendChild(el('td', { class: 'poule-stat' }, String(s.mj)));
+            if (homologue) row.appendChild(el('td', { class: 'poule-stat poule-stat--pts' }, String(s.pts)));
             row.appendChild(el('td', { class: 'poule-stat poule-stat--v' }, String(s.v)));
             if (showSets) {
                 var ds = s.sg - s.sp;

@@ -148,59 +148,29 @@
         return m ? parseInt(m[1], 10) : NaN;
     }
 
-    function computeClassement(pouleId, equipes, matchs, hasSets) {
+    // Classement de poule : délègue à TournoiClassement (source unique partagée
+    // avec l'admin et la page joueurs).
+    function computeClassement(pouleId, equipes, matchs, hasSets, homologue) {
         var eqs = [];
-        for (var i = 0; i < equipes.length; i++) if (equipes[i].poule_id === pouleId) eqs.push(equipes[i]);
-        var stats = {};
-        for (var i2 = 0; i2 < eqs.length; i2++) {
-            stats[eqs[i2].id] = { id: eqs[i2].id, nom: eqs[i2].nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0 };
+        for (var i = 0; i < equipes.length; i++) {
+            if (equipes[i].poule_id === pouleId) eqs.push({ id: equipes[i].id, nom: equipes[i].nom });
         }
-        // Fallback : équipe déplacée mais qui a un match terminé dans cette poule → on l'ajoute
-        var ajouterEquipeOrpheline = function (eqId) {
-            if (!eqId || stats[eqId]) return;
-            for (var ei = 0; ei < equipes.length; ei++) {
-                if (equipes[ei].id === eqId) {
-                    stats[eqId] = { id: eqId, nom: equipes[ei].nom, mj: 0, v: 0, d: 0, sg: 0, sp: 0, jg: 0, jp: 0, orpheline: true };
-                    return;
-                }
-            }
-        };
-        var splitter = /[\s,\/;]+/;
+        var ms = [];
         for (var k = 0; k < matchs.length; k++) {
             var m = matchs[k];
-            if (m.poule_id !== pouleId || m.phase !== 'poule' || m.status !== 'termine') continue;
-            ajouterEquipeOrpheline(m.equipe_a_id);
-            ajouterEquipeOrpheline(m.equipe_b_id);
-            if (!stats[m.equipe_a_id] || !stats[m.equipe_b_id]) continue;
-            stats[m.equipe_a_id].mj++; stats[m.equipe_b_id].mj++;
-            if (m.vainqueur_id === m.equipe_a_id) { stats[m.equipe_a_id].v++; stats[m.equipe_b_id].d++; }
-            else if (m.vainqueur_id === m.equipe_b_id) { stats[m.equipe_b_id].v++; stats[m.equipe_a_id].d++; }
-            if (hasSets) {
-                var aArr = (m.score_a || '').split(splitter);
-                var bArr = (m.score_b || '').split(splitter);
-                for (var j = 0; j < Math.min(aArr.length, bArr.length); j++) {
-                    var aRaw = manche(aArr[j]);
-                    var bRaw = manche(bArr[j]);
-                    if (isNaN(aRaw) || isNaN(bRaw)) continue;
-                    stats[m.equipe_a_id].jg += aRaw; stats[m.equipe_a_id].jp += bRaw;
-                    stats[m.equipe_b_id].jg += bRaw; stats[m.equipe_b_id].jp += aRaw;
-                    if (aRaw > bRaw) { stats[m.equipe_a_id].sg++; stats[m.equipe_b_id].sp++; }
-                    else if (bRaw > aRaw) { stats[m.equipe_b_id].sg++; stats[m.equipe_a_id].sp++; }
-                }
-            }
+            if (m.poule_id === pouleId && m.phase === 'poule' && m.status === 'termine') ms.push(m);
         }
-        var arr = [];
-        for (var key in stats) if (stats.hasOwnProperty(key)) arr.push(stats[key]);
-        arr.sort(function (a, b) {
-            if (b.v !== a.v) return b.v - a.v;
-            var dsA = a.sg - a.sp, dsB = b.sg - b.sp;
-            if (dsB !== dsA) return dsB - dsA;
-            var djA = a.jg - a.jp, djB = b.jg - b.jp;
-            if (djB !== djA) return djB - djA;
-            return a.nom.localeCompare(b.nom);
+        return TournoiClassement.classerPoule({
+            equipes: eqs, matchs: ms,
+            compteSets: !!hasSets,
+            homologue: !!homologue,
+            nomPourId: function (eqId) {
+                for (var ei = 0; ei < equipes.length; ei++) {
+                    if (equipes[ei].id === eqId) return equipes[ei].nom;
+                }
+                return null;
+            }
         });
-        for (var i3 = 0; i3 < arr.length; i3++) arr[i3].pos = i3 + 1;
-        return arr;
     }
 
     function escape(s) {
@@ -311,10 +281,15 @@
 
     function bracketLabel(b) {
         if (b === 'principal') return '🏆 Principal';
+        if (b === 'classement_or') return '🥇 Poule Or · 1-3';
+        if (b === 'classement_argent') return '🥈 Poule Argent · 4-6';
+        if (b === 'classement_bronze') return '🥉 Poule Bronze · 7-9';
         if (b === 'tableau_b') return '🥈 Tableau B · 5-8';
         if (b === 'rang_2') return '🥈 Places 5-7';
         if (b === 'rang_3') return '🥉 Places 8-10';
         if (b === 'rang_4') return 'Places 11-13';
+        if (b === 'consolation_5_8') return '🎾 Consolation · 5-8';
+        if (b === 'places_1_2') return '🏆 Finale · 1-2';
         if (b === 'places_3_4') return 'Match 3ᵉ place';
         if (b === 'places_4_5') return 'Places 4-5';
         if (b === 'places_5_6') return 'Places 5-6';
@@ -324,19 +299,20 @@
         return b || '';
     }
 
-    function renderPoulesGrid(poules, equipes, matchs, joueurs, hasSets) {
+    function renderPoulesGrid(poules, equipes, matchs, joueurs, hasSets, homologue) {
         var poulesHtml = '';
         if (poules.length === 0) {
             return '<div class="tv-empty">Pas de poules</div>';
         }
         for (var pi2 = 0; pi2 < poules.length; pi2++) {
             var p = poules[pi2];
-            var clmt = computeClassement(p.id, equipes, matchs, hasSets);
+            var clmt = computeClassement(p.id, equipes, matchs, hasSets, homologue);
             var rows = '';
             rows += '<tr>' +
                 '<th class="col-pos">#</th>' +
                 '<th class="left">Équipe</th>' +
                 '<th class="col-mj">MJ</th>' +
+                (homologue ? '<th class="col-pts">Pts</th>' : '') +
                 '<th class="col-v">V</th>' +
                 (hasSets ? '<th class="col-s">±S</th>' : '') +
                 (hasSets ? '<th class="col-j">±J</th>' : '') +
@@ -353,6 +329,7 @@
                     '<td class="pos">' + (s.mj > 0 ? '#' + s.pos : '·') + '</td>' +
                     '<td class="equipe">' + nomCell + '</td>' +
                     '<td class="col-mj">' + s.mj + '</td>' +
+                    (homologue ? '<td class="pts col-pts">' + s.pts + '</td>' : '') +
                     '<td class="v col-v">' + s.v + '</td>' +
                     (hasSets ? '<td class="col-s">' + (ds >= 0 ? '+' : '') + ds + '</td>' : '') +
                     (hasSets ? '<td class="col-j">' + (dj >= 0 ? '+' : '') + dj + '</td>' : '') +
@@ -467,7 +444,7 @@
         document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
 
         // Classements
-        document.getElementById('poules-list').innerHTML = renderPoulesGrid(poules, equipes, matchs, joueurs, hasSets);
+        document.getElementById('poules-list').innerHTML = renderPoulesGrid(poules, equipes, matchs, joueurs, hasSets, tournoi.homologue);
         document.getElementById('poules-section-title').textContent = 'Classements de poule';
     }
 
@@ -533,11 +510,18 @@
         });
         var bracketOrder = function (b) {
             if (b === 'principal') return 0;
-            if (b === 'places_3_4') return 0.5;
-            if (b === 'rang_2' || b === 'places_5_6') return 1;
-            if (b === 'rang_3' || b === 'places_7_8') return 2;
-            if (b === 'rang_4' || b === 'places_9_10') return 3;
-            if (b === 'places_11_12') return 4;
+            if (b === 'consolation_5_8') return 5;
+            if (b === 'classement_or') return 1;
+            if (b === 'classement_argent') return 4;
+            if (b === 'classement_bronze') return 7;
+            // places_X_Y : on classe sur la première place du match (places_1_2 en tête).
+            if (b.indexOf('places_') === 0) {
+                var np = parseInt(b.split('_')[1], 10);
+                if (!isNaN(np)) return np;
+            }
+            if (b === 'rang_2') return 5;
+            if (b === 'rang_3') return 7;
+            if (b === 'rang_4') return 9;
             return 99;
         };
         var keys = Object.keys(byBracket).sort(function (a, b) { return bracketOrder(a) - bracketOrder(b); });

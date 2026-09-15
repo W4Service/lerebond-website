@@ -512,11 +512,20 @@ select.tournoi-input option {
 .equipe-item {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    flex-wrap: wrap;       /* en mode FFT, les champs passent sous le nom */
+    gap: 0.5rem 0.6rem;
     padding: 0.55rem 0.8rem;
     background: rgba(244, 240, 230, 0.05);
     border: 1px solid rgba(244, 240, 230, 0.12);
     border-radius: 10px;
+}
+/* Le bloc de saisie des points FFT prend toute la largeur sous le nom : les deux
+   champs et leurs étiquettes ont alors la place d'être lus. */
+.equipe-item .fft-points-wrap,
+.poule-equipe-item .fft-points-wrap {
+    flex: 1 0 100%;
+    padding-top: 0.15rem;
+    border-top: 1px solid rgba(244, 240, 230, 0.08);
 }
 .equipe-item--draggable {
     cursor: grab;
@@ -542,13 +551,11 @@ select.tournoi-input option {
     cursor: grab;
 }
 .equipe-nom {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;          /* sans ça, le nom est écrasé par les champs voisins */
     font-weight: 500;
     color: #f4f0e6;
     font-size: 0.9rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 .equipe-nom-2l {
     display: flex;
@@ -558,17 +565,15 @@ select.tournoi-input option {
 }
 .equipe-nom-2l__noms {
     font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 .equipe-nom-2l__prenoms {
     font-size: 0.72em;
     opacity: 0.7;
     font-weight: 400;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .icon-btn {
@@ -647,8 +652,9 @@ select.tournoi-input option {
     border: 1px solid rgba(244, 240, 230, 0.1);
     border-radius: 8px;
     font-size: 0.88rem;
+    flex-wrap: wrap;
 }
-.poule-equipe-item .tournoi-input--mini {
+.poule-equipe-item .tournoi-input--mini:not(.fft-points-input) {
     width: 3rem;
 }
 .poule-empty {
@@ -1519,22 +1525,54 @@ select.tournoi-input option {
 /* Widget points FFT (J1 + J2 + badge poids) */
 .fft-points-wrap {
     display: flex;
-    align-items: center;
-    gap: 0.3rem;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+.fft-points-wrap .fft-joueur-champ {
+    flex: 1 1 0;
+}
+/* Chaque champ de points porte le nom du joueur au-dessus : sans lui on saisit
+   deux nombres sans savoir lequel va à qui. */
+.fft-joueur-champ {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+.fft-joueur-nom {
+    font-size: 0.75rem;
+    line-height: 1.15;
+    font-weight: 600;
+    color: #f4c941;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.fft-joueur-nom--vide {
+    font-style: italic;
+    color: rgba(244, 240, 230, 0.4);
 }
 .fft-points-input {
-    width: 4rem !important;
+    width: 100% !important;
+    min-width: 4.5rem;
     text-align: center;
-    font-weight: 600;
-    font-size: 0.85rem !important;
-    padding: 0.3rem !important;
+    font-weight: 700;
+    font-size: 0.95rem !important;
+    padding: 0.4rem 0.3rem !important;
+}
+/* Les flèches du champ number mangeaient toute la largeur utile : on les retire
+   sur les deux moteurs (Firefox ignore la règle -webkit-). */
+.fft-points-input {
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 .fft-points-input::-webkit-inner-spin-button,
 .fft-points-input::-webkit-outer-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 .fft-poids-badge {
+    align-self: flex-end;
     font-family: 'Turret Road', sans-serif;
     font-weight: 800;
     color: #f4c941;
@@ -1624,4 +1662,181 @@ select.tournoi-input option {
 .admin-switcher button.active {
     background: #efa707;
     color: #1a1a1a;
+}
+
+/* ===== Tournois homologués : colonne Points du barème FFT ===== */
+.poule-stat--pts {
+    color: #f4f0e6;
+    font-weight: 800;
+    font-family: 'Turret Road', sans-serif;
+}
+
+/* ===== Têtes de série ===== */
+/* Rang calculé sur le poids de paire (points FFT ou niveau). */
+.ts-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    padding: 0.22rem 0.38rem;
+    border-radius: 5px;
+    color: rgba(244, 240, 230, 0.9);
+    background: rgba(244, 240, 230, 0.1);
+    border: 1px solid rgba(244, 240, 230, 0.22);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.ts-badge--1 {
+    color: #1a1016;
+    background: #f4c941;
+    border-color: #f4c941;
+}
+
+/* ===== Match gagné sans être joué (WO / disqualification) ===== */
+.match-issue-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.22rem 0.4rem;
+    border-radius: 5px;
+    color: #ffb4a8;
+    background: rgba(255, 120, 100, 0.14);
+    border: 1px solid rgba(255, 120, 100, 0.35);
+    white-space: nowrap;
+}
+
+/* ===== Sélecteur de format de phase finale ===== */
+/* Tous les formats sont présentés au juge-arbitre ; les non applicables restent
+   visibles mais grisés, avec la condition qu'il leur manque. */
+.format-picker-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(10, 6, 9, 0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+.format-picker {
+    background: #1a1016;
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    border-radius: 14px;
+    width: min(680px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+.format-picker-titre {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4f0e6;
+    font-size: 1.25rem;
+    margin-bottom: 0.35rem;
+}
+.format-picker-config {
+    color: #f4c941;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+.format-picker-vide {
+    color: rgba(244, 240, 230, 0.7);
+    font-size: 0.85rem;
+    background: rgba(255, 120, 100, 0.1);
+    border: 1px solid rgba(255, 120, 100, 0.3);
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 1rem;
+}
+.format-picker-liste {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+}
+.format-option {
+    border: 1px solid rgba(244, 240, 230, 0.16);
+    border-radius: 10px;
+    padding: 0.8rem 0.95rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.format-option:hover:not(.format-option--indispo) {
+    border-color: rgba(244, 201, 65, 0.6);
+    background: rgba(244, 201, 65, 0.06);
+}
+.format-option--choisi {
+    border-color: #f4c941;
+    background: rgba(244, 201, 65, 0.12);
+}
+.format-option--indispo {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.format-option-entete {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+}
+.format-option-nom {
+    font-weight: 700;
+    color: #f4f0e6;
+    font-size: 0.95rem;
+}
+.format-option-tag {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(244, 240, 230, 0.6);
+    border: 1px solid rgba(244, 240, 230, 0.25);
+    border-radius: 5px;
+    padding: 0.15rem 0.4rem;
+    white-space: nowrap;
+}
+.format-option-detail {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: rgba(244, 240, 230, 0.8);
+    margin-bottom: 0.3rem;
+}
+.format-option-requis {
+    font-size: 0.75rem;
+    color: rgba(244, 240, 230, 0.55);
+}
+.format-picker-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+.format-picker-actions button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Colonne "Total paire" du widget de points FFT : plus étroite que les 2 champs
+   de saisie, elle n'affiche qu'une valeur calculée. */
+.fft-total-champ {
+    flex: 0 0 auto !important;
+    align-items: center;
+}
+.fft-total-label {
+    color: rgba(244, 240, 230, 0.55) !important;
+    font-weight: 500 !important;
+}
+.fft-poids-badge {
+    display: block;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.95rem;
 }
