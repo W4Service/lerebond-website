@@ -403,16 +403,34 @@
             if (!confirm(sansPoids.length + ' équipe(s) n\'ont pas de ' + label + ' et seront placées en bas.\n\nContinuer quand même ?')) return;
         }
 
+        // En tournoi homologué, la répartition doit suivre le serpentin : les têtes de
+        // série sont réparties une par poule, et les poules sont de force équivalente.
+        // Le mode homogène regrouperait les meilleures paires dans la même poule — il
+        // reste proposé pour les tournois internes, mais signalé comme non conforme.
+        var homologue = !!(currentTournoi && currentTournoi.homologue);
         var mode = prompt(
             'Choisis la stratégie de répartition :\n\n' +
-            '  1 — Poules homogènes (la Poule A regroupe les plus forts, la Poule B les suivants, etc.)\n' +
-            '  2 — Poules équilibrées (méthode serpentin : chaque poule contient un mix de niveaux)\n\n' +
+            '  1 — Poules de niveau' + (homologue ? ' ⚠️ NON CONFORME en tournoi homologué' : '') + '\n' +
+            '       La Poule A regroupe les plus fortes paires, la Poule B les suivantes...\n' +
+            '       Les têtes de série se retrouvent donc dans la même poule.\n\n' +
+            '  2 — Serpentin' + (homologue ? ' ✅ RÈGLE FFT' : ' (recommandé)') + '\n' +
+            '       Une tête de série par poule, puis distribution en zigzag.\n' +
+            '       Les poules sont de force équivalente.\n\n' +
+            (homologue
+                ? 'Ce tournoi est homologué : le serpentin s\'impose.\n\n'
+                : '') +
             'Tape 1 ou 2 :',
-            '1'
+            homologue ? '2' : '2'
         );
         if (mode == null) return;
         mode = String(mode).trim();
         if (mode !== '1' && mode !== '2') { showToast('Choix invalide', 'error'); return; }
+
+        if (homologue && mode === '1') {
+            if (!confirm('⚠️ Tournoi homologué : les poules de niveau ne respectent pas la règle FFT.\n\n'
+                + 'Le serpentin est la méthode attendue (une tête de série par poule, poules de force équivalente).\n\n'
+                + 'Continuer quand même avec des poules de niveau ?')) return;
+        }
 
         if (!confirm('Cette action va RÉASSIGNER toutes les équipes dans les poules. Confirmer ?')) return;
 
@@ -464,7 +482,7 @@
         });
 
         render();
-        showToast('Équipes réparties (' + (mode === '1' ? 'homogène' : 'serpentin') + ')', 'ok');
+        showToast('Équipes réparties (' + (mode === '1' ? 'poules de niveau' : 'serpentin') + ')', 'ok');
     }
 
     // ===== Poules =====
