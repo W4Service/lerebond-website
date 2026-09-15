@@ -873,6 +873,7 @@
                           + 'Demis, finale et petite finale (places 1-4), consolation (5-8), '
                           + '3es de poule (9-10). 13 matchs de phase finale.',
                     requis: '2 poules de 3 + 4 équipes hors poule (10 équipes)',
+                    compo: { poules: [3, 3], horsPoule: 4 },
                     applicable: isConfig4ts2p3,
                     squelette: genererSquelette4ts2p3,
                     finale: genererPhaseFinale4ts2p3
@@ -883,6 +884,7 @@
                     detail: 'Chaque rang donne un match : 1ers pour les places 1-2, '
                           + '2es pour 3-4, etc. jusqu\'aux 5es (9-10). 5 matchs.',
                     requis: '2 poules de 5 équipes (10 équipes)',
+                    compo: { poules: [5, 5], horsPoule: 0 },
                     applicable: isConfig2p5,
                     squelette: genererSquelette2p5,
                     finale: genererPhaseFinale2p5
@@ -893,6 +895,7 @@
                     detail: 'Trois triangulaires complets : Or (places 1-3), Argent (4-6), '
                           + 'Bronze (7-9). 9 matchs, chaque paire en joue 2.',
                     requis: '3 poules de 3 équipes (9 équipes)',
+                    compo: { poules: [3, 3, 3], horsPoule: 0 },
                     applicable: isConfig3p3,
                     squelette: genererSquelette3p3,
                     finale: genererPhaseFinale3p3
@@ -903,6 +906,7 @@
                     detail: 'Demi-finales, finale et petite finale (1-4), puis un match '
                           + 'par paire de places : 5-6, 7-8, 9-10, 11-12.',
                     requis: '3 poules de 4 équipes (12 équipes)',
+                    compo: { poules: [4, 4, 4], horsPoule: 0 },
                     applicable: isConfig3p4,
                     squelette: genererSqueletteMaison3x4,
                     finale: genererPhaseFinaleMaison3x4
@@ -913,6 +917,7 @@
                     detail: 'Comme ci-dessus pour les places 1-6, mais les places 7-9 et '
                           + '10-12 se jouent en triangulaire complet (chacun rencontre les 2 autres).',
                     requis: '3 poules de 4 équipes (12 équipes)',
+                    compo: { poules: [4, 4, 4], horsPoule: 0 },
                     applicable: isConfig3p4,
                     squelette: genererSqueletteMaison3x4Tri,
                     finale: genererPhaseFinaleMaison3x4Tri
@@ -923,6 +928,7 @@
                     detail: 'Tableau A (places 1-4) avec les 1ers et 2es, tableau B (5-8) '
                           + 'avec les 3es et 4es. Demis, finale et petite finale dans chacun.',
                     requis: '2 poules de 4 équipes (8 équipes)',
+                    compo: { poules: [4, 4], horsPoule: 0 },
                     applicable: isConfig2p4,
                     squelette: genererSqueletteMaison2p4
                 },
@@ -932,6 +938,7 @@
                     detail: 'Tableau principal : les 3 premiers de poule + le meilleur 2e. '
                           + 'Places 5-6 (autres 2es), 7-8 (3es des poules de 3), 9-10 (poule de 4).',
                     requis: '2 poules de 3 et 1 poule de 4 (10 équipes)',
+                    compo: { poules: [3, 3, 4], horsPoule: 0 },
                     applicable: isConfig3p_3_3_4,
                     squelette: genererSqueletteMaison3p334,
                     finale: genererPhaseFinaleMaison3p334
@@ -942,6 +949,7 @@
                     detail: 'Tableau principal : 1ers des poules de 4 + 1er et 2e de la poule de 5. '
                           + 'Brackets de classement à 3 équipes (barrage + finale) pour les rangs suivants.',
                     requis: '2 poules de 4 et 1 poule de 5 (13 équipes)',
+                    compo: { poules: [4, 4, 5], horsPoule: 0 },
                     applicable: isConfig3p_4_4_5,
                     squelette: genererSqueletteMaison3p_4_4_5
                 },
@@ -951,6 +959,7 @@
                     detail: 'Les 2 premiers de chaque poule au tableau principal (demis croisées, '
                           + 'finale, petite finale). Les 3 restants en triangulaire pour les places 5-7.',
                     requis: '1 poule de 4 et 1 poule de 3 (7 équipes)',
+                    compo: { poules: [4, 3], horsPoule: 0 },
                     applicable: isConfig2p_4_3,
                     squelette: genererSqueletteMaison2p_4_3,
                     finale: genererPhaseFinaleMaison2p_4_3
@@ -961,6 +970,7 @@
                     detail: 'Le 1er de poule est qualifié d\'office pour la finale ; '
                           + 'les 2e et 3e jouent une demi-finale.',
                     requis: '1 poule de 5 équipes',
+                    compo: { poules: [5], horsPoule: 0 },
                     applicable: isConfig1p5,
                     squelette: genererSqueletteMaison1p5
                 },
@@ -969,6 +979,7 @@
                     nom: '1 poule de 4 · finale directe',
                     detail: 'Les 2 premiers de la poule se disputent la finale.',
                     requis: '1 poule de 4 équipes',
+                    compo: { poules: [4], horsPoule: 0 },
                     applicable: isConfig1p4,
                     squelette: genererSqueletteMaison1p4
                 },
@@ -992,6 +1003,199 @@
                 }
             ]
         };
+    }
+
+    // ===== Composeur de poules =====
+    // Part du nombre d'équipes inscrites et propose les formats qui tombent juste.
+    // Crée les poules manquantes et répartit les équipes en serpentin, en laissant
+    // hors poule les têtes de série que le format exempte.
+    // Évite au juge-arbitre de deviner combien de poules créer avant de répartir.
+
+    function totalEquipesFormat(compo) {
+        return compo.poules.reduce(function (a, b) { return a + b; }, 0) + (compo.horsPoule || 0);
+    }
+
+    function libelleCompo(compo) {
+        var parts = [compo.poules.length + ' poule' + (compo.poules.length > 1 ? 's' : '')
+                     + ' de ' + compo.poules.join('+')];
+        if (compo.horsPoule) parts.push(compo.horsPoule + ' tête(s) de série hors poule');
+        return parts.join(' · ');
+    }
+
+    // Formats dont la composition correspond exactement au nombre d'équipes inscrites.
+    function formatsPourEffectif(nbEquipes) {
+        return catalogueFormats().formats.filter(function (f) {
+            return f.compo && totalEquipesFormat(f.compo) === nbEquipes;
+        });
+    }
+
+    // Applique la composition d'un format : crée/ajuste les poules, puis répartit
+    // les équipes en serpentin (les plus fortes d'abord, une par poule).
+    async function appliquerCompo(format) {
+        var compo = format.compo;
+        var cible = compo.poules.length;
+
+        // 1. Ajuster le nombre de poules — on ne supprime que les poules en trop.
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        for (var i = poulesOrdonnees.length - 1; i >= cible; i--) {
+            var pid = poulesOrdonnees[i].id;
+            await supa.from('equipes').update({ poule_id: null }).eq('poule_id', pid);
+            equipes.forEach(function (e) { if (e.poule_id === pid) e.poule_id = null; });
+            await supa.from('matchs').delete().eq('poule_id', pid);
+            matchs = matchs.filter(function (m) { return m.poule_id !== pid; });
+            await supa.from('poules').delete().eq('id', pid);
+            poules = poules.filter(function (p) { return p.id !== pid; });
+        }
+        for (var k = poules.length; k < cible; k++) {
+            var res = await supa.from('poules').insert({
+                tournoi_id: currentTournoi.id,
+                nom: 'Poule ' + String.fromCharCode(65 + k),
+                terrain: null,
+                ordre: k
+            }).select().single();
+            if (res.error) { showToast('Erreur création poule : ' + res.error.message, 'error'); return false; }
+            poules.push(res.data);
+        }
+        poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+
+        // 2. Trier les équipes par poids de paire décroissant (TS1 en tête).
+        var tries = equipes.slice().sort(function (a, b) {
+            var pa = equipePoids(a), pb = equipePoids(b);
+            var na = pa == null ? -1 : pa;
+            var nb = pb == null ? -1 : pb;
+            if (nb !== na) return nb - na;
+            return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
+        });
+
+        // 3. Les têtes de série exemptées restent hors poule ; le reste part en serpentin.
+        var nbHors = compo.horsPoule || 0;
+        var exemptes = tries.slice(0, nbHors);
+        var aRepartir = tries.slice(nbHors);
+
+        var cibleParEquipe = {};
+        exemptes.forEach(function (eq) { cibleParEquipe[eq.id] = null; });
+        aRepartir.forEach(function (eq, i) {
+            var cycle = Math.floor(i / cible);
+            var pos = i % cible;
+            var idx = (cycle % 2 === 0) ? pos : (cible - 1 - pos);
+            cibleParEquipe[eq.id] = poulesOrdonnees[idx].id;
+        });
+
+        // 4. Pousser en base.
+        var updates = Object.keys(cibleParEquipe).map(function (eqId) {
+            return supa.from('equipes').update({ poule_id: cibleParEquipe[eqId] }).eq('id', eqId).select().single();
+        });
+        var results = await Promise.all(updates);
+        var errs = results.filter(function (r) { return r.error; });
+        if (errs.length > 0) {
+            console.error(errs);
+            showToast(errs.length + ' erreur(s) lors de la répartition', 'error');
+            return false;
+        }
+        results.forEach(function (r) {
+            if (!r.data) return;
+            var idx = equipes.findIndex(function (e) { return e.id === r.data.id; });
+            if (idx >= 0) equipes[idx] = r.data;
+        });
+        return true;
+    }
+
+    // Boîte de dialogue du composeur.
+    async function composerPoules() {
+        if (guardReadOnly()) return;
+        var nb = equipes.length;
+        if (nb < 4) { showToast('Ajoute au moins 4 équipes avant de composer les poules.', 'error'); return; }
+
+        var possibles = formatsPourEffectif(nb);
+        var sansPoids = equipes.filter(function (e) { return equipePoids(e) == null; });
+
+        var format = await choisirCompoDialog(nb, possibles, sansPoids.length);
+        if (!format) return;
+
+        if (matchs.length > 0) {
+            if (!confirm('Des matchs existent déjà et seront supprimés par la recomposition.\n\nContinuer ?')) return;
+            await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id);
+            matchs = [];
+        }
+
+        var ok = await appliquerCompo(format);
+        if (!ok) return;
+        render();
+        showToast('Poules composées : ' + libelleCompo(format.compo), 'ok');
+    }
+
+    // Dialogue : liste les compositions possibles pour l'effectif inscrit.
+    function choisirCompoDialog(nbEquipes, possibles, nbSansPoids) {
+        return new Promise(function (resolve) {
+            var overlay = el('div', { class: 'format-picker-overlay' });
+            var box = el('div', { class: 'format-picker' });
+
+            box.appendChild(el('h3', { class: 'format-picker-titre' }, '🎯 Composer les poules'));
+            box.appendChild(el('p', { class: 'format-picker-config' },
+                nbEquipes + ' équipes inscrites'));
+
+            if (nbSansPoids > 0) {
+                box.appendChild(el('p', { class: 'format-picker-vide' },
+                    '⚠️ ' + nbSansPoids + ' équipe(s) sans points FFT saisis. '
+                    + 'Elles seront traitées comme les plus faibles — donc jamais têtes de série. '
+                    + 'Saisis les points avant de composer pour un placement correct.'));
+            }
+
+            if (possibles.length === 0) {
+                box.appendChild(el('p', { class: 'format-picker-vide' },
+                    'Aucun format prévu pour ' + nbEquipes + ' équipes. '
+                    + 'Compose les poules à la main, puis utilise « Répartir » en mode serpentin.'));
+            }
+
+            var liste = el('div', { class: 'format-picker-liste' });
+            var choisi = null;
+            possibles.forEach(function (f) {
+                var ligne = el('div', {
+                    class: 'format-option',
+                    onclick: function () {
+                        choisi = f;
+                        var toutes = liste.querySelectorAll('.format-option');
+                        for (var i = 0; i < toutes.length; i++) toutes[i].classList.remove('format-option--choisi');
+                        ligne.classList.add('format-option--choisi');
+                        valider.disabled = false;
+                    }
+                });
+                var entete = el('div', { class: 'format-option-entete' });
+                entete.appendChild(el('span', { class: 'format-option-nom' }, f.nom));
+                ligne.appendChild(entete);
+                ligne.appendChild(el('p', { class: 'format-option-detail' }, f.detail));
+                ligne.appendChild(el('p', { class: 'format-option-requis' },
+                    '→ ' + libelleCompo(f.compo)));
+                liste.appendChild(ligne);
+            });
+            box.appendChild(liste);
+
+            var actions = el('div', { class: 'format-picker-actions' });
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--outline',
+                onclick: function () { fermer(); resolve(null); }
+            }, 'Annuler'));
+            var valider = el('button', {
+                class: 'btn-live btn-live--primary',
+                onclick: function () { if (choisi) { fermer(); resolve(choisi); } }
+            }, 'Composer');
+            valider.disabled = true;
+            actions.appendChild(valider);
+            box.appendChild(actions);
+
+            function fermer() {
+                document.removeEventListener('keydown', onKey);
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }
+            function onKey(e) { if (e.key === 'Escape') { fermer(); resolve(null); } }
+            document.addEventListener('keydown', onKey);
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) { fermer(); resolve(null); }
+            });
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        });
     }
 
     // Sélecteur de format de phase finale.
@@ -4470,13 +4674,26 @@
         els.eqPrenomJ2 = inpPrenom2;
 
         // Bouton répartir par niveau (visible dès qu'il y a au moins une poule)
+        // Composeur : part de l'effectif inscrit, crée les poules et répartit.
+        // Placé avant « Répartir » car c'est le point d'entrée naturel : on n'a pas
+        // à deviner combien de poules créer.
+        if (equipes.length >= 4) {
+            card.appendChild(el('button', {
+                class: 'btn-live btn-live--primary btn-live--small',
+                style: 'margin-top:0.75rem;width:100%',
+                onclick: composerPoules,
+                title: 'Propose les formats possibles pour ' + equipes.length
+                     + ' équipes, crée les poules et répartit en serpentin'
+            }, '🧩 Composer les poules (' + equipes.length + ' équipes)'));
+        }
+
         if (poules.length > 0 && equipes.length > 0) {
             card.appendChild(el('button', {
                 class: 'btn-live btn-live--outline btn-live--small',
-                style: 'margin-top:0.75rem;width:100%',
+                style: 'margin-top:0.5rem;width:100%',
                 onclick: repartirParNiveau,
-                title: 'Répartir automatiquement les équipes dans les poules selon leur niveau'
-            }, '🎯 Répartir par niveau'));
+                title: 'Répartir les équipes dans les poules DÉJÀ créées, sans en changer le nombre'
+            }, '🎯 Répartir dans les poules existantes'));
         }
 
         // Sous-titre + zone de dépôt pour "désassigner"
