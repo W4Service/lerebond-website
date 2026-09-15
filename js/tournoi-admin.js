@@ -820,88 +820,257 @@
         render();
     }
 
+    // ===== Catalogue des formats de phase finale =====
+    // Chaque entrée décrit un format et sait dire s'il s'applique à la configuration
+    // courante. On les présente TOUS au juge-arbitre, les inapplicables grisés avec
+    // la raison — plutôt que de décider à sa place en silence.
+    //
+    //   id         : identifiant stable
+    //   nom        : intitulé court
+    //   detail     : ce que le format produit concrètement (places, nb de matchs)
+    //   requis     : condition de configuration, en clair
+    //   applicable : () => bool
+    //   squelette  : génère le format avec des placeholders (avant/pendant les poules)
+    //   finale     : génère le format avec les équipes réelles (poules terminées)
+    //                (absent = on réutilise le squelette, les placeholders étant
+    //                 résolus immédiatement par propagateRangPoule)
+    function catalogueFormats() {
+        var nbPoules = poules.length;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        }).sort(function (a, b) { return a - b; });
+        var horsPoule = equipes.filter(function (e) { return !e.poule_id; }).length;
+        var resume = nbPoules === 0
+            ? 'aucune poule'
+            : nbPoules + ' poule(s) de ' + tailles.join('+')
+              + (horsPoule > 0 ? ' · ' + horsPoule + ' équipe(s) hors poule' : '');
+
+        return {
+            resume: resume,
+            formats: [
+                {
+                    id: 'maison_4ts_2p3',
+                    nom: '4 têtes de série + 2 poules de 3',
+                    detail: 'Les 4 TS entrent en quarts contre les 2 premiers de chaque poule. '
+                          + 'Demis, finale et petite finale (places 1-4), consolation (5-8), '
+                          + '3es de poule (9-10). 13 matchs de phase finale.',
+                    requis: '2 poules de 3 + 4 équipes hors poule (10 équipes)',
+                    applicable: isConfig4ts2p3,
+                    squelette: genererSquelette4ts2p3,
+                    finale: genererPhaseFinale4ts2p3
+                },
+                {
+                    id: 'maison_2p5',
+                    nom: '2 poules de 5 · matchs de classement',
+                    detail: 'Chaque rang donne un match : 1ers pour les places 1-2, '
+                          + '2es pour 3-4, etc. jusqu\'aux 5es (9-10). 5 matchs.',
+                    requis: '2 poules de 5 équipes (10 équipes)',
+                    applicable: isConfig2p5,
+                    squelette: genererSquelette2p5,
+                    finale: genererPhaseFinale2p5
+                },
+                {
+                    id: 'maison_3p3',
+                    nom: '3 poules de 3 · poules de classement',
+                    detail: 'Trois triangulaires complets : Or (places 1-3), Argent (4-6), '
+                          + 'Bronze (7-9). 9 matchs, chaque paire en joue 2.',
+                    requis: '3 poules de 3 équipes (9 équipes)',
+                    applicable: isConfig3p3,
+                    squelette: genererSquelette3p3,
+                    finale: genererPhaseFinale3p3
+                },
+                {
+                    id: 'maison_3x4',
+                    nom: '3 poules de 4 · tableau + matchs de placement',
+                    detail: 'Demi-finales, finale et petite finale (1-4), puis un match '
+                          + 'par paire de places : 5-6, 7-8, 9-10, 11-12.',
+                    requis: '3 poules de 4 équipes (12 équipes)',
+                    applicable: isConfig3p4,
+                    squelette: genererSqueletteMaison3x4,
+                    finale: genererPhaseFinaleMaison3x4
+                },
+                {
+                    id: 'maison_3x4_tri',
+                    nom: '3 poules de 4 · tableau + triangulaires',
+                    detail: 'Comme ci-dessus pour les places 1-6, mais les places 7-9 et '
+                          + '10-12 se jouent en triangulaire complet (chacun rencontre les 2 autres).',
+                    requis: '3 poules de 4 équipes (12 équipes)',
+                    applicable: isConfig3p4,
+                    squelette: genererSqueletteMaison3x4Tri,
+                    finale: genererPhaseFinaleMaison3x4Tri
+                },
+                {
+                    id: 'maison_2p4',
+                    nom: '2 poules de 4 · deux tableaux complets',
+                    detail: 'Tableau A (places 1-4) avec les 1ers et 2es, tableau B (5-8) '
+                          + 'avec les 3es et 4es. Demis, finale et petite finale dans chacun.',
+                    requis: '2 poules de 4 équipes (8 équipes)',
+                    applicable: isConfig2p4,
+                    squelette: genererSqueletteMaison2p4
+                },
+                {
+                    id: 'maison_3p334',
+                    nom: '3 poules (3+3+4)',
+                    detail: 'Tableau principal : les 3 premiers de poule + le meilleur 2e. '
+                          + 'Places 5-6 (autres 2es), 7-8 (3es des poules de 3), 9-10 (poule de 4).',
+                    requis: '2 poules de 3 et 1 poule de 4 (10 équipes)',
+                    applicable: isConfig3p_3_3_4,
+                    squelette: genererSqueletteMaison3p334,
+                    finale: genererPhaseFinaleMaison3p334
+                },
+                {
+                    id: 'maison_3p445',
+                    nom: '3 poules (4+4+5)',
+                    detail: 'Tableau principal : 1ers des poules de 4 + 1er et 2e de la poule de 5. '
+                          + 'Brackets de classement à 3 équipes (barrage + finale) pour les rangs suivants.',
+                    requis: '2 poules de 4 et 1 poule de 5 (13 équipes)',
+                    applicable: isConfig3p_4_4_5,
+                    squelette: genererSqueletteMaison3p_4_4_5
+                },
+                {
+                    id: 'maison_2p43',
+                    nom: '2 poules (4+3)',
+                    detail: 'Les 2 premiers de chaque poule au tableau principal (demis croisées, '
+                          + 'finale, petite finale). Les 3 restants en triangulaire pour les places 5-7.',
+                    requis: '1 poule de 4 et 1 poule de 3 (7 équipes)',
+                    applicable: isConfig2p_4_3,
+                    squelette: genererSqueletteMaison2p_4_3,
+                    finale: genererPhaseFinaleMaison2p_4_3
+                },
+                {
+                    id: 'maison_1p5',
+                    nom: '1 poule de 5 · demi + finale',
+                    detail: 'Le 1er de poule est qualifié d\'office pour la finale ; '
+                          + 'les 2e et 3e jouent une demi-finale.',
+                    requis: '1 poule de 5 équipes',
+                    applicable: isConfig1p5,
+                    squelette: genererSqueletteMaison1p5
+                },
+                {
+                    id: 'maison_1p4',
+                    nom: '1 poule de 4 · finale directe',
+                    detail: 'Les 2 premiers de la poule se disputent la finale.',
+                    requis: '1 poule de 4 équipes',
+                    applicable: isConfig1p4,
+                    squelette: genererSqueletteMaison1p4
+                },
+                {
+                    id: 'generique_top1',
+                    nom: 'Générique · 1er de chaque poule',
+                    detail: 'Les premiers de poule s\'affrontent en tableau à élimination directe. '
+                          + 'Les autres rangs jouent leur propre tableau (rang 2, rang 3...).',
+                    requis: 'au moins 2 poules',
+                    applicable: function () { return nbPoules >= 2; },
+                    squelette: function () { return genererSqueletteGenerique('top1'); }
+                },
+                {
+                    id: 'generique_top1_best2',
+                    nom: 'Générique · 1ers + meilleur 2e',
+                    detail: 'Comme ci-dessus, mais le meilleur 2e complète le tableau principal — '
+                          + 'utile quand le nombre de poules n\'est pas une puissance de 2.',
+                    requis: 'au moins 2 poules',
+                    applicable: function () { return nbPoules >= 2; },
+                    squelette: function () { return genererSqueletteGenerique('top1_plus_best2'); }
+                }
+            ]
+        };
+    }
+
+    // Sélecteur de format de phase finale.
+    // Affiche TOUS les formats du catalogue : ceux qui collent à la configuration
+    // courante sont sélectionnables, les autres sont grisés avec la condition requise.
+    // @param {string} mode 'squelette' (placeholders) | 'finale' (équipes réelles)
+    // @returns {Promise<Object|null>} le format choisi, ou null si annulé
+    function choisirFormatPhaseFinale(mode) {
+        return new Promise(function (resolve) {
+            var cat = catalogueFormats();
+            var dispo = cat.formats.filter(function (f) { return f.applicable(); });
+
+            var overlay = el('div', { class: 'format-picker-overlay' });
+            var box = el('div', { class: 'format-picker' });
+
+            box.appendChild(el('h3', { class: 'format-picker-titre' }, '🏆 Format de phase finale'));
+            box.appendChild(el('p', { class: 'format-picker-config' },
+                'Configuration actuelle : ' + cat.resume));
+
+            if (dispo.length === 0) {
+                box.appendChild(el('p', { class: 'format-picker-vide' },
+                    'Aucun format ne correspond à cette configuration. '
+                    + 'Ajuste la composition des poules, ou utilise un format générique '
+                    + 'en créant au moins 2 poules.'));
+            }
+
+            var liste = el('div', { class: 'format-picker-liste' });
+            var choisi = null;
+
+            cat.formats.forEach(function (f) {
+                var ok = f.applicable();
+                // En mode 'finale', un format sans générateur dédié reste utilisable :
+                // on pose le squelette et propagateRangPoule résout les placeholders.
+                var ligne = el('div', {
+                    class: 'format-option' + (ok ? '' : ' format-option--indispo'),
+                    onclick: ok ? function () {
+                        choisi = f;
+                        var toutes = liste.querySelectorAll('.format-option');
+                        for (var i = 0; i < toutes.length; i++) toutes[i].classList.remove('format-option--choisi');
+                        ligne.classList.add('format-option--choisi');
+                        valider.disabled = false;
+                    } : null
+                });
+
+                var entete = el('div', { class: 'format-option-entete' });
+                entete.appendChild(el('span', { class: 'format-option-nom' }, f.nom));
+                if (!ok) entete.appendChild(el('span', { class: 'format-option-tag' }, 'non applicable'));
+                ligne.appendChild(entete);
+
+                ligne.appendChild(el('p', { class: 'format-option-detail' }, f.detail));
+                ligne.appendChild(el('p', { class: 'format-option-requis' },
+                    (ok ? '✓ ' : '· ') + 'Nécessite : ' + f.requis));
+                liste.appendChild(ligne);
+            });
+            box.appendChild(liste);
+
+            var actions = el('div', { class: 'format-picker-actions' });
+            var annuler = el('button', {
+                class: 'btn-live btn-live--outline',
+                onclick: function () { fermer(); resolve(null); }
+            }, 'Annuler');
+            var valider = el('button', {
+                class: 'btn-live btn-live--primary',
+                onclick: function () { if (choisi) { fermer(); resolve(choisi); } }
+            }, mode === 'finale' ? 'Générer la phase finale' : 'Pré-générer');
+            valider.disabled = true;
+            actions.appendChild(annuler);
+            actions.appendChild(valider);
+            box.appendChild(actions);
+
+            function fermer() {
+                document.removeEventListener('keydown', onKey);
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }
+            function onKey(e) {
+                if (e.key === 'Escape') { fermer(); resolve(null); }
+            }
+            document.addEventListener('keydown', onKey);
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) { fermer(); resolve(null); }
+            });
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        });
+    }
+
     // Demande à l'admin quel format de phase finale pré-générer, et appelle la bonne fonction.
+    // Propose au juge-arbitre le format de phase finale à pré-générer.
+    // Tous les formats sont présentés ; ceux qui ne collent pas à la configuration
+    // courante sont grisés avec leur condition — à lui de décider, pas au logiciel.
     async function squeletteAutoSelonConfig() {
         if (guardReadOnly()) return;
-        var maison3x4 = isConfig3p4();
-        var maison2x4 = isConfig2p4();
-        var maison4ts2p3 = isConfig4ts2p3();
-        var maison2p5 = isConfig2p5();
-        var maison3p3 = isConfig3p3();
-        var maison3p334 = isConfig3p_3_3_4();
-        var maison1p5 = isConfig1p5();
-        var maison1p4 = isConfig1p4();
-        var maison_4_4_5 = isConfig3p_4_4_5();
-        var maison2p_4_3 = isConfig2p_4_3();
-        var nbPoules = poules.length;
-
-        // 1 poule de 4 : auto, pas de popup
-        if (maison1p4) {
-            return await genererSqueletteMaison1p4();
-        }
-        // 1 poule de 5 : auto, pas de popup
-        if (maison1p5) {
-            return await genererSqueletteMaison1p5();
-        }
-        // 3 poules (4+4+5) = 13 équipes : auto, pas de popup
-        if (maison_4_4_5) {
-            return await genererSqueletteMaison3p_4_4_5();
-        }
-        // 4 TS hors poule + 2 poules de 3 = 10 équipes : auto, pas de popup
-        if (maison4ts2p3) {
-            return await genererSquelette4ts2p3();
-        }
-        // 2 poules de 5 = 10 équipes : auto, pas de popup
-        if (maison2p5) {
-            return await genererSquelette2p5();
-        }
-        // 3 poules de 3 = 9 équipes : auto, pas de popup
-        if (maison3p3) {
-            return await genererSquelette3p3();
-        }
-        // 3 poules (3+3+4) = 10 équipes : auto, pas de popup
-        if (maison3p334) {
-            return await genererSqueletteMaison3p334();
-        }
-        // 2 poules (4+3) = 7 équipes : auto, pas de popup
-        if (maison2p_4_3) {
-            return await genererSqueletteMaison2p_4_3();
-        }
-
-        if (nbPoules < 2) {
-            showToast('Il faut au moins 2 poules (ou 1 poule de 5) pour une phase finale.', 'error');
-            return;
-        }
-
-        var menu = 'Choisis le format de phase finale à pré-générer :\n\n' +
-            '  1 — Top 1 de chaque poule (les ' + nbPoules + ' 1ers s\'affrontent)\n' +
-            '  2 — Top 1 + meilleur 2e (' + (nbPoules + 1) + ' équipes au principal)\n';
-        if (maison3x4) {
-            menu += '  3 — Maison 3p×4 (demi + finale + 3/4 + matchs 5-6, 7-8, 9-10, 11-12)\n';
-            menu += '  5 — Maison 3p×4 + triangulaires (demi + finale + 3/4 + 5-6,\n' +
-                    '       triangulaires complets pour places 7-9 et 10-12)\n';
-        }
-        if (maison2x4) {
-            menu += '  6 — Maison 2p×4 — 2 tableaux complets (Tableau A places 1-4 avec\n' +
-                    '       1ers/2es, Tableau B places 5-8 avec 3es/4es : demi + finale + 3/4 chacun)\n';
-        }
-        var defauts = maison3x4 ? '5' : (maison2x4 ? '6' : '2');
-        var optionsList = ['1', '2'];
-        if (maison3x4) { optionsList.push('3'); optionsList.push('5'); }
-        if (maison2x4) optionsList.push('6');
-        optionsList.push('4');
-        menu += '  4 — Ne rien générer maintenant\n\nTape ' + optionsList.join(', ') + ' :';
-
-        var choix = prompt(menu, defauts);
-        if (choix == null) return;
-        choix = String(choix).trim();
-        if (choix === '4') return;
-        if (choix === '1') return await genererSqueletteGenerique('top1');
-        if (choix === '2') return await genererSqueletteGenerique('top1_plus_best2');
-        if (choix === '3' && maison3x4) return await genererSqueletteMaison3x4();
-        if (choix === '5' && maison3x4) return await genererSqueletteMaison3x4Tri();
-        if (choix === '6' && maison2x4) return await genererSqueletteMaison2p4();
-        showToast('Choix invalide', 'error');
+        var format = await choisirFormatPhaseFinale('squelette');
+        if (!format) return;
+        await format.squelette();
+        showToast('Phase finale pré-générée : ' + format.nom, 'ok');
     }
 
     // Génère le squelette de phase finale maison 3p×4 avec des placeholders rang_poule.
@@ -1811,69 +1980,6 @@
         });
     }
 
-    // Construit les pairs de bracket avec seeding standard puis correction "éviter mêmes poules".
-    // entrants[] = équipes triées (seed 1 d'abord). Renvoie [{ a, b }] dans l'ordre des matchs.
-    function buildBracketPairs(entrants) {
-        var n = entrants.length;
-        if (n < 2) return [];
-        // Seeding standard : 1 vs n, 2 vs n-1, ...
-        var pairs = [];
-        for (var i = 0; i < n / 2; i++) {
-            pairs.push({ a: entrants[i], b: entrants[n - 1 - i] });
-        }
-        // Tentative simple d'éviter les mêmes poules : si conflit, swap avec un voisin
-        for (var k = 0; k < pairs.length; k++) {
-            var pa = pairs[k];
-            if (pa.a.poule_id && pa.b.poule_id && pa.a.poule_id === pa.b.poule_id) {
-                for (var j = k + 1; j < pairs.length; j++) {
-                    var pb = pairs[j];
-                    // Swap b de pa avec b de pb si ça résout sans créer de conflit ailleurs
-                    if (pa.a.poule_id !== pb.b.poule_id && pa.b.poule_id !== pb.a.poule_id) {
-                        var tmp = pa.b; pa.b = pb.b; pb.b = tmp;
-                        break;
-                    }
-                }
-            }
-        }
-        return pairs;
-    }
-
-    // Génère les matchs du premier tour d'un mini-bracket pour un ensemble d'équipes.
-    // - 2 équipes : 1 match unique (= match de classement direct)
-    // - 3 équipes : "exemption + finale" : meilleur exempté, les 2 autres jouent un barrage,
-    //   puis le gagnant affronte l'exempté. On crée juste le barrage maintenant ; le match
-    //   "finale" sera créé après.
-    // - 4+ équipes : seeding 1vN, 2v(N-1)... + correction mêmes poules
-    function buildPremiers(entrants, bracket, terrainPool) {
-        var matchsBracket = [];
-        var n = entrants.length;
-        if (n < 2) return [];
-        var pickTerrain = function (i) { return terrainPool[i % terrainPool.length] || null; };
-
-        if (n === 3) {
-            // Barrage : exempté = entrants[0]. Les 2 autres jouent.
-            matchsBracket.push({
-                phase: 'finale', bracket: bracket,
-                tournoi_id: currentTournoi.id, status: 'en_attente',
-                ordre: 0, terrain: pickTerrain(0),
-                equipe_a_id: entrants[1].equipe_id,
-                equipe_b_id: entrants[2].equipe_id
-            });
-            return matchsBracket;
-        }
-
-        var pairs = buildBracketPairs(entrants);
-        pairs.forEach(function (p, i) {
-            matchsBracket.push({
-                phase: 'finale', bracket: bracket,
-                tournoi_id: currentTournoi.id, status: 'en_attente',
-                ordre: i, terrain: pickTerrain(i),
-                equipe_a_id: p.a.equipe_id,
-                equipe_b_id: p.b.equipe_id
-            });
-        });
-        return matchsBracket;
-    }
 
     // Génération phase finale "maison" pour 3 poules de 4 équipes.
     // Brackets créés :
@@ -2569,88 +2675,9 @@
             return;
         }
 
-        // Choix du mode
-        // 4 TS + 2 poules de 3 (10 équipes) : un seul format possible, pas de popup.
-        if (isConfig4ts2p3()) {
-            if (matchs.some(function (m) { return m.phase === 'finale'; })) {
-                if (!confirm('Des matchs de phase finale existent déjà. Tout regénérer (les scores existants seront perdus) ?')) return;
-                await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'finale');
-                matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
-            }
-            return await genererPhaseFinale4ts2p3();
-        }
-
-        // 2 poules de 5 (10 équipes) : un seul format possible, pas de popup.
-        if (isConfig2p5()) {
-            if (matchs.some(function (m) { return m.phase === 'finale'; })) {
-                if (!confirm('Des matchs de phase finale existent déjà. Tout regénérer (les scores existants seront perdus) ?')) return;
-                await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'finale');
-                matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
-            }
-            return await genererPhaseFinale2p5();
-        }
-
-        // 3 poules de 3 (9 équipes) : un seul format possible, pas de popup.
-        if (isConfig3p3()) {
-            if (matchs.some(function (m) { return m.phase === 'finale'; })) {
-                if (!confirm('Des matchs de phase finale existent déjà. Tout regénérer (les scores existants seront perdus) ?')) return;
-                await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id).eq('phase', 'finale');
-                matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
-            }
-            return await genererPhaseFinale3p3();
-        }
-
-        var modeMaisonDispo = isConfig3p4();
-        var mode334Dispo = isConfig3p_3_3_4();
-        var mode243Dispo = isConfig2p_4_3();
-        var mode;
-        if (mode243Dispo) {
-            var choix243 = prompt(
-                'Choisis le format de phase finale :\n\n' +
-                '  1 — Générique (seeding standard)\n' +
-                '  2 — Maison 2p (4+3) : les 2 premiers de chaque poule au tableau\n' +
-                '       principal (demi croisées + finale + petite finale, places 1-4).\n' +
-                '       Les 3 autres (3e+4e poule de 4, 3e poule de 3) en triangulaire\n' +
-                '       pour les places 5-6-7.\n\n' +
-                'Tape 1 ou 2 :',
-                '2'
-            );
-            if (choix243 == null) return;
-            choix243 = String(choix243).trim();
-            if (choix243 !== '1' && choix243 !== '2') { showToast('Choix invalide', 'error'); return; }
-            mode = choix243 === '2' ? 'maison_2p_43' : 'generique';
-        } else if (modeMaisonDispo) {
-            var choix = prompt(
-                'Choisis le format de phase finale :\n\n' +
-                '  1 — Générique (seeding standard, bracket adapté à la taille)\n' +
-                '  2 — Maison 3p×4 (demi+finale+3/4 + match 5-6, 7-8, 9-10, 11-12)\n' +
-                '  3 — Maison 3p×4 + triangulaires (demi+finale+3/4, match 5-6,\n' +
-                '       triangulaire 3èmes pour places 7-9, triangulaire 4èmes pour places 10-12)\n\n' +
-                'Tape 1, 2 ou 3 :',
-                '3'
-            );
-            if (choix == null) return;
-            choix = String(choix).trim();
-            if (choix !== '1' && choix !== '2' && choix !== '3') { showToast('Choix invalide', 'error'); return; }
-            mode = choix === '2' ? 'maison_3x4' : (choix === '3' ? 'maison_3x4_tri' : 'generique');
-        } else if (mode334Dispo) {
-            var choix334 = prompt(
-                'Choisis le format de phase finale :\n\n' +
-                '  1 — Générique (seeding standard)\n' +
-                '  2 — Maison 3p (3+3+4) : tableau principal = 1ers des 3 poules + meilleur 2e\n' +
-                '       (comparaison par prorata car les poules de 3 jouent moins de matchs).\n' +
-                '       Brackets classement : places 5-6 (les 2 autres 2es),\n' +
-                '       places 7-8 (3es des poules de 3), places 9-10 (3e+4e poule de 4).\n\n' +
-                'Tape 1 ou 2 :',
-                '2'
-            );
-            if (choix334 == null) return;
-            choix334 = String(choix334).trim();
-            if (choix334 !== '1' && choix334 !== '2') { showToast('Choix invalide', 'error'); return; }
-            mode = choix334 === '2' ? 'maison_3p_334' : 'generique';
-        } else {
-            mode = 'generique';
-        }
+        // Choix du format : on présente tout le catalogue au juge-arbitre.
+        var format = await choisirFormatPhaseFinale('finale');
+        if (!format) return;
 
         if (matchs.some(function (m) { return m.phase === 'finale'; })) {
             if (!confirm('Des matchs de phase finale existent déjà. Tout regénérer (les scores existants seront perdus) ?')) return;
@@ -2658,71 +2685,14 @@
             matchs = matchs.filter(function (m) { return m.phase !== 'finale'; });
         }
 
-        if (mode === 'maison_3x4') {
-            return await genererPhaseFinaleMaison3x4();
-        }
-        if (mode === 'maison_3x4_tri') {
-            return await genererPhaseFinaleMaison3x4Tri();
-        }
-        if (mode === 'maison_3p_334') {
-            return await genererPhaseFinaleMaison3p334();
-        }
-        if (mode === 'maison_2p_43') {
-            return await genererPhaseFinaleMaison2p_4_3();
-        }
-
-        // 1. Calculer le classement global
-        var rows = classementGlobal();
-        var premiers = rows.filter(function (r) { return r.rang === 1; });
-        var deuxiemes = rows.filter(function (r) { return r.rang === 2; });
-        var troisiemes = rows.filter(function (r) { return r.rang === 3; });
-        var quatriemes = rows.filter(function (r) { return r.rang === 4; });
-        var cinqEtPlus = rows.filter(function (r) { return r.rang >= 5; });
-
-        // 2. Trier chaque groupe par stats
-        premiers = trierParStats(premiers);
-        deuxiemes = trierParStats(deuxiemes);
-        troisiemes = trierParStats(troisiemes);
-        quatriemes = trierParStats(quatriemes);
-
-        // 3. Constituer le tableau principal : tous les premiers + le meilleur 2e
-        var principal = premiers.slice();
-        if (deuxiemes.length > 0) {
-            principal.push(deuxiemes[0]);
-            deuxiemes = deuxiemes.slice(1); // les autres 2es jouent leur propre bracket
-        }
-
-        // 4. Préparer les terrains disponibles
-        var nbT = currentTournoi.nb_terrains || 1;
-        var terrains = [];
-        for (var t = 1; t <= nbT; t++) terrains.push(t);
-
-        // 5. Générer le premier round de chaque bracket
-        var newMatchs = [];
-        newMatchs = newMatchs.concat(buildPremiers(principal, 'principal', terrains));
-        if (deuxiemes.length > 0) newMatchs = newMatchs.concat(buildPremiers(deuxiemes, 'rang_2', terrains));
-        if (troisiemes.length > 0) newMatchs = newMatchs.concat(buildPremiers(troisiemes, 'rang_3', terrains));
-        if (quatriemes.length > 0) newMatchs = newMatchs.concat(buildPremiers(quatriemes, 'rang_4', terrains));
-        if (cinqEtPlus.length > 0) {
-            // Si poules >= 5 équipes, groupe par rang
-            var byRang = {};
-            cinqEtPlus.forEach(function (r) { (byRang[r.rang] = byRang[r.rang] || []).push(r); });
-            Object.keys(byRang).sort().forEach(function (rang) {
-                newMatchs = newMatchs.concat(buildPremiers(trierParStats(byRang[rang]), 'rang_' + rang, terrains));
-            });
-        }
-
-        if (newMatchs.length === 0) {
-            showToast('Aucun match de phase finale à générer.', 'error');
-            return;
-        }
-
-        var res = await supa.from('matchs').insert(newMatchs).select();
-        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
-        matchs = matchs.concat(res.data);
+        // Un format sans générateur "équipes réelles" pose son squelette : les poules
+        // étant terminées, propagateRangPoule résout tous les placeholders aussitôt.
+        if (format.finale) return await format.finale();
+        await format.squelette();
         await updateTournoi({ phase: 'finale' });
         render();
-        showToast(res.data.length + ' matchs de phase finale générés', 'ok');
+        showToast('Phase finale générée : ' + format.nom, 'ok');
+        return;
     }
 
     // Génère le tour suivant d'un bracket dont tous les matchs du tour courant sont termines.
@@ -4383,40 +4353,50 @@
         return input;
     }
 
+    // Saisie des points FFT d'une paire. Chaque champ est étiqueté avec le nom du
+    // joueur concerné : sans ça, on saisit deux nombres sans savoir à qui ils vont.
     function makeFFTInputs(eq) {
         var wrap = el('div', { class: 'fft-points-wrap' });
-        var inp1 = el('input', {
-            type: 'number', min: '0',
-            class: 'tournoi-input tournoi-input--mini fft-points-input',
-            value: eq.points_j1 != null ? eq.points_j1 : '',
-            placeholder: 'J1',
-            title: 'Points FFT joueur 1',
-            onchange: function (e) {
-                setEquipePoints(eq.id, 'points_j1', e.target.value).then(function () { updateBadge(); });
-            }
-        });
-        var inp2 = el('input', {
-            type: 'number', min: '0',
-            class: 'tournoi-input tournoi-input--mini fft-points-input',
-            value: eq.points_j2 != null ? eq.points_j2 : '',
-            placeholder: 'J2',
-            title: 'Points FFT joueur 2',
-            onchange: function (e) {
-                setEquipePoints(eq.id, 'points_j2', e.target.value).then(function () { updateBadge(); });
-            }
-        });
-        var badge = el('span', { class: 'fft-poids-badge', title: 'Poids de paire (somme)' }, '');
+
+        function champJoueur(slot) {
+            var col = 'points_' + slot;                       // points_j1 | points_j2
+            var joueur = findJoueur(slot === 'j1' ? eq.joueur_j1_id : eq.joueur_j2_id);
+            var nom = joueur
+                ? [joueur.prenom, joueur.nom].filter(Boolean).join(' ')
+                : (slot === 'j1' ? 'Joueur 1' : 'Joueur 2');
+
+            var champ = el('div', { class: 'fft-joueur-champ' });
+            champ.appendChild(el('span', {
+                class: 'fft-joueur-nom' + (joueur ? '' : ' fft-joueur-nom--vide'),
+                title: nom
+            }, nom));
+
+            var input = el('input', {
+                type: 'number', min: '0',
+                class: 'tournoi-input tournoi-input--mini fft-points-input',
+                value: eq[col] != null ? eq[col] : '',
+                placeholder: 'pts',
+                title: 'Points FFT de ' + nom,
+                onchange: function (e) {
+                    setEquipePoints(eq.id, col, e.target.value).then(function () { updateBadge(); });
+                }
+            });
+            input.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+            input.setAttribute('draggable', 'false');
+            champ.appendChild(input);
+            return champ;
+        }
+
+        wrap.appendChild(champJoueur('j1'));
+        wrap.appendChild(champJoueur('j2'));
+
+        var badge = el('span', { class: 'fft-poids-badge', title: 'Poids de paire (somme des 2 joueurs)' }, '');
         function updateBadge() {
             var eqMaj = equipes.find(function (e2) { return e2.id === eq.id; }) || eq;
             var p = equipePoids(eqMaj);
             badge.textContent = p == null ? '–' : String(p);
         }
         updateBadge();
-        [inp1, inp2].forEach(function (i) {
-            i.addEventListener('mousedown', function (e) { e.stopPropagation(); });
-            i.setAttribute('draggable', 'false');
-            wrap.appendChild(i);
-        });
         wrap.appendChild(badge);
         return wrap;
     }

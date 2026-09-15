@@ -1519,8 +1519,29 @@ select.tournoi-input option {
 /* Widget points FFT (J1 + J2 + badge poids) */
 .fft-points-wrap {
     display: flex;
-    align-items: center;
-    gap: 0.3rem;
+    align-items: flex-end;
+    gap: 0.45rem;
+}
+/* Chaque champ de points porte le nom du joueur au-dessus : sans lui on saisit
+   deux nombres sans savoir lequel va à qui. */
+.fft-joueur-champ {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+.fft-joueur-nom {
+    font-size: 0.68rem;
+    line-height: 1.1;
+    color: rgba(244, 240, 230, 0.7);
+    max-width: 6.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fft-joueur-nom--vide {
+    font-style: italic;
+    color: rgba(244, 240, 230, 0.4);
 }
 .fft-points-input {
     width: 4rem !important;
@@ -1671,4 +1692,118 @@ select.tournoi-input option {
     background: rgba(255, 120, 100, 0.14);
     border: 1px solid rgba(255, 120, 100, 0.35);
     white-space: nowrap;
+}
+
+/* ===== Sélecteur de format de phase finale ===== */
+/* Tous les formats sont présentés au juge-arbitre ; les non applicables restent
+   visibles mais grisés, avec la condition qu'il leur manque. */
+.format-picker-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(10, 6, 9, 0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+.format-picker {
+    background: #1a1016;
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    border-radius: 14px;
+    width: min(680px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+.format-picker-titre {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    color: #f4f0e6;
+    font-size: 1.25rem;
+    margin-bottom: 0.35rem;
+}
+.format-picker-config {
+    color: #f4c941;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+.format-picker-vide {
+    color: rgba(244, 240, 230, 0.7);
+    font-size: 0.85rem;
+    background: rgba(255, 120, 100, 0.1);
+    border: 1px solid rgba(255, 120, 100, 0.3);
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 1rem;
+}
+.format-picker-liste {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+}
+.format-option {
+    border: 1px solid rgba(244, 240, 230, 0.16);
+    border-radius: 10px;
+    padding: 0.8rem 0.95rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.format-option:hover:not(.format-option--indispo) {
+    border-color: rgba(244, 201, 65, 0.6);
+    background: rgba(244, 201, 65, 0.06);
+}
+.format-option--choisi {
+    border-color: #f4c941;
+    background: rgba(244, 201, 65, 0.12);
+}
+.format-option--indispo {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.format-option-entete {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+}
+.format-option-nom {
+    font-weight: 700;
+    color: #f4f0e6;
+    font-size: 0.95rem;
+}
+.format-option-tag {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(244, 240, 230, 0.6);
+    border: 1px solid rgba(244, 240, 230, 0.25);
+    border-radius: 5px;
+    padding: 0.15rem 0.4rem;
+    white-space: nowrap;
+}
+.format-option-detail {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: rgba(244, 240, 230, 0.8);
+    margin-bottom: 0.3rem;
+}
+.format-option-requis {
+    font-size: 0.75rem;
+    color: rgba(244, 240, 230, 0.55);
+}
+.format-picker-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+.format-picker-actions button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
