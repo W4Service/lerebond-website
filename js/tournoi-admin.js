@@ -4390,14 +4390,18 @@
         wrap.appendChild(champJoueur('j1'));
         wrap.appendChild(champJoueur('j2'));
 
-        var badge = el('span', { class: 'fft-poids-badge', title: 'Poids de paire (somme des 2 joueurs)' }, '');
+        // Total de la paire : c'est lui qui sert au classement des têtes de série.
+        var totalBloc = el('div', { class: 'fft-joueur-champ fft-total-champ' });
+        totalBloc.appendChild(el('span', { class: 'fft-joueur-nom fft-total-label' }, 'Total paire'));
+        var badge = el('span', { class: 'fft-poids-badge', title: 'Somme des points des 2 joueurs — sert au classement des têtes de série' }, '');
         function updateBadge() {
             var eqMaj = equipes.find(function (e2) { return e2.id === eq.id; }) || eq;
             var p = equipePoids(eqMaj);
             badge.textContent = p == null ? '–' : String(p);
         }
         updateBadge();
-        wrap.appendChild(badge);
+        totalBloc.appendChild(badge);
+        wrap.appendChild(totalBloc);
         return wrap;
     }
 

@@ -30,6 +30,14 @@ jobs:
           find . -name "*.html" -not -path "./.git/*" \
             -exec sed -i "s|%%GTM_ID%%|${{ secrets.GTM_ID }}|g" {} +
 
+      # Casse le cache navigateur/CDN : sans ça, un js/*.js modifié continue d'être
+      # servi depuis l'ancienne version et les corrections n'arrivent jamais.
+      - name: Cache-bust local JS/CSS references
+        run: |
+          SHA="${GITHUB_SHA::8}"
+          find . -name "*.html" -not -path "./.git/*" -print0 \
+            | xargs -0 sed -i -E "s|(src=\"(js/[^\"?]+\.js))\"|\\1?v=${SHA}\"|g; s|(href=\"(css/[^\"?]+\.css))\"|\\1?v=${SHA}\"|g"
+
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
