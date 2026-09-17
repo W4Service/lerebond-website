@@ -341,9 +341,33 @@
         return eq.niveau == null ? null : eq.niveau;
     }
 
+    // Les deux échelles se lisent en sens inverse :
+    //   - points FFT : le MEILLEUR a le MOINS de points (n°1 mondial = petit total)
+    //   - niveau 1-10 : le meilleur a le plus grand nombre (10 = expert)
+    // Cette fonction range toujours la meilleure paire en premier, quelle que soit
+    // l'échelle. Les équipes sans poids saisi sont rejetées en fin de liste : on ne
+    // peut pas les classer, donc jamais tête de série.
+    function comparerForce(a, b) {
+        var pa = equipePoids(a), pb = equipePoids(b);
+        if (pa == null && pb == null) return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        if (pa !== pb) {
+            var fft = currentTournoi && currentTournoi.mode_classement === 'fft';
+            return fft ? (pa - pb) : (pb - pa);
+        }
+        return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
+    }
+
+    // Trie une liste d'équipes de la plus forte à la plus faible.
+    function trierParForce(liste) {
+        return liste.slice().sort(comparerForce);
+    }
+
     // ===== Têtes de série =====
-    // Rang de tête de série d'une équipe : 1 = meilleur poids de paire (points FFT
-    // en mode FFT, niveau sinon). Les équipes sans poids saisi n'en ont pas.
+    // Rang de tête de série d'une équipe : TS1 = la meilleure paire (cf. comparerForce,
+    // qui sait que les points FFT se lisent à l'envers du niveau 1-10).
+    // Les équipes sans poids saisi n'en ont pas.
     // On limite l'affichage aux N meilleures, N = nombre de poules (une TS par poule),
     // et au minimum aux 4 meilleures quand il y a moins de poules.
     function tetesDeSerie() {
@@ -360,11 +384,7 @@
         var avecPoids = equipes.filter(function (e) { return equipePoids(e) != null; });
         if (avecPoids.length === 0) return {};
 
-        var tries = avecPoids.slice().sort(function (a, b) {
-            var pa = equipePoids(a), pb = equipePoids(b);
-            if (pb !== pa) return pb - pa;
-            return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
-        });
+        var tries = trierParForce(avecPoids);
 
         var nbTS = Math.max(poules.length, Math.min(4, tries.length));
         var out = {};
@@ -380,8 +400,10 @@
         if (!t) return null;
         var modeFFT = currentTournoi && currentTournoi.mode_classement === 'fft';
         var detail = t.poids == null
-            ? 'poids non saisi'
-            : (modeFFT ? t.poids + ' pts FFT (paire)' : 'niveau ' + t.poids);
+            ? 'points non saisis'
+            : (modeFFT
+                ? t.poids + ' pts FFT pour la paire — au padel, moins de points = mieux classé'
+                : 'niveau ' + t.poids + '/10');
         return el('span', {
             class: 'ts-badge' + (t.rang === 1 ? ' ts-badge--1' : ''),
             title: 'Tête de série n°' + t.rang + ' · ' + detail
@@ -434,14 +456,8 @@
 
         if (!confirm('Cette action va RÉASSIGNER toutes les équipes dans les poules. Confirmer ?')) return;
 
-        // Tri : poids desc (plus fort en premier), puis nom
-        var sorted = equipes.slice().sort(function (a, b) {
-            var pa = equipePoids(a); var pb = equipePoids(b);
-            var na = (pa == null) ? -1 : pa;
-            var nb = (pb == null) ? -1 : pb;
-            if (nb !== na) return nb - na;
-            return a.nom.localeCompare(b.nom);
-        });
+        // Les plus fortes paires d'abord (sens dépendant de l'échelle, cf. comparerForce).
+        var sorted = trierParForce(equipes);
 
         var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
         var nbPoules = poulesOrdonnees.length;
@@ -1058,14 +1074,8 @@
         }
         poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
 
-        // 2. Trier les équipes par poids de paire décroissant (TS1 en tête).
-        var tries = equipes.slice().sort(function (a, b) {
-            var pa = equipePoids(a), pb = equipePoids(b);
-            var na = pa == null ? -1 : pa;
-            var nb = pb == null ? -1 : pb;
-            if (nb !== na) return nb - na;
-            return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
-        });
+        // 2. Les plus fortes paires en tête : ce sont elles les têtes de série.
+        var tries = trierParForce(equipes);
 
         // 3. Les têtes de série exemptées restent hors poule ; le reste part en serpentin.
         var nbHors = compo.horsPoule || 0;
@@ -2703,17 +2713,9 @@
     }
 
     // Les 4 têtes de série d'un tournoi "4 TS + 2 poules de 3" : les équipes hors
-    // poule, ordonnées par poids de paire décroissant (points FFT, ou niveau).
-    // TS1 = la mieux classée.
+    // poule, de la plus forte à la plus faible. TS1 = la mieux classée.
     function tsHorsPoule() {
-        return equipes.filter(function (e) { return !e.poule_id; })
-            .sort(function (a, b) {
-                var pa = equipePoids(a), pb = equipePoids(b);
-                var na = pa == null ? -1 : pa;
-                var nb = pb == null ? -1 : pb;
-                if (nb !== na) return nb - na;
-                return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
-            });
+        return trierParForce(equipes.filter(function (e) { return !e.poule_id; }));
     }
 
     // Config 2 poules de 5 équipes (10 équipes total)
@@ -3889,7 +3891,7 @@
         form.appendChild(modeHint);
         function updateModeUI() {
             if (selectMode.value === 'fft') {
-                modeHint.textContent = 'Tu saisis les points FFT des 2 joueurs par équipe. Le poids de paire (somme) sert à la répartition automatique dans les poules.';
+                modeHint.textContent = 'Tu saisis les points FFT des 2 joueurs par équipe. Le total de la paire sert au classement des têtes de série et à la répartition : au padel, MOINS de points = mieux classé.';
             } else {
                 modeHint.textContent = 'Tu saisis un niveau simple 1-10 par équipe (10 = expert). Aucun classement officiel requis.';
             }
@@ -4615,7 +4617,7 @@
         // Total de la paire : c'est lui qui sert au classement des têtes de série.
         var totalBloc = el('div', { class: 'fft-joueur-champ fft-total-champ' });
         totalBloc.appendChild(el('span', { class: 'fft-joueur-nom fft-total-label' }, 'Total paire'));
-        var badge = el('span', { class: 'fft-poids-badge', title: 'Somme des points des 2 joueurs — sert au classement des têtes de série' }, '');
+        var badge = el('span', { class: 'fft-poids-badge', title: 'Somme des points des 2 joueurs — sert au classement des têtes de série. Au padel, moins de points = mieux classé.' }, '');
         function updateBadge() {
             var eqMaj = equipes.find(function (e2) { return e2.id === eq.id; }) || eq;
             var p = equipePoids(eqMaj);
@@ -4709,15 +4711,9 @@
                 ? 'Aucune équipe. Ajoute-en ci-dessus.'
                 : 'Toutes les équipes sont assignées. Dépose ici pour retirer d\'une poule.'));
         } else {
-            // Tri par poids de paire desc (points FFT ou niveau) : les têtes de série en haut.
+            // Les têtes de série en haut de liste.
             var tsUnassigned = tetesDeSerie();
-            var sortedUnassigned = unassigned.slice().sort(function (a, b) {
-                var pa = equipePoids(a), pb = equipePoids(b);
-                var na = pa == null ? -1 : pa;
-                var nb = pb == null ? -1 : pb;
-                if (nb !== na) return nb - na;
-                return equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
-            });
+            var sortedUnassigned = trierParForce(unassigned);
             sortedUnassigned.forEach(function (eq) {
                 var item = el('div', { class: 'equipe-item equipe-item--draggable' });
                 item.appendChild(el('span', { class: 'drag-handle', title: 'Glisser' }, '⋮⋮'));
