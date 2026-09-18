@@ -34,10 +34,17 @@ plan.etapes.forEach(function (et, i) {
         + '   (' + et.motif + ')');
 });
 check('12 étapes', plan.etapes.length === 12);
-check('les 6 premières sont les TS, placées d\'office',
-      plan.etapes.slice(0, 6).every(function (e) { return e.type === 'tete_de_serie' && !e.tire; }));
-check('les 6 suivantes sont tirées au sort',
-      plan.etapes.slice(6).every(function (e) { return e.tire === true; }));
+check('les 6 premières sont les TS',
+      plan.etapes.slice(0, 6).every(function (e) { return e.type === 'tete_de_serie'; }));
+// En répartition par rang, les TS sont tirées au sort elles aussi : « les paires
+// 1 à 4 seront positionnées par tirage au sort au rang 1 ».
+check('répartition par rang : tout est tiré au sort',
+      plan.etapes.every(function (e) { return e.tire === true; }));
+check('2 TS par poule malgré le tirage', (function () {
+    var c = {};
+    plan.etapes.slice(0, 6).forEach(function (e) { c[e.poule] = (c[e.poule] || 0) + 1; });
+    return [0, 1, 2].every(function (p) { return c[p] === 2; });
+})());
 
 console.log('\n=== Les poules se remplissent progressivement ===');
 var partiel = {};

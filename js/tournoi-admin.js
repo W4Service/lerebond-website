@@ -1111,6 +1111,9 @@
                 var restantes = plan.etapes.slice(i).map(function (x) { return x.nom; });
 
                 // La roue ne tourne que pour une paire réellement tirée au sort.
+                // En serpentin, le placement est imposé par le classement : pas de
+                // suspense à mettre en scène. En répartition par rang, même les têtes
+                // de série sont tirées — la roue tourne donc aussi pour elles.
                 if (et.tire) {
                     await publierEtatTirage({
                         phase: 'roue',

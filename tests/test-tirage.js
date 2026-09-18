@@ -36,8 +36,19 @@ t1.etapes.filter(function (e) { return e.type === 'tete_de_serie'; })
 console.log('  TS par poule : ' + JSON.stringify(parPoule));
 check('2 têtes de série dans chaque poule',
       [0, 1, 2].every(function (p) { return parPoule[p] === 2; }));
-check('les TS ne sont PAS tirées au sort',
+// Le règlement traite les TS différemment selon la méthode retenue :
+//   - répartition par rang : « les paires 1 à 4 seront positionnées PAR TIRAGE AU
+//     SORT au rang 1 » -> les TS sont tirées, comme les autres chapeaux ;
+//   - serpentin : « positionnées OBLIGATOIREMENT de la manière suivante »
+//     -> placement imposé par le classement.
+// (La règle « seules les TS 1 et 2 sont placées » vise les TABLEAUX, pas les poules.)
+check('répartition par rang : les TS sont tirées au sort',
       t1.etapes.filter(function (e) { return e.type === 'tete_de_serie'; })
+        .every(function (e) { return e.tire === true; }));
+var tsSerp = T.preparerTirage({ equipes: eq(12), nbPoules: 3, nbTS: 6, nbHorsPoule: 0,
+                                taillePoules: [4, 4, 4], seed: 424242, methode: 'serpentin' });
+check('serpentin : les TS sont placées d\'office',
+      tsSerp.etapes.filter(function (e) { return e.type === 'tete_de_serie'; })
         .every(function (e) { return e.tire === false; }));
 check('les autres paires sont tirées au sort',
       t1.etapes.filter(function (e) { return e.type === 'tirage'; })
@@ -47,9 +58,18 @@ console.log('\n=== Répartition des TS : TS1 et TS2 dans des poules différentes
 var ts = t1.etapes.filter(function (e) { return e.type === 'tete_de_serie'; });
 console.log('  ' + ts.map(function (e) {
     return 'TS' + e.rang_ts + '->' + String.fromCharCode(65 + e.poule); }).join('  '));
-check('TS1 et TS2 séparées', ts[0].poule !== ts[1].poule);
-check('TS1, TS2, TS3 dans 3 poules distinctes',
-      new Set([ts[0].poule, ts[1].poule, ts[2].poule]).size === 3);
+// En répartition par rang, la poule de chaque TS est tirée : on vérifie la
+// contrainte structurelle (2 TS par poule), pas une affectation nominative.
+var parPouleTS = {};
+ts.forEach(function (e) { parPouleTS[e.poule] = (parPouleTS[e.poule] || 0) + 1; });
+check('chaque poule reçoit exactement 2 TS',
+      [0, 1, 2].every(function (p) { return parPouleTS[p] === 2; }));
+// Avec le serpentin, l'ordre est imposé : TS1->A, TS2->B, TS3->C.
+var tsS = tsSerp.etapes.filter(function (e) { return e.type === 'tete_de_serie'; });
+console.log('  serpentin : ' + tsS.map(function (e) {
+    return 'TS' + e.rang_ts + '->' + String.fromCharCode(65 + e.poule); }).join('  '));
+check('serpentin : TS1->A, TS2->B, TS3->C',
+      tsS[0].poule === 0 && tsS[1].poule === 1 && tsS[2].poule === 2);
 
 console.log('\n=== Poules complètes et sans débordement ===');
 var tailles = {};

@@ -105,22 +105,59 @@
 
         var enPoule = equipes.slice(nbHorsPoule);
 
-        // --- 2. Les têtes de série, placées d'office (pas de tirage) ---
+        // --- 2. Les têtes de série ---
+        // Le règlement traite les TS différemment selon la méthode :
+        //
+        //   - « répartition par rang » : « les paires 1 à 4 seront positionnées PAR
+        //     TIRAGE AU SORT au rang 1 ». Les TS forment le premier chapeau et sont
+        //     donc tirées, comme les autres — seule leur poule d'arrivée est incertaine.
+        //
+        //   - « serpentin » : « positionnées OBLIGATOIREMENT de la manière suivante »,
+        //     l'ordre est imposé par le classement. Les TS sont placées d'office.
+        //
+        // (À ne pas confondre avec la règle des tableaux — « seules les TS 1 et 2 sont
+        //  placées de part et d'autre du Tableau » — qui vise les TDL/TEE, pas les poules.)
         var ts = enPoule.slice(0, nbTS);
-        ts.forEach(function (eq, i) {
-            var pouleIdx = i % nbPoules;
-            placements[eq.id] = pouleIdx;
-            restant[pouleIdx]--;
-            etapes.push({
-                type: 'tete_de_serie',
-                equipe_id: eq.id,
-                nom: eq.nom,
-                rang_ts: nbHorsPoule + i + 1,
-                poule: pouleIdx,
-                tire: false,
-                motif: 'Tête de série n°' + (i + 1) + ' — placée d\'office'
+
+        if (opts.methode === 'serpentin') {
+            ts.forEach(function (eq, i) {
+                var pouleIdx = i % nbPoules;
+                placements[eq.id] = pouleIdx;
+                restant[pouleIdx]--;
+                etapes.push({
+                    type: 'tete_de_serie',
+                    equipe_id: eq.id,
+                    nom: eq.nom,
+                    rang_ts: nbHorsPoule + i + 1,
+                    poule: pouleIdx,
+                    tire: false,
+                    motif: 'Tête de série n°' + (i + 1) + ' — placement imposé (serpentin)'
+                });
             });
-        });
+        } else {
+            // Répartition par rang : un chapeau par rang de TS, tiré au sort.
+            chapeauxParRang(ts, nbPoules).forEach(function (chapeau, iChap) {
+                melanger(chapeau, rng).forEach(function (eq) {
+                    var rangTS = enPoule.indexOf(eq) + nbHorsPoule + 1;
+                    var meilleur = -1, maxLibre = -1;
+                    for (var p = 0; p < nbPoules; p++) {
+                        if (restant[p] > maxLibre) { maxLibre = restant[p]; meilleur = p; }
+                    }
+                    placements[eq.id] = meilleur;
+                    restant[meilleur]--;
+                    etapes.push({
+                        type: 'tete_de_serie',
+                        equipe_id: eq.id,
+                        nom: eq.nom,
+                        rang_ts: rangTS,
+                        poule: meilleur,
+                        chapeau: iChap + 1,
+                        tire: true,
+                        motif: 'Tête de série n°' + rangTS + ' — tirée au sort (chapeau ' + (iChap + 1) + ')'
+                    });
+                });
+            });
+        }
 
         // --- 3. Les autres paires ---
         // Deux méthodes, toutes deux prévues par le règlement.
@@ -160,7 +197,8 @@
             // par rang, et chaque chapeau est tiré au sort dans les poules.
             var chapeaux = chapeauxParRang(reste, nbPoules);
             chapeaux.forEach(function (chapeau, iChap) {
-                var numero = nbTS / nbPoules + iChap + 1;
+                // Les chapeaux de TS occupent déjà les premiers numéros.
+                var numero = Math.ceil(nbTS / nbPoules) + iChap + 1;
                 var tire = melanger(chapeau, rng);
                 tire.forEach(function (eq) {
                     var meilleur = -1, maxLibre = -1;
@@ -174,9 +212,9 @@
                         equipe_id: eq.id,
                         nom: eq.nom,
                         poule: meilleur,
-                        chapeau: Math.round(numero),
+                        chapeau: numero,
                         tire: true,
-                        motif: 'Tirée au sort — chapeau ' + Math.round(numero)
+                        motif: 'Tirée au sort — chapeau ' + numero
                     });
                 });
             });
