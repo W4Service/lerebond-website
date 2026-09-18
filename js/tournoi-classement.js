@@ -144,64 +144,69 @@
     }
 
     /**
-     * Ordonne un groupe d'équipes à égalité de points, selon les règles FFT.
+     * Ordonne un groupe de paires à égalité de points.
      *
-     * - Exactement 2 paires  → confrontation directe, point final.
-     * - 3 paires ou plus     → 1. différence de sets sur TOUTE la poule
-     *                          2. différence de jeux sur TOUTE la poule
-     *                          3. différence de sets entre les paires encore à égalité
-     *                          4. différence de jeux entre les paires encore à égalité
-     *   Le piège classique : aux étapes 1 et 2 on compte l'intégralité de la poule,
-     *   y compris les matchs contre des paires hors de l'égalité. Ce n'est qu'aux
-     *   étapes 3 et 4 qu'on restreint le périmètre.
+     * Guide de la compétition padel FFT, chapitre I (MAJ février 2026),
+     * « Etats des résultats et classement des poules » — texte officiel :
      *
-     * Après chaque critère, le groupe est resegmenté : un sous-groupe retombé à 2
-     * repasse par la confrontation directe.
+     *   « En cas d'égalité de points entre 2 ou plusieurs paires ou équipes, leur
+     *     classement est établi en tenant compte, pour toutes les parties de la poule :
+     *       • De la différence du nombre de sets gagnés et perdus par chacune d'elles
+     *       • Puis, en cas de nouvelle égalité, de la différence du nombre de jeux
+     *         gagnés et perdus par chacune d'elles
+     *       • Ensuite, en cas de nouvelle égalité par l'application successive des
+     *         2 méthodes ci-dessus, aux seuls résultats des parties ayant opposé les
+     *         paires ou équipes à départager
+     *       • En cas de nouvelle égalité, les paires ou équipes seront départagées
+     *         par un tirage au sort. »
+     *
+     * Deux points que le texte tranche et qu'on applique tels quels :
+     *   - la cascade est la MÊME à 2 paires qu'à 3 ou plus : le règlement écrit
+     *     « entre 2 ou plusieurs paires » et ne prévoit pas de confrontation
+     *     directe prioritaire à 2 ;
+     *   - aux étapes 1 et 2 on compte « toutes les parties de la poule », y compris
+     *     celles jouées contre des paires hors de l'égalité. Le périmètre n'est
+     *     restreint aux paires à départager qu'aux étapes 3 et 4.
+     *
+     * L'égalité persistante se règle par tirage au sort, qui relève du juge-arbitre :
+     * le moteur la signale via le drapeau .tirageRequis plutôt que de la trancher
+     * lui-même sur un critère arbitraire.
      *
      * @returns {Array} le groupe ordonné (lignes de stats)
      */
     function departager(groupe, confrontations) {
         if (groupe.length <= 1) return groupe.slice();
 
-        // --- Égalité entre exactement 2 paires : confrontation directe ---
-        if (groupe.length === 2) {
-            var a = groupe[0], b = groupe[1];
-            var duel = (confrontations[a.id] || {})[b.id];
-            if (duel && (duel.v > 0 || duel.d > 0)) {
-                if (duel.v !== duel.d) return duel.v > duel.d ? [a, b] : [b, a];
-                // Aller-retour partagé 1-1 : on tranche sur leur face-à-face.
-                var ds = (duel.sg - duel.sp);
-                if (ds !== 0) return ds > 0 ? [a, b] : [b, a];
-                var dj = (duel.jg - duel.jp);
-                if (dj !== 0) return dj > 0 ? [a, b] : [b, a];
-            }
-            return [a, b].sort(function (x, y) { return x.nom.localeCompare(y.nom, 'fr'); });
-        }
-
-        // --- Égalité entre 3 paires ou plus : critères successifs ---
         var ids = groupe.map(function (l) { return l.id; });
         var restreint = statsEntreEquipes(ids, confrontations);
 
         var criteres = [
-            function (l) { return l.sg - l.sp; },                                  // ±sets, poule entière
-            function (l) { return l.jg - l.jp; },                                  // ±jeux, poule entière
-            function (l) { var r = restreint[l.id]; return r.sg - r.sp; },         // ±sets, entre ex æquo
-            function (l) { var r = restreint[l.id]; return r.jg - r.jp; }          // ±jeux, entre ex æquo
+            function (l) { return l.sg - l.sp; },                          // 1. ±sets, toute la poule
+            function (l) { return l.jg - l.jp; },                          // 2. ±jeux, toute la poule
+            function (l) { var r = restreint[l.id]; return r.sg - r.sp; }, // 3. ±sets, entre ex æquo
+            function (l) { var r = restreint[l.id]; return r.jg - r.jp; }  // 4. ±jeux, entre ex æquo
         ];
 
-        return appliquerCriteres(groupe, criteres, 0, confrontations);
+        return appliquerCriteres(groupe, criteres, 0);
     }
 
     /**
-     * Applique les critères de départage l'un après l'autre.
-     * Chaque critère resegmente le groupe ; les sous-groupes encore à égalité
-     * repassent par le critère suivant — et un sous-groupe retombé à 2 équipes
-     * bascule sur la confrontation directe.
+     * Applique les critères de départage l'un après l'autre. Chaque critère
+     * resegmente le groupe ; les sous-groupes encore à égalité passent au critère
+     * suivant. Les paires encore à égalité après les 4 critères sont marquées
+     * .tirageRequis : le règlement impose alors un tirage au sort du juge-arbitre.
      */
-    function appliquerCriteres(groupe, criteres, idx, confrontations) {
+    function appliquerCriteres(groupe, criteres, idx) {
         if (groupe.length <= 1) return groupe.slice();
+
         if (idx >= criteres.length) {
-            return groupe.slice().sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+            // Départage épuisé : seul un tirage au sort peut trancher (règlement FFT).
+            // On garde un ordre stable pour l'affichage, mais on signale le tirage.
+            var restant = groupe.slice().sort(function (a, b) {
+                return a.nom.localeCompare(b.nom, 'fr');
+            });
+            restant.forEach(function (l) { l.tirageRequis = true; });
+            return restant;
         }
 
         var critere = criteres[idx];
@@ -215,11 +220,8 @@
             var bloc = trie.slice(i, j);
             if (bloc.length === 1) {
                 out.push(bloc[0]);
-            } else if (bloc.length === 2 && bloc.length < groupe.length) {
-                // Le sous-groupe est retombé à 2 : retour à la confrontation directe.
-                out = out.concat(departager(bloc, confrontations));
             } else {
-                out = out.concat(appliquerCriteres(bloc, criteres, idx + 1, confrontations));
+                out = out.concat(appliquerCriteres(bloc, criteres, idx + 1));
             }
             i = j;
         }
