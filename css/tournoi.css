@@ -1840,3 +1840,37 @@ select.tournoi-input option {
     padding: 0.4rem 0.55rem;
     font-size: 0.95rem;
 }
+
+/* Badge de conformité FFT sur les formats de tournoi.
+   Vert = compatible tournoi homologué ; gris = usage interne seulement. */
+.fft-badge {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.4rem;
+    border-radius: 5px;
+    white-space: nowrap;
+    color: #7ee06a;
+    background: rgba(126, 224, 106, 0.14);
+    border: 1px solid rgba(126, 224, 106, 0.45);
+}
+.fft-badge--non {
+    color: rgba(244, 240, 230, 0.5);
+    background: rgba(244, 240, 230, 0.06);
+    border-color: rgba(244, 240, 230, 0.2);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* Alerte de repos réglementaire sur une carte de match à lancer. */
+.repos-alerte {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #f4a941;
+    background: rgba(244, 169, 65, 0.12);
+    border: 1px solid rgba(244, 169, 65, 0.4);
+    border-radius: 6px;
+    padding: 0.2rem 0.45rem;
+    white-space: nowrap;
+}

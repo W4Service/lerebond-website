@@ -80,5 +80,58 @@ check('chaque étape nomme la paire',
       t1.etapes.every(function (e) { return !!e.nom && !!e.equipe_id; }));
 check('toutes les paires apparaissent une fois', t1.etapes.length === 12);
 
+console.log('\n=== MÉTHODE SERPENTIN (exemple chiffré du règlement) ===');
+console.log('  « 4 poules de 4 paires, classées de 1 à 16 :');
+console.log('      A    B    C    D');
+console.log('      1    2    3    4');
+console.log('      8    7    6    5');
+console.log('      9   10   11   12');
+console.log('     16   15   14   13 »');
+var serp = T.preparerTirage({ equipes: eq(16), nbPoules: 4, nbTS: 0, nbHorsPoule: 0,
+                              taillePoules: [4, 4, 4, 4], seed: 1, methode: 'serpentin' });
+var grille = [[], [], [], []];
+Object.keys(serp.placements).forEach(function (id) {
+    grille[serp.placements[id]].push(parseInt(id.slice(1), 10));
+});
+grille.forEach(function (g, i) {
+    console.log('  Poule ' + String.fromCharCode(65 + i) + ' : ' + g.join(', '));
+});
+check('poule A = 1, 8, 9, 16', grille[0].join() === '1,8,9,16');
+check('poule B = 2, 7, 10, 15', grille[1].join() === '2,7,10,15');
+check('poule C = 3, 6, 11, 14', grille[2].join() === '3,6,11,14');
+check('poule D = 4, 5, 12, 13', grille[3].join() === '4,5,12,13');
+check('serpentin : placement imposé, pas tiré au sort',
+      serp.etapes.every(function (e) { return e.tire === false; }));
+
+console.log('\n=== MÉTHODE RÉPARTITION PAR RANG ===');
+console.log('  « les paires 1 à 4 au rang 1 par tirage au sort, 5 à 8 au rang 2... »');
+var rang = T.preparerTirage({ equipes: eq(16), nbPoules: 4, nbTS: 0, nbHorsPoule: 0,
+                              taillePoules: [4, 4, 4, 4], seed: 12345, methode: 'rang' });
+var parChapeau = {};
+rang.etapes.forEach(function (e) {
+    (parChapeau[e.chapeau] = parChapeau[e.chapeau] || []).push(parseInt(e.equipe_id.slice(1), 10));
+});
+Object.keys(parChapeau).sort(function (a, b) { return a - b; }).forEach(function (c) {
+    console.log('  chapeau ' + c + ' : paires ' + parChapeau[c].sort(function (a, b) { return a - b; }).join(', '));
+});
+check('chapeau 1 = paires 1 à 4', (parChapeau[1] || []).join() === '1,2,3,4');
+check('chapeau 2 = paires 5 à 8', (parChapeau[2] || []).join() === '5,6,7,8');
+check('chapeau 3 = paires 9 à 12', (parChapeau[3] || []).join() === '9,10,11,12');
+check('chapeau 4 = paires 13 à 16', (parChapeau[4] || []).join() === '13,14,15,16');
+check('rang : les paires SONT tirées au sort',
+      rang.etapes.every(function (e) { return e.tire === true; }));
+// Chaque poule reçoit exactement une paire de chaque chapeau.
+var okRepartition = true;
+[0, 1, 2, 3].forEach(function (p) {
+    var chapeauxDeLaPoule = rang.etapes.filter(function (e) { return e.poule === p; })
+        .map(function (e) { return e.chapeau; }).sort();
+    if (chapeauxDeLaPoule.join() !== '1,2,3,4') okRepartition = false;
+});
+check('chaque poule reçoit 1 paire de chaque chapeau', okRepartition);
+
+console.log('\n=== Les 2 méthodes donnent des résultats différents ===');
+check('serpentin ≠ répartition par rang',
+      JSON.stringify(serp.placements) !== JSON.stringify(rang.placements));
+
 console.log('\n' + (ko ? ko + ' ÉCHEC(S)' : 'tout ok'));
 process.exit(ko ? 1 : 0);

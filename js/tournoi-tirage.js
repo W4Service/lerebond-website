@@ -31,6 +31,31 @@
     }
 
     /**
+     * Méthode « répartition par rang » (Guide de la compétition padel, chapitre I).
+     *
+     *   « on constitue autant de groupes qu'il y a de rangs ou positions dans les
+     *     poules. Exemple : 4 poules de 4 paires ; les 16 paires sont classées par
+     *     poids décroissant. Les paires 1 à 4 seront positionnées par tirage au
+     *     sort au rang 1, les paires 5 à 8 positionnées par tirage au sort au
+     *     rang 2, et ainsi de suite. »
+     *
+     * Autrement dit : les paires 1 à N (N = nombre de poules) forment le chapeau du
+     * rang 1 et sont tirées au sort dans les poules ; les N suivantes forment le
+     * chapeau du rang 2, etc. Contrairement au serpentin, l'ordre à l'intérieur d'un
+     * chapeau est aléatoire — d'où « de nombreuses combinaisons tout en respectant
+     * les forces des paires ».
+     *
+     * @returns {Array} chapeaux : [[equipe, ...], ...] un tableau par rang
+     */
+    function chapeauxParRang(equipes, nbPoules) {
+        var chapeaux = [];
+        for (var i = 0; i < equipes.length; i += nbPoules) {
+            chapeaux.push(equipes.slice(i, i + nbPoules));
+        }
+        return chapeaux;
+    }
+
+    /**
      * Prépare un tirage de poules.
      *
      * Principe du tirage réglementaire :
@@ -45,6 +70,8 @@
      *   - nbHorsPoule: paires exemptées de poule (formats à TS exemptées)
      *   - taillePoules: [n, n, ...] taille cible de chaque poule
      *   - seed       : graine du tirage
+     *   - methode    : 'rang' (défaut, répartition par chapeaux tirés au sort)
+     *                  ou 'serpentin' (placement imposé par le classement)
      * @returns {{seed, etapes:[], placements:{equipeId: pouleIndex|null}}}
      *   etapes : la séquence à jouer à l'écran, dans l'ordre
      */
@@ -95,26 +122,65 @@
             });
         });
 
-        // --- 3. Les autres paires, tirées au sort ---
-        // Chaque paire tirée va dans la poule ayant le plus de places libres, ce qui
-        // garantit des poules équilibrées sans rendre le tirage prévisible.
-        var autres = melanger(enPoule.slice(nbTS), rng);
-        autres.forEach(function (eq) {
-            var meilleur = -1, maxLibre = -1;
-            for (var p = 0; p < nbPoules; p++) {
-                if (restant[p] > maxLibre) { maxLibre = restant[p]; meilleur = p; }
-            }
-            placements[eq.id] = meilleur;
-            restant[meilleur]--;
-            etapes.push({
-                type: 'tirage',
-                equipe_id: eq.id,
-                nom: eq.nom,
-                poule: meilleur,
-                tire: true,
-                motif: 'Tirée au sort'
+        // --- 3. Les autres paires ---
+        // Deux méthodes, toutes deux prévues par le règlement.
+        var reste = enPoule.slice(nbTS);
+
+        if (opts.methode === 'serpentin') {
+            // Serpentin : « détermine le placement des paires de manière précise ».
+            // L'ordre est imposé par le classement (aller-retour en zigzag) ; le
+            // tirage au sort n'intervient qu'à poids égal, ce que gère le tri amont.
+            reste.forEach(function (eq, i) {
+                // On repart du rang courant : les TS ont déjà consommé des places.
+                var rang = Math.floor((nbTS + i) / nbPoules);
+                var pos = (nbTS + i) % nbPoules;
+                var idx = (rang % 2 === 0) ? pos : (nbPoules - 1 - pos);
+                // Si la poule visée est pleine (poules de tailles inégales), on
+                // bascule sur la poule la plus libre pour ne pas déborder.
+                if (restant[idx] <= 0) {
+                    var libre = -1, maxL = -1;
+                    for (var q = 0; q < nbPoules; q++) {
+                        if (restant[q] > maxL) { maxL = restant[q]; libre = q; }
+                    }
+                    idx = libre;
+                }
+                placements[eq.id] = idx;
+                restant[idx]--;
+                etapes.push({
+                    type: 'serpentin',
+                    equipe_id: eq.id,
+                    nom: eq.nom,
+                    poule: idx,
+                    tire: false,
+                    motif: 'Serpentin — placement imposé par le classement'
+                });
             });
-        });
+        } else {
+            // Répartition par rang (méthode par défaut) : on constitue un chapeau
+            // par rang, et chaque chapeau est tiré au sort dans les poules.
+            var chapeaux = chapeauxParRang(reste, nbPoules);
+            chapeaux.forEach(function (chapeau, iChap) {
+                var numero = nbTS / nbPoules + iChap + 1;
+                var tire = melanger(chapeau, rng);
+                tire.forEach(function (eq) {
+                    var meilleur = -1, maxLibre = -1;
+                    for (var p = 0; p < nbPoules; p++) {
+                        if (restant[p] > maxLibre) { maxLibre = restant[p]; meilleur = p; }
+                    }
+                    placements[eq.id] = meilleur;
+                    restant[meilleur]--;
+                    etapes.push({
+                        type: 'tirage',
+                        equipe_id: eq.id,
+                        nom: eq.nom,
+                        poule: meilleur,
+                        chapeau: Math.round(numero),
+                        tire: true,
+                        motif: 'Tirée au sort — chapeau ' + Math.round(numero)
+                    });
+                });
+            });
+        }
 
         return { seed: seed, etapes: etapes, placements: placements };
     }
@@ -136,6 +202,7 @@
 
     var api = {
         preparerTirage: preparerTirage,
+        chapeauxParRang: chapeauxParRang,
         verifierTirage: verifierTirage,
         melanger: melanger,
         makeRng: makeRng

@@ -888,6 +888,7 @@
                     detail: 'Les 4 TS entrent en quarts contre les 2 premiers de chaque poule. '
                           + 'Demis, finale et petite finale (places 1-4), consolation (5-8), '
                           + '3es de poule (9-10). 13 matchs de phase finale.',
+                    homologable: false,
                     requis: '2 poules de 3 + 4 équipes hors poule (10 équipes)',
                     compo: { poules: [3, 3], horsPoule: 4 },
                     applicable: isConfig4ts2p3,
@@ -899,6 +900,7 @@
                     nom: '2 poules de 5 · matchs de classement',
                     detail: 'Chaque rang donne un match : 1ers pour les places 1-2, '
                           + '2es pour 3-4, etc. jusqu\'aux 5es (9-10). 5 matchs.',
+                    homologable: true,
                     requis: '2 poules de 5 équipes (10 équipes)',
                     compo: { poules: [5, 5], horsPoule: 0 },
                     applicable: isConfig2p5,
@@ -910,6 +912,7 @@
                     nom: '3 poules de 3 · poules de classement',
                     detail: 'Trois triangulaires complets : Or (places 1-3), Argent (4-6), '
                           + 'Bronze (7-9). 9 matchs, chaque paire en joue 2.',
+                    homologable: true,
                     requis: '3 poules de 3 équipes (9 équipes)',
                     compo: { poules: [3, 3, 3], horsPoule: 0 },
                     applicable: isConfig3p3,
@@ -921,6 +924,7 @@
                     nom: '3 poules de 4 · tableau + matchs de placement',
                     detail: 'Demi-finales, finale et petite finale (1-4), puis un match '
                           + 'par paire de places : 5-6, 7-8, 9-10, 11-12.',
+                    homologable: true,
                     requis: '3 poules de 4 équipes (12 équipes)',
                     compo: { poules: [4, 4, 4], horsPoule: 0 },
                     applicable: isConfig3p4,
@@ -932,6 +936,7 @@
                     nom: '3 poules de 4 · tableau + triangulaires',
                     detail: 'Comme ci-dessus pour les places 1-6, mais les places 7-9 et '
                           + '10-12 se jouent en triangulaire complet (chacun rencontre les 2 autres).',
+                    homologable: true,
                     requis: '3 poules de 4 équipes (12 équipes)',
                     compo: { poules: [4, 4, 4], horsPoule: 0 },
                     applicable: isConfig3p4,
@@ -943,6 +948,7 @@
                     nom: '2 poules de 4 · deux tableaux complets',
                     detail: 'Tableau A (places 1-4) avec les 1ers et 2es, tableau B (5-8) '
                           + 'avec les 3es et 4es. Demis, finale et petite finale dans chacun.',
+                    homologable: true,
                     requis: '2 poules de 4 équipes (8 équipes)',
                     compo: { poules: [4, 4], horsPoule: 0 },
                     applicable: isConfig2p4,
@@ -953,6 +959,7 @@
                     nom: '3 poules (3+3+4)',
                     detail: 'Tableau principal : les 3 premiers de poule + le meilleur 2e. '
                           + 'Places 5-6 (autres 2es), 7-8 (3es des poules de 3), 9-10 (poule de 4).',
+                    homologable: true,
                     requis: '2 poules de 3 et 1 poule de 4 (10 équipes)',
                     compo: { poules: [3, 3, 4], horsPoule: 0 },
                     applicable: isConfig3p_3_3_4,
@@ -964,6 +971,7 @@
                     nom: '3 poules (4+4+5)',
                     detail: 'Tableau principal : 1ers des poules de 4 + 1er et 2e de la poule de 5. '
                           + 'Brackets de classement à 3 équipes (barrage + finale) pour les rangs suivants.',
+                    homologable: true,
                     requis: '2 poules de 4 et 1 poule de 5 (13 équipes)',
                     compo: { poules: [4, 4, 5], horsPoule: 0 },
                     applicable: isConfig3p_4_4_5,
@@ -974,6 +982,7 @@
                     nom: '2 poules (4+3)',
                     detail: 'Les 2 premiers de chaque poule au tableau principal (demis croisées, '
                           + 'finale, petite finale). Les 3 restants en triangulaire pour les places 5-7.',
+                    homologable: true,
                     requis: '1 poule de 4 et 1 poule de 3 (7 équipes)',
                     compo: { poules: [4, 3], horsPoule: 0 },
                     applicable: isConfig2p_4_3,
@@ -985,6 +994,7 @@
                     nom: '1 poule de 5 · demi + finale',
                     detail: 'Le 1er de poule est qualifié d\'office pour la finale ; '
                           + 'les 2e et 3e jouent une demi-finale.',
+                    homologable: false,
                     requis: '1 poule de 5 équipes',
                     compo: { poules: [5], horsPoule: 0 },
                     applicable: isConfig1p5,
@@ -994,6 +1004,7 @@
                     id: 'maison_1p4',
                     nom: '1 poule de 4 · finale directe',
                     detail: 'Les 2 premiers de la poule se disputent la finale.',
+                    homologable: false,
                     requis: '1 poule de 4 équipes',
                     compo: { poules: [4], horsPoule: 0 },
                     applicable: isConfig1p4,
@@ -1004,6 +1015,7 @@
                     nom: 'Générique · 1er de chaque poule',
                     detail: 'Les premiers de poule s\'affrontent en tableau à élimination directe. '
                           + 'Les autres rangs jouent leur propre tableau (rang 2, rang 3...).',
+                    homologable: true,
                     requis: 'au moins 2 poules',
                     applicable: function () { return nbPoules >= 2; },
                     squelette: function () { return genererSqueletteGenerique('top1'); }
@@ -1013,6 +1025,7 @@
                     nom: 'Générique · 1ers + meilleur 2e',
                     detail: 'Comme ci-dessus, mais le meilleur 2e complète le tableau principal — '
                           + 'utile quand le nombre de poules n\'est pas une puissance de 2.',
+                    homologable: true,
                     requis: 'au moins 2 poules',
                     applicable: function () { return nbPoules >= 2; },
                     squelette: function () { return genererSqueletteGenerique('top1_plus_best2'); }
@@ -1172,6 +1185,8 @@
                 });
                 var entete = el('div', { class: 'format-option-entete' });
                 entete.appendChild(el('span', { class: 'format-option-nom' }, f.nom));
+                var bF = badgeFFT(f);
+                if (bF) entete.appendChild(bF);
                 ligne.appendChild(entete);
                 ligne.appendChild(el('p', { class: 'format-option-detail' }, f.detail));
                 ligne.appendChild(el('p', { class: 'format-option-requis' },
@@ -1206,6 +1221,27 @@
             overlay.appendChild(box);
             document.body.appendChild(overlay);
         });
+    }
+
+    // Badge signalant qu'un format se prête à un tournoi homologué.
+    // Le règlement (Guide de la compétition padel, chapitre I) impose 2 têtes de
+    // série par poule lors de la constitution des poules. Les formats à TS
+    // exemptées de poule sortent de ce cadre : ils restent utilisables en tournoi
+    // interne, mais ne sont pas présentés comme homologables.
+    function badgeFFT(f) {
+        if (f.homologable) {
+            return el('span', {
+                class: 'fft-badge',
+                title: 'Format compatible avec un tournoi homologué FFT '
+                     + '(2 têtes de série par poule, tirage au sort des autres paires)'
+            }, 'FFT');
+        }
+        return el('span', {
+            class: 'fft-badge fft-badge--non',
+            title: 'Hors cadre « groupe de poules » du règlement FFT : '
+                 + 'les têtes de série n\'entrent pas en poule. '
+                 + 'Utilisable en tournoi interne.'
+        }, 'non homologué');
     }
 
     // Sélecteur de format de phase finale.
@@ -1252,6 +1288,8 @@
 
                 var entete = el('div', { class: 'format-option-entete' });
                 entete.appendChild(el('span', { class: 'format-option-nom' }, f.nom));
+                var badgeF = badgeFFT(f);
+                if (badgeF) entete.appendChild(badgeF);
                 if (!ok) entete.appendChild(el('span', { class: 'format-option-tag' }, 'non applicable'));
                 ligne.appendChild(entete);
 
@@ -3381,6 +3419,27 @@
         // Arrêter les autres matchs en cours sur le même terrain
         var match = matchs.find(function (m) { return m.id === matchId; });
         if (!match) return;
+
+        // Contrôle du repos réglementaire. Le règlement permet d'y déroger, mais
+        // « il faudra l'accord écrit des 4 joueurs, auprès du Juge-Arbitre » : on
+        // avertit sans bloquer, la décision appartient au JA.
+        var repos = controlerRepos(match);
+        if (!repos.ok) {
+            var lignes = repos.equipes.map(function (e) {
+                return '  • ' + e.nom + ' : ' + e.ecoule + ' min de repos (minimum ' + e.du + ' min)';
+            }).join('\n');
+            if (!confirm('⚠️ TEMPS DE REPOS NON RESPECTÉ\n\n' + lignes
+                + '\n\nRèglement FFT : le repos peut ne pas être pris, mais cela exige '
+                + 'l\'accord ÉCRIT des 4 joueurs auprès du juge-arbitre.\n\n'
+                + 'Lancer le match quand même ?')) return;
+        }
+
+        // Aucune rencontre ne peut débuter après minuit (règlement FFT).
+        if (new Date().getHours() === 0) {
+            if (!confirm('⚠️ Il est après minuit.\n\nLe règlement FFT interdit de faire '
+                + 'débuter une rencontre après minuit.\n\nLancer quand même ?')) return;
+        }
+
         var others = matchs.filter(function (m) { return m.terrain === match.terrain && m.status === 'en_cours' && m.id !== matchId; });
         for (var i = 0; i < others.length; i++) {
             await supa.from('matchs').update({ status: 'en_attente', started_at: null }).eq('id', others[i].id);
@@ -4299,6 +4358,94 @@
     window.diagnostiquerClassement = diagnostiquerClassement; // accessible depuis la console
 
     // Durée moyenne d'un match en minutes selon le format de score
+    // ===== Temps de repos réglementaire =====
+    // Guide de la compétition padel FFT, chapitre I (MAJ février 2026),
+    // « TEMPS DE REPOS MINIMUM » — texte officiel :
+    //   « 1h30 après un match au format A1 ou A2
+    //     1h après un match au format B1 ou B2
+    //     30 min après un match au format C1 ou C2 et D1 ou D2
+    //     15 min après 3 matchs consécutifs au format E
+    //     15 min après un match au format F
+    //     Si le Juge-Arbitre en est d'accord, le temps de repos règlementaire peut
+    //     ne pas être pris. Dans ce cas, il faudra l'accord écrit des 4 joueurs.
+    //     Aucune rencontre ne pourra débuter après minuit.
+    //     Le temps de repos entre 2 matchs, disputés sur 2 journées différentes
+    //     devra être a minima de 12H »
+    //
+    // Renvoie le repos dû, en minutes, après un match au format donné.
+    // null = le règlement ne fixe rien pour ce format (formats club hors barème FFT).
+    function reposReglementaireMin(format) {
+        switch (format) {
+            case 'format_a': return 90;
+            case 'format_b': return 60;
+            case 'format_c': return 30;
+            case 'format_d': return 30;
+            case 'format_e': return 15;  // après 3 matchs consécutifs au format E
+            case 'format_f': return 15;
+            default: return null;        // formats club : au JA de fixer la valeur
+        }
+    }
+
+    // Repos applicable à ce tournoi : la valeur saisie par le JA prime, sinon la
+    // valeur réglementaire déduite du format de score.
+    function reposApplicableMin() {
+        if (!currentTournoi) return null;
+        if (currentTournoi.repos_min_minutes != null) return currentTournoi.repos_min_minutes;
+        return reposReglementaireMin(currentTournoi.format_score);
+    }
+
+    // Dernier match terminé d'une équipe, pour calculer son repos.
+    function dernierMatchTermine(equipeId) {
+        var joues = matchs.filter(function (m) {
+            return m.status === 'termine' && m.finished_at
+                && (m.equipe_a_id === equipeId || m.equipe_b_id === equipeId);
+        });
+        if (joues.length === 0) return null;
+        return joues.sort(function (a, b) {
+            return new Date(b.finished_at) - new Date(a.finished_at);
+        })[0];
+    }
+
+    // Repos écoulé (en minutes) depuis le dernier match d'une équipe. null si elle
+    // n'a pas encore joué.
+    function reposEcouleMin(equipeId) {
+        var dernier = dernierMatchTermine(equipeId);
+        if (!dernier) return null;
+        return Math.floor((Date.now() - new Date(dernier.finished_at).getTime()) / 60000);
+    }
+
+    // Contrôle du repos avant de lancer un match.
+    // Renvoie { ok, equipes: [{nom, ecoule, du}] } — equipes = celles qui n'ont pas
+    // encore le repos réglementaire.
+    function controlerRepos(match) {
+        var du = reposApplicableMin();
+        if (du == null || du === 0) return { ok: true, equipes: [], du: du };
+
+        var enDefaut = [];
+        [match.equipe_a_id, match.equipe_b_id].forEach(function (eqId) {
+            if (!eqId) return;
+            var ecoule = reposEcouleMin(eqId);
+            if (ecoule == null) return;           // première partie : pas de repos dû
+            if (ecoule < du) {
+                var e = equipes.find(function (x) { return x.id === eqId; });
+                enDefaut.push({ nom: e ? equipeAffichage(e) : '?', ecoule: ecoule, du: du });
+            }
+        });
+        return { ok: enDefaut.length === 0, equipes: enDefaut, du: du };
+    }
+
+    // Nombre de matchs déjà joués aujourd'hui par une équipe.
+    // Le règlement plafonne les enchaînements selon le format (cf. « NOMBRE DE
+    // MATCHS PAR JOUR » du chapitre I).
+    function matchsJoursMemeJour(equipeId) {
+        var aujourdhui = new Date().toDateString();
+        return matchs.filter(function (m) {
+            if (m.status !== 'termine' || !m.finished_at) return false;
+            if (m.equipe_a_id !== equipeId && m.equipe_b_id !== equipeId) return false;
+            return new Date(m.finished_at).toDateString() === aujourdhui;
+        }).length;
+    }
+
     function dureeMatchMin(format, noAd) {
         var base;
         switch (format) {
@@ -4392,6 +4539,25 @@
         currentTournoi = res.data;
         render();
         showToast('Tournoi homologué : ' + (checked ? 'activé (barème FFT)' : 'désactivé'), 'ok');
+    }
+
+    // Repos minimum réglé par le JA. Vide = valeur réglementaire du format.
+    async function updateReposMin(valeur) {
+        if (guardReadOnly()) return;
+        var v = valeur === '' ? null : parseInt(valeur, 10);
+        if (v != null && (isNaN(v) || v < 0 || v > 240)) {
+            showToast('Repos : valeur entre 0 et 240 minutes.', 'error');
+            return;
+        }
+        var res = await supa.from('tournois').update({
+            repos_min_minutes: v, updated_at: new Date().toISOString()
+        }).eq('id', currentTournoi.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+        currentTournoi = res.data;
+        render();
+        showToast(v == null
+            ? 'Repos : valeur réglementaire du format (' + (reposReglementaireMin(currentTournoi.format_score) || '—') + ' min)'
+            : 'Repos minimum : ' + v + ' min', 'ok');
     }
 
     function renderHeader() {
@@ -4499,6 +4665,28 @@
         homoWrap.appendChild(homoInp);
         homoWrap.appendChild(el('span', null, ' Homologué FFT'));
         terrainLine.appendChild(homoWrap);
+
+        // Repos minimum entre 2 matchs d'une même paire.
+        var reglementaire = reposReglementaireMin(currentTournoi.format_score);
+        var reposWrap = el('label', {
+            class: 'tournoi-toggle-inline',
+            style: 'margin-left:1rem',
+            title: 'Repos minimum entre 2 parties d\'une même paire.\n'
+                 + 'Vide = valeur réglementaire du format de score.\n'
+                 + 'Règlement FFT : 1h30 (format A), 1h (B), 30 min (C et D), 15 min (E et F).'
+        });
+        reposWrap.appendChild(el('span', null, 'Repos '));
+        var reposInp = el('input', {
+            type: 'number', min: '0', max: '240',
+            class: 'tournoi-input tournoi-input--mini',
+            style: 'width:4.5rem',
+            value: currentTournoi.repos_min_minutes != null ? currentTournoi.repos_min_minutes : '',
+            placeholder: reglementaire != null ? String(reglementaire) : '—',
+            onchange: function (e) { updateReposMin(e.target.value); }
+        });
+        reposWrap.appendChild(reposInp);
+        reposWrap.appendChild(el('span', null, ' min'));
+        terrainLine.appendChild(reposWrap);
 
         info.appendChild(terrainLine);
 
@@ -5822,6 +6010,17 @@
 
         if (m.status === 'en_attente') {
             if (ready) {
+                // Repos réglementaire : visible avant de lancer, pas seulement en alerte.
+                var repos = controlerRepos(m);
+                if (!repos.ok) {
+                    var attente = Math.max.apply(null, repos.equipes.map(function (e) { return e.du - e.ecoule; }));
+                    actions.appendChild(el('span', {
+                        class: 'repos-alerte',
+                        title: repos.equipes.map(function (e) {
+                            return e.nom + ' : ' + e.ecoule + '/' + e.du + ' min';
+                        }).join('\n')
+                    }, '⏳ repos : encore ' + attente + ' min'));
+                }
                 actions.appendChild(el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: function () { startMatch(m.id); } }, '▶ Démarrer'));
             } else {
                 actions.appendChild(el('span', { class: 'match-dep-hint' }, '⏳ équipes pas encore déterminées'));
