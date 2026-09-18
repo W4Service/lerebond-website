@@ -1874,3 +1874,140 @@ select.tournoi-input option {
     padding: 0.2rem 0.45rem;
     white-space: nowrap;
 }
+
+/* ===== Tirage au sort sur l'écran TV =====
+   Le règlement impose un tirage « réalisé devant témoins » : cet écran le rend
+   public. Tailles pensées pour une lecture à plusieurs mètres. */
+.tirage-tv-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    background: rgba(10, 6, 9, 0.96);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2vmin;
+}
+.tirage-tv {
+    width: 100%;
+    max-width: 1600px;
+    text-align: center;
+}
+.tirage-tv-titre {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.8rem, 4vw, 3.5rem);
+    color: #f4c941;
+    letter-spacing: 0.04em;
+    margin-bottom: 1.5vmin;
+}
+.tirage-tv-attente {
+    font-size: clamp(1.4rem, 3vw, 2.6rem);
+    color: #f4f0e6;
+    font-weight: 600;
+    margin: 3vmin 0;
+}
+.tirage-tv-sous,
+.tirage-tv-progression {
+    font-size: clamp(0.9rem, 1.6vw, 1.4rem);
+    color: rgba(244, 240, 230, 0.6);
+    margin-bottom: 2vmin;
+}
+
+/* La roue : une fenêtre qui laisse défiler les noms encore en lice. */
+.tirage-tv-roue {
+    height: clamp(90px, 14vh, 170px);
+    overflow: hidden;
+    position: relative;
+    border-top: 3px solid rgba(244, 201, 65, 0.5);
+    border-bottom: 3px solid rgba(244, 201, 65, 0.5);
+    background: rgba(244, 201, 65, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2vmin;
+}
+.tirage-tv-piste {
+    animation: tirage-defile 0.22s linear infinite;
+}
+@keyframes tirage-defile {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-2.2em); }
+}
+.tirage-tv-nom {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.5rem, 3.4vw, 3rem);
+    line-height: 2.2em;
+    color: #f4f0e6;
+    white-space: nowrap;
+}
+.tirage-tv-nom--sorti {
+    color: #f4c941;
+    line-height: 1.2em;
+}
+
+/* Le résultat : qui sort, et dans quelle poule. */
+.tirage-tv-resultat { margin: 2vmin 0 3vmin; }
+.tirage-tv-equipe {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.8rem, 4.2vw, 3.6rem);
+    color: #f4c941;
+    animation: tirage-apparait 0.4s ease-out;
+}
+.tirage-tv-fleche {
+    font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+    color: rgba(244, 240, 230, 0.5);
+    line-height: 1.2;
+}
+.tirage-tv-poule {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.6rem, 3.6vw, 3rem);
+    color: #7ee06a;
+    animation: tirage-apparait 0.5s ease-out;
+}
+.tirage-tv-motif {
+    font-size: clamp(0.85rem, 1.5vw, 1.2rem);
+    color: rgba(244, 240, 230, 0.55);
+    margin-top: 0.8vmin;
+}
+@keyframes tirage-apparait {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* Les poules qui se remplissent au fil du tirage. */
+.tirage-tv-poules {
+    display: flex;
+    justify-content: center;
+    gap: 1.5vmin;
+    flex-wrap: wrap;
+    margin-top: 2vmin;
+}
+.tirage-tv-poule-carte {
+    min-width: clamp(140px, 15vw, 260px);
+    background: rgba(244, 240, 230, 0.05);
+    border: 1px solid rgba(244, 240, 230, 0.15);
+    border-radius: 10px;
+    padding: 1.2vmin 1.5vmin;
+}
+.tirage-tv-poule-nom {
+    font-family: 'Turret Road', sans-serif;
+    font-weight: 800;
+    font-size: clamp(0.95rem, 1.7vw, 1.4rem);
+    color: #f4c941;
+    margin-bottom: 0.8vmin;
+}
+.tirage-tv-poule-liste { display: flex; flex-direction: column; gap: 0.5vmin; }
+.tirage-tv-poule-eq {
+    font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+    color: #f4f0e6;
+    padding: 0.35vmin 0;
+}
+.tirage-tv-poule-eq--neuf {
+    color: #7ee06a;
+    font-weight: 700;
+    animation: tirage-apparait 0.5s ease-out;
+}

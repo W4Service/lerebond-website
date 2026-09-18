@@ -42,6 +42,11 @@
                 return;
             }
             var tournoi = tournois[0];
+
+            // Tirage au sort : dès qu'un tirage est en cours, la roue prend l'écran.
+            // Le règlement veut un tirage « devant témoins » — c'est ici qu'il se montre.
+            demarrerTirageTV(tournoi.id);
+
             get('/poules?tournoi_id=eq.' + tournoi.id + '&order=ordre', function (err, poules) {
                 if (err) return showError(err);
                 get('/equipes?tournoi_id=eq.' + tournoi.id, function (err, equipes) {
@@ -572,5 +577,18 @@
     loadAll();
     // Refresh JS toutes les 10 secondes (sans recharger la page = pas de "flash")
     // En complément du <meta refresh> qui recharge complètement toutes les 60s.
+    // === Roue de tirage au sort ===
+    var tirageTV = null;
+    function demarrerTirageTV(tournoiId) {
+        if (!window.TournoiTirageTV) return;          // module absent : on ignore
+        var conteneur = document.getElementById('tirage-overlay');
+        if (!conteneur) return;
+        if (tirageTV) return;                          // déjà démarré
+        tirageTV = new window.TournoiTirageTV({
+            api: API, key: KEY, conteneur: conteneur
+        });
+        tirageTV.demarrer(tournoiId);
+    }
+
     setInterval(loadAll, 10000);
 })();

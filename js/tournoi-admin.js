@@ -1034,6 +1034,159 @@
         };
     }
 
+    // ===== Tirage au sort =====
+    // Le règlement (Guide de la compétition padel, chapitre I) veut un tirage
+    // « réalisé devant témoins », et un tableau qui « une fois affiché ne peut plus
+    // être modifié, sauf cas exceptionnels dûment justifiés ».
+    // D'où : déroulé public sur l'écran TV, graine conservée pour pouvoir rejouer
+    // et vérifier le tirage, et placements écrits en base à la fin.
+
+    var tirageEnCours = null;
+
+    // Écrit l'état courant du tirage, que la page TV relit.
+    async function publierEtatTirage(etat) {
+        await supa.from('tournois')
+            .update({ tirage_live: etat, updated_at: new Date().toISOString() })
+            .eq('id', currentTournoi.id);
+    }
+
+    function pause(ms) {
+        return new Promise(function (r) { setTimeout(r, ms); });
+    }
+
+    // Construit l'instantané des poules, pour l'afficher au fil du tirage.
+    function instantanePoules(poulesOrdonnees, placements, dernierId) {
+        return poulesOrdonnees.map(function (p, idx) {
+            var dedans = Object.keys(placements)
+                .filter(function (id) { return placements[id] === idx; })
+                .map(function (id) {
+                    var e = equipes.find(function (x) { return x.id === id; });
+                    return { nom: e ? equipeAffichage(e) : '?', nouveau: id === dernierId };
+                });
+            return { nom: p.nom, equipes: dedans };
+        });
+    }
+
+    // Déroule le tirage, étape par étape, sur l'écran TV.
+    async function lancerTirage(format, methode) {
+        if (guardReadOnly()) return;
+        if (tirageEnCours) { showToast('Un tirage est déjà en cours.', 'error'); return; }
+
+        var compo = format.compo;
+        var nbPoules = compo.poules.length;
+        // 2 TS par poule, comme l'impose le règlement pour un groupe de poules.
+        var nbTS = format.homologable ? Math.min(2 * nbPoules, equipes.length - (compo.horsPoule || 0)) : 0;
+
+        var tries = trierParForce(equipes);
+        var seed = Date.now() & 0x7fffffff;
+        var plan = TournoiTirage.preparerTirage({
+            equipes: tries.map(function (e) { return { id: e.id, nom: equipeAffichage(e) }; }),
+            nbPoules: nbPoules,
+            nbTS: nbTS,
+            nbHorsPoule: compo.horsPoule || 0,
+            taillePoules: compo.poules,
+            seed: seed,
+            methode: methode
+        });
+
+        if (!confirm('Lancer le tirage au sort ?\n\n'
+            + 'Format : ' + format.nom + '\n'
+            + 'Méthode : ' + (methode === 'serpentin' ? 'serpentin' : 'répartition par rang') + '\n'
+            + (nbTS ? nbTS + ' têtes de série placées d\'office (2 par poule)\n' : '')
+            + '\nLe tirage s\'affichera sur l\'écran TV. '
+            + 'Une fois le tableau affiché, il ne devra plus être modifié.')) return;
+
+        tirageEnCours = true;
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var placements = {};
+
+        try {
+            await publierEtatTirage({ phase: 'attente', total: plan.etapes.length });
+            await pause(2500);
+
+            for (var i = 0; i < plan.etapes.length; i++) {
+                var et = plan.etapes[i];
+
+                // Les paires encore à placer, pour faire défiler la roue.
+                var restantes = plan.etapes.slice(i).map(function (x) { return x.nom; });
+
+                // La roue ne tourne que pour une paire réellement tirée au sort.
+                if (et.tire) {
+                    await publierEtatTirage({
+                        phase: 'roue',
+                        etape: i + 1, total: plan.etapes.length,
+                        paires: restantes.slice(0, 12),
+                        poules: instantanePoules(poulesOrdonnees, placements, null)
+                    });
+                    await pause(1800);
+                }
+
+                placements[et.equipe_id] = et.poule;
+                await publierEtatTirage({
+                    phase: 'resultat',
+                    etape: i + 1, total: plan.etapes.length,
+                    equipe: et.nom,
+                    poule: et.poule == null ? 'Exemptée de poule' : poulesOrdonnees[et.poule].nom,
+                    motif: et.motif,
+                    poules: instantanePoules(poulesOrdonnees, placements, et.equipe_id)
+                });
+                await pause(et.tire ? 2200 : 1200);
+            }
+
+            // Écriture définitive des placements.
+            var updates = Object.keys(placements).map(function (eqId) {
+                var idx = placements[eqId];
+                return supa.from('equipes')
+                    .update({ poule_id: idx == null ? null : poulesOrdonnees[idx].id })
+                    .eq('id', eqId).select().single();
+            });
+            var results = await Promise.all(updates);
+            var errs = results.filter(function (r) { return r.error; });
+            if (errs.length) {
+                console.error(errs);
+                showToast(errs.length + ' erreur(s) à l\'enregistrement du tirage', 'error');
+            }
+            results.forEach(function (r) {
+                if (!r.data) return;
+                var k = equipes.findIndex(function (e) { return e.id === r.data.id; });
+                if (k >= 0) equipes[k] = r.data;
+            });
+
+            // Trace du tirage : graine + ordre de sortie, pour pouvoir le rejouer.
+            await supa.from('tournois').update({
+                tirage_seed: seed,
+                tirage_at: new Date().toISOString(),
+                tirage_ordre: plan.etapes.map(function (e) {
+                    return { equipe_id: e.equipe_id, nom: e.nom, poule: e.poule, type: e.type };
+                }),
+                updated_at: new Date().toISOString()
+            }).eq('id', currentTournoi.id);
+
+            await publierEtatTirage({
+                phase: 'fini',
+                poules: instantanePoules(poulesOrdonnees, placements, null)
+            });
+            await pause(6000);
+            await publierEtatTirage(null);
+
+            await loadDetails();
+            render();
+            showToast('Tirage terminé et enregistré (graine ' + seed + ')', 'ok');
+        } catch (err) {
+            console.error(err);
+            showToast('Erreur pendant le tirage : ' + err.message, 'error');
+            await publierEtatTirage(null);
+        } finally {
+            tirageEnCours = false;
+        }
+    }
+
+    // Interrompt l'affichage TV (si un tirage a été laissé à l'écran).
+    async function effacerTirageTV() {
+        await publierEtatTirage(null);
+        showToast('Affichage du tirage effacé', 'ok');
+    }
+
     // ===== Composeur de poules =====
     // Part du nombre d'équipes inscrites et propose les formats qui tombent juste.
     // Crée les poules manquantes et répartit les équipes en serpentin, en laissant
@@ -1141,10 +1294,133 @@
             matchs = [];
         }
 
-        var ok = await appliquerCompo(format);
-        if (!ok) return;
-        render();
-        showToast('Poules composées : ' + libelleCompo(format.compo), 'ok');
+        // Tirage au sort public, ou composition directe.
+        // Le règlement impose un tirage « devant témoins » pour un tournoi
+        // homologué : on le propose, sans l'imposer aux tournois internes.
+        var methode = await choisirMethodeTirage(format);
+        if (methode === null) return;
+
+        if (methode === 'direct') {
+            var ok = await appliquerCompo(format);
+            if (!ok) return;
+            render();
+            showToast('Poules composées : ' + libelleCompo(format.compo), 'ok');
+            return;
+        }
+
+        // Le tirage a besoin des poules : on les crée d'abord, vides.
+        var pret = await creerPoulesVides(format.compo.poules.length);
+        if (!pret) return;
+        await lancerTirage(format, methode);
+    }
+
+    // Crée (ou ajuste) les poules vides avant un tirage au sort.
+    async function creerPoulesVides(cible) {
+        var ordonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        for (var i = ordonnees.length - 1; i >= cible; i--) {
+            var pid = ordonnees[i].id;
+            await supa.from('equipes').update({ poule_id: null }).eq('poule_id', pid);
+            equipes.forEach(function (e) { if (e.poule_id === pid) e.poule_id = null; });
+            await supa.from('poules').delete().eq('id', pid);
+            poules = poules.filter(function (p) { return p.id !== pid; });
+        }
+        for (var k = poules.length; k < cible; k++) {
+            var res = await supa.from('poules').insert({
+                tournoi_id: currentTournoi.id,
+                nom: 'Poule ' + String.fromCharCode(65 + k),
+                terrain: null, ordre: k
+            }).select().single();
+            if (res.error) { showToast('Erreur création poule : ' + res.error.message, 'error'); return false; }
+            poules.push(res.data);
+        }
+        return true;
+    }
+
+    // Choix de la méthode de constitution. Les deux méthodes proposées sont celles
+    // que nomme le règlement ; la composition directe reste offerte hors homologation.
+    function choisirMethodeTirage(format) {
+        return new Promise(function (resolve) {
+            var overlay = el('div', { class: 'format-picker-overlay' });
+            var box = el('div', { class: 'format-picker' });
+            box.appendChild(el('h3', { class: 'format-picker-titre' }, '🎲 Constitution des poules'));
+            box.appendChild(el('p', { class: 'format-picker-config' }, format.nom));
+
+            var liste = el('div', { class: 'format-picker-liste' });
+            var choisi = null;
+            var options = [
+                {
+                    id: 'rang',
+                    nom: 'Tirage au sort · répartition par rang',
+                    fft: true,
+                    detail: 'Un chapeau par rang : les paires 1 à N sont tirées au sort au rang 1, '
+                          + 'les N suivantes au rang 2, etc. Méthode citée par le règlement, '
+                          + 'elle « offre de nombreuses combinaisons tout en respectant les forces des paires ».'
+                },
+                {
+                    id: 'serpentin',
+                    nom: 'Tirage au sort · serpentin',
+                    fft: true,
+                    detail: 'Placement imposé par le classement, en zigzag (1→A, 2→B, 3→C, 4→C, 5→B...). '
+                          + 'Méthode citée par le règlement, qui « détermine le placement des paires de manière précise ».'
+                },
+                {
+                    id: 'direct',
+                    nom: 'Composition directe, sans tirage public',
+                    fft: false,
+                    detail: 'Répartition immédiate en serpentin, sans affichage TV. '
+                          + 'Pour un tournoi interne : un tournoi homologué exige un tirage devant témoins.'
+                }
+            ];
+            options.forEach(function (o) {
+                var ligne = el('div', {
+                    class: 'format-option',
+                    onclick: function () {
+                        choisi = o.id;
+                        var toutes = liste.querySelectorAll('.format-option');
+                        for (var i = 0; i < toutes.length; i++) toutes[i].classList.remove('format-option--choisi');
+                        ligne.classList.add('format-option--choisi');
+                        valider.disabled = false;
+                    }
+                });
+                var entete = el('div', { class: 'format-option-entete' });
+                entete.appendChild(el('span', { class: 'format-option-nom' }, o.nom));
+                if (o.fft) {
+                    entete.appendChild(el('span', {
+                        class: 'fft-badge',
+                        title: 'Méthode de constitution des poules nommée par le règlement FFT'
+                    }, 'FFT'));
+                }
+                ligne.appendChild(entete);
+                ligne.appendChild(el('p', { class: 'format-option-detail' }, o.detail));
+                liste.appendChild(ligne);
+            });
+            box.appendChild(liste);
+
+            var actions = el('div', { class: 'format-picker-actions' });
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--outline',
+                onclick: function () { fermer(); resolve(null); }
+            }, 'Annuler'));
+            var valider = el('button', {
+                class: 'btn-live btn-live--primary',
+                onclick: function () { if (choisi) { fermer(); resolve(choisi); } }
+            }, 'Continuer');
+            valider.disabled = true;
+            actions.appendChild(valider);
+            box.appendChild(actions);
+
+            function fermer() {
+                document.removeEventListener('keydown', onKey);
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }
+            function onKey(e) { if (e.key === 'Escape') { fermer(); resolve(null); } }
+            document.addEventListener('keydown', onKey);
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) { fermer(); resolve(null); }
+            });
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        });
     }
 
     // Dialogue : liste les compositions possibles pour l'effectif inscrit.
