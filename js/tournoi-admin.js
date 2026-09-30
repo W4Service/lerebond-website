@@ -614,29 +614,28 @@
             return out;
         }
 
-        // Round-robin : si 1 seule poule, on utilise l'algo circle pour ordonnancer par vagues.
-        // Sinon (plusieurs poules), simple double boucle car les poules sont déjà parallélisées par terrain.
-        if (seulePoule) {
-            var rounds = roundRobinSchedule(eqs);
-            rounds.forEach(function (round) {
-                round.forEach(function (pair, idxDansRound) {
-                    // Dans une même vague, on attribue T1, T2, T1, T2...
-                    var terrain = ((idxDansRound % nbTerrainsUtilises) + 1);
-                    out.push(Object.assign({}, base, {
-                        ordre: ordre, terrain: terrain,
-                        equipe_a_id: pair[0].id, equipe_b_id: pair[1].id
-                    }));
-                    ordre++;
-                });
+        // Round-robin ordonnancé par vagues (algorithme du cercle), quel que soit le
+        // nombre de poules. Une double boucle i<j produit toutes les rencontres, mais
+        // dans un ordre où la première équipe joue tous ses matchs d'affilée puis
+        // n'apparaît plus : dans une poule de 5, A dispute les 4 premiers matchs à la
+        // suite. L'algorithme du cercle répartit les rencontres en tours où chaque
+        // équipe joue au plus une fois, ce qui donne à toutes le même temps de repos.
+        var rounds = roundRobinSchedule(eqs);
+        rounds.forEach(function (round) {
+            round.forEach(function (pair, idxDansRound) {
+                // Une seule poule : les matchs d'une même vague se répartissent sur les
+                // terrains disponibles. Plusieurs poules : chacune a son terrain attitré,
+                // les vagues ne servent alors qu'à espacer les matchs d'une même équipe.
+                var terrain = seulePoule
+                    ? ((idxDansRound % nbTerrainsUtilises) + 1)
+                    : poule.terrain;
+                out.push(Object.assign({}, base, {
+                    ordre: ordre, terrain: terrain,
+                    equipe_a_id: pair[0].id, equipe_b_id: pair[1].id
+                }));
+                ordre++;
             });
-        } else {
-            for (var i = 0; i < eqs.length; i++) {
-                for (var j = i + 1; j < eqs.length; j++) {
-                    out.push(Object.assign({}, base, { ordre: ordre, terrain: pickTerrain(ordre), equipe_a_id: eqs[i].id, equipe_b_id: eqs[j].id }));
-                    ordre++;
-                }
-            }
-        }
+        });
         return out;
     }
 
