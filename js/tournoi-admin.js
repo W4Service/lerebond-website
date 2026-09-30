@@ -896,6 +896,19 @@
                     finale: genererPhaseFinale4ts2p3
                 },
                 {
+                    id: 'maison_2p3',
+                    nom: '2 poules de 3 · demies croisées',
+                    detail: 'Les 2 premiers de chaque poule vont en demi-finales croisées '
+                          + '(1er A contre 2e B), puis finale et petite finale pour les places 1-4. '
+                          + 'Les deux 3es se disputent la 5e place. 5 matchs de phase finale.',
+                    requis: '2 poules de 3 équipes (6 équipes)',
+                    homologable: true,
+                    compo: { poules: [3, 3], horsPoule: 0 },
+                    applicable: isConfig2p3,
+                    squelette: genererSquelette2p3,
+                    finale: genererPhaseFinale2p3
+                },
+                {
                     id: 'maison_2p5',
                     nom: '2 poules de 5 · matchs de classement',
                     detail: 'Chaque rang donne un match : 1ers pour les places 1-2, '
@@ -1998,6 +2011,94 @@
         showToast('Quarts (4 TS + 2 poules de 3) générés : ' + res.data.length + ' matchs', 'ok');
     }
 
+    // Format 6 équipes : 2 poules de 3.
+    // Les 2 premiers de chaque poule sortent en demi-finales croisées (1er A contre
+    // 2e B, 1er B contre 2e A) : un 1er et un 2e de la même poule ne se recroisent
+    // donc qu'en finale. Puis finale et petite finale. Les 3es se disputent la 5e place.
+    //   principal   : 2 demies, puis finale + petite finale (places 1-4)
+    //   places_5_6  : 3e poule A contre 3e poule B
+    // Soit 6 matchs de poule + 5 de phase finale ; chaque paire joue au moins 3 matchs.
+    async function genererSquelette2p3() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        if (poulesOrdonnees.length !== 2) return;
+        var PA = poulesOrdonnees[0].id, PB = poulesOrdonnees[1].id;
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var rangA = function (pouleId, rang) {
+            return {
+                equipe_a_id: null,
+                equipe_a_source_poule_id: pouleId, equipe_a_source_ordre: rang,
+                equipe_a_source_type: 'rang_poule'
+            };
+        };
+        var rangB = function (pouleId, rang) {
+            return {
+                equipe_b_id: null,
+                equipe_b_source_poule_id: pouleId, equipe_b_source_ordre: rang,
+                equipe_b_source_type: 'rang_poule'
+            };
+        };
+        var base = function (bracket, ordre) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(ordre)
+            };
+        };
+
+        var newMatchs = [
+            // Demies croisées. La finale et la petite finale seront créées par
+            // genererTourSuivant() une fois les deux demies jouées.
+            Object.assign({}, base('principal', 0), rangA(PA, 1), rangB(PB, 2)),
+            Object.assign({}, base('principal', 1), rangA(PB, 1), rangB(PA, 2)),
+            // Match pour les places 5-6 entre les deux 3es.
+            Object.assign({}, base('places_5_6', 2), rangA(PA, 3), rangB(PB, 3))
+        ];
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+    }
+
+    // Phase finale du format 6 équipes, avec les équipes réelles.
+    async function genererPhaseFinale2p3() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var rangs = poulesOrdonnees.map(function (p) { return computeClassement(p.id); });
+        if (rangs.length !== 2 || !rangs.every(function (c) { return c.length === 3; })) {
+            showToast('Format 6 équipes : il faut exactement 2 poules de 3 équipes.', 'error');
+            return;
+        }
+        var A = rangs[0], B = rangs[1];
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var newMatchs = [
+            {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+                status: 'en_attente', ordre: 0, terrain: pickT(0),
+                equipe_a_id: A[0].id, equipe_b_id: B[1].id
+            },
+            {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+                status: 'en_attente', ordre: 1, terrain: pickT(1),
+                equipe_a_id: B[0].id, equipe_b_id: A[1].id
+            },
+            {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'places_5_6',
+                status: 'en_attente', ordre: 2, terrain: pickT(2),
+                equipe_a_id: A[2].id, equipe_b_id: B[2].id
+            }
+        ];
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        matchs = matchs.concat(res.data);
+        await updateTournoi({ phase: 'finale' });
+        render();
+        showToast('Phase finale (6 équipes) générée : ' + res.data.length + ' matchs', 'ok');
+    }
+
     // Matchs de classement du format 10 équipes (2 poules de 5).
     // Chaque rang de poule donne un match : les deux 1ers jouent les places 1-2,
     // les deux 2es les places 3-4, et ainsi de suite jusqu'aux 5es (places 9-10).
@@ -3035,6 +3136,15 @@
         return trierParForce(equipes.filter(function (e) { return !e.poule_id; }));
     }
 
+    // Config 2 poules de 3 équipes (6 équipes total)
+    function isConfig2p3() {
+        if (poules.length !== 2) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        return tailles.every(function (n) { return n === 3; });
+    }
+
     // Config 2 poules de 5 équipes (10 équipes total)
     function isConfig2p5() {
         if (poules.length !== 2) return false;
@@ -3574,6 +3684,11 @@
 
         // Mode maison 3p (3+3+4) : principal = 4 matchs (2 demis + finale + 3e/4e)
         if (isConfig3p_3_3_4() && bracket === 'principal') {
+            return b.length >= 4 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
+        // Format 6 équipes : principal = 4 matchs (2 demies + finale + petite finale)
+        if (isConfig2p3() && bracket === 'principal') {
             return b.length >= 4 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
         }
 
