@@ -1087,8 +1087,17 @@
 
         var compo = format.compo;
         var nbPoules = compo.poules.length;
-        // 2 TS par poule, comme l'impose le règlement pour un groupe de poules.
-        var nbTS = format.homologable ? Math.min(2 * nbPoules, equipes.length - (compo.horsPoule || 0)) : 0;
+
+        // Nombre de têtes de série placées avant le tirage.
+        // La règle des 2 TS par poule est une obligation de tournoi HOMOLOGUÉ : elle
+        // suit le réglage du tournoi, pas la capacité du format à l'accueillir.
+        // En loisir, aucune TS n'est imposée — toutes les paires sont tirées, ce qui
+        // donne un tirage plus ouvert. Le JA peut évidemment cocher « Homologué FFT »
+        // pour retrouver le placement réglementaire.
+        var homologue = !!(currentTournoi && currentTournoi.homologue);
+        var nbTS = (homologue && format.homologable)
+            ? Math.min(2 * nbPoules, equipes.length - (compo.horsPoule || 0))
+            : 0;
 
         var tries = trierParForce(equipes);
         var seed = Date.now() & 0x7fffffff;
@@ -1105,9 +1114,13 @@
         if (!confirm('Lancer le tirage au sort ?\n\n'
             + 'Format : ' + format.nom + '\n'
             + 'Méthode : ' + (methode === 'serpentin' ? 'serpentin' : 'répartition par rang') + '\n'
-            + (nbTS ? nbTS + ' têtes de série placées d\'office (2 par poule)\n' : '')
-            + '\nLe tirage s\'affichera sur l\'écran TV. '
-            + 'Une fois le tableau affiché, il ne devra plus être modifié.')) return;
+            + (nbTS
+                ? nbTS + ' têtes de série (2 par poule, règle des tournois homologués)\n'
+                : 'Tournoi loisir : aucune tête de série, toutes les paires sont tirées\n')
+            + '\nLe tirage s\'affichera sur l\'écran TV.'
+            + (homologue
+                ? '\nUne fois le tableau affiché, il ne devra plus être modifié.'
+                : ''))) return;
 
         tirageEnCours = true;
         var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
@@ -1400,7 +1413,9 @@
                 });
                 var entete = el('div', { class: 'format-option-entete' });
                 entete.appendChild(el('span', { class: 'format-option-nom' }, o.nom));
-                if (o.fft) {
+                // Badge réservé aux tournois homologués : en loisir, les deux méthodes
+                // se valent et le rappel réglementaire n'apporte rien.
+                if (o.fft && currentTournoi && currentTournoi.homologue) {
                     entete.appendChild(el('span', {
                         class: 'fft-badge',
                         title: 'Méthode de constitution des poules nommée par le règlement FFT'
@@ -1521,6 +1536,10 @@
     // exemptées de poule sortent de ce cadre : ils restent utilisables en tournoi
     // interne, mais ne sont pas présentés comme homologables.
     function badgeFFT(f) {
+        // En tournoi loisir, la conformité FFT n'est pas le critère de choix : on
+        // n'affiche rien plutôt que d'ajouter un avertissement sans objet.
+        if (!currentTournoi || !currentTournoi.homologue) return null;
+
         if (f.homologable) {
             return el('span', {
                 class: 'fft-badge',
@@ -3822,14 +3841,17 @@
             var lignes = repos.equipes.map(function (e) {
                 return '  • ' + e.nom + ' : ' + e.ecoule + ' min de repos (minimum ' + e.du + ' min)';
             }).join('\n');
-            if (!confirm('⚠️ TEMPS DE REPOS NON RESPECTÉ\n\n' + lignes
-                + '\n\nRèglement FFT : le repos peut ne pas être pris, mais cela exige '
-                + 'l\'accord ÉCRIT des 4 joueurs auprès du juge-arbitre.\n\n'
-                + 'Lancer le match quand même ?')) return;
+            var rappel = (currentTournoi && currentTournoi.homologue)
+                ? '\n\nRèglement FFT : le repos peut ne pas être pris, mais cela exige '
+                  + 'l\'accord ÉCRIT des 4 joueurs auprès du juge-arbitre.'
+                : '';
+            if (!confirm('⚠️ TEMPS DE REPOS NON RESPECTÉ\n\n' + lignes + rappel
+                + '\n\nLancer le match quand même ?')) return;
         }
 
-        // Aucune rencontre ne peut débuter après minuit (règlement FFT).
-        if (new Date().getHours() === 0) {
+        // Aucune rencontre ne peut débuter après minuit (règlement FFT) : ne concerne
+        // que les tournois homologués.
+        if (currentTournoi && currentTournoi.homologue && new Date().getHours() === 0) {
             if (!confirm('⚠️ Il est après minuit.\n\nLe règlement FFT interdit de faire '
                 + 'débuter une rencontre après minuit.\n\nLancer quand même ?')) return;
         }
@@ -4784,7 +4806,11 @@
     // valeur réglementaire déduite du format de score.
     function reposApplicableMin() {
         if (!currentTournoi) return null;
+        // Une valeur saisie par le JA prime toujours, homologué ou non.
         if (currentTournoi.repos_min_minutes != null) return currentTournoi.repos_min_minutes;
+        // Le repos réglementaire est une obligation de tournoi homologué. En loisir,
+        // on n'impose rien par défaut : au JA de saisir une valeur s'il en veut une.
+        if (!currentTournoi.homologue) return null;
         return reposReglementaireMin(currentTournoi.format_score);
     }
 
