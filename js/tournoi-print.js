@@ -80,6 +80,9 @@
         if (b === 'places_7_8') return 'Match places 7-8';
         if (b === 'places_9_10') return 'Match places 9-10';
         if (b === 'places_11_12') return 'Match places 11-12';
+        if (b === 'places_9_11') return 'Triangulaire 3es · places 9-11';
+        if (b === 'places_12_14') return 'Triangulaire 4es · places 12-14';
+        if (b === 'places_13_14') return 'Match places 13-14';
         if (b === 'rang_2') return 'Places 5-6';
         if (b === 'rang_3') return 'Places 7-9';
         if (b === 'rang_4') return 'Places 10-12';
