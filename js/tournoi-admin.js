@@ -1083,11 +1083,40 @@
 
     var tirageEnCours = null;
 
+    // Vérifie que la base porte bien les colonnes dont le tirage a besoin.
+    // Ces colonnes viennent de supabase/migrations/20260918_tournoi_ja.sql ; tant que
+    // la migration n'est pas passée, le tirage ne peut pas fonctionner. Mieux vaut le
+    // dire avant de lancer que d'échouer au milieu du déroulé.
+    async function verifierColonnesTirage() {
+        var res = await supa.from('tournois')
+            .select('tirage_live,tirage_seed,tirage_at,tirage_ordre')
+            .eq('id', currentTournoi.id)
+            .limit(1);
+        if (!res.error) return true;
+
+        console.error('[tirage] colonnes manquantes :', res.error);
+        alert('⚠️ LE TIRAGE AU SORT N\'EST PAS DISPONIBLE\n\n'
+            + 'La base de données n\'a pas les colonnes nécessaires :\n'
+            + '  tirage_live, tirage_seed, tirage_at, tirage_ordre\n\n'
+            + 'Il faut exécuter la migration SQL dans Supabase :\n'
+            + '  supabase/migrations/20260918_tournoi_ja.sql\n\n'
+            + 'En attendant, choisis « Composition directe, sans tirage public » : '
+            + 'elle répartit les équipes sans avoir besoin de ces colonnes.\n\n'
+            + 'Détail : ' + res.error.message);
+        return false;
+    }
+
+
+
     // Écrit l'état courant du tirage, que la page TV relit.
     async function publierEtatTirage(etat) {
-        await supa.from('tournois')
+        var res = await supa.from('tournois')
             .update({ tirage_live: etat, updated_at: new Date().toISOString() })
             .eq('id', currentTournoi.id);
+        // Sans remontée d'erreur, une colonne manquante faisait échouer l'écriture en
+        // silence : le tirage se déroulait, l'écran TV restait vide et l'admin ne
+        // montrait rien avant un rechargement complet. On fait donc échouer bruyamment.
+        if (res.error) throw new Error('écriture du tirage impossible : ' + res.error.message);
     }
 
     function pause(ms) {
@@ -1107,10 +1136,45 @@
         });
     }
 
+    // Panneau de suivi affiché côté admin pendant le tirage. Le déroulé dure une
+    // quarantaine de secondes : sans retour visuel, on croit que rien ne se passe.
+    function panneauTirage() {
+        var existant = document.getElementById('tirage-admin-suivi');
+        if (existant) existant.parentNode.removeChild(existant);
+
+        var overlay = el('div', { id: 'tirage-admin-suivi', class: 'tirage-suivi-overlay' });
+        var box = el('div', { class: 'tirage-suivi' });
+        box.appendChild(el('h3', { class: 'tirage-suivi-titre' }, '🎲 Tirage en cours'));
+        var etat = el('p', { class: 'tirage-suivi-etat' }, 'Préparation…');
+        var prog = el('div', { class: 'tirage-suivi-barre' });
+        var jauge = el('div', { class: 'tirage-suivi-jauge' });
+        prog.appendChild(jauge);
+        var detail = el('p', { class: 'tirage-suivi-detail' }, '');
+        box.appendChild(etat);
+        box.appendChild(prog);
+        box.appendChild(detail);
+        box.appendChild(el('p', { class: 'tirage-suivi-aide' },
+            'Le tirage s\'affiche sur l\'écran TV. Ne ferme pas cette page.'));
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        return {
+            maj: function (texte, i, total, sousTexte) {
+                etat.textContent = texte;
+                if (total) jauge.style.width = Math.round(i / total * 100) + '%';
+                detail.textContent = sousTexte || '';
+            },
+            fermer: function () {
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }
+        };
+    }
+
     // Déroule le tirage, étape par étape, sur l'écran TV.
     async function lancerTirage(format, methode) {
         if (guardReadOnly()) return;
         if (tirageEnCours) { showToast('Un tirage est déjà en cours.', 'error'); return; }
+        if (!(await verifierColonnesTirage())) return;
 
         var compo = format.compo;
         var nbPoules = compo.poules.length;
@@ -1152,8 +1216,10 @@
         tirageEnCours = true;
         var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
         var placements = {};
+        var suivi = panneauTirage();
 
         try {
+            suivi.maj('Annonce du tirage sur l\'écran TV…', 0, plan.etapes.length);
             await publierEtatTirage({ phase: 'attente', total: plan.etapes.length });
             await pause(2500);
 
@@ -1178,6 +1244,8 @@
                 }
 
                 placements[et.equipe_id] = et.poule;
+                suivi.maj('Tirage en cours', i + 1, plan.etapes.length,
+                    et.nom + ' → ' + (et.poule == null ? 'exemptée de poule' : poulesOrdonnees[et.poule].nom));
                 await publierEtatTirage({
                     phase: 'resultat',
                     etape: i + 1, total: plan.etapes.length,
@@ -1188,6 +1256,8 @@
                 });
                 await pause(et.tire ? 2200 : 1200);
             }
+
+            suivi.maj('Enregistrement des poules…', plan.etapes.length, plan.etapes.length);
 
             // Écriture définitive des placements.
             var updates = Object.keys(placements).map(function (eqId) {
@@ -1230,9 +1300,13 @@
             showToast('Tirage terminé et enregistré (graine ' + seed + ')', 'ok');
         } catch (err) {
             console.error(err);
-            showToast('Erreur pendant le tirage : ' + err.message, 'error');
-            await publierEtatTirage(null);
+            alert('Le tirage a échoué.\n\n' + err.message
+                + '\n\nLes équipes n\'ont pas été réparties. '
+                + 'Tu peux relancer, ou choisir la composition directe.');
+            // On efface l'affichage TV, sans masquer l'erreur d'origine si ça échoue aussi.
+            try { await publierEtatTirage(null); } catch (e2) { console.error(e2); }
         } finally {
+            suivi.fermer();
             tirageEnCours = false;
         }
     }
