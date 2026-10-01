@@ -281,7 +281,8 @@
             { key: 'places_5_6', w: 5, l: 6 },
             { key: 'places_7_8', w: 7, l: 8 },
             { key: 'places_9_10', w: 9, l: 10 },
-            { key: 'places_11_12', w: 11, l: 12 }
+            { key: 'places_11_12', w: 11, l: 12 },
+            { key: 'places_13_14', w: 13, l: 14 }
         ];
         maisonBrackets.forEach(function (b) {
             if (byBracket[b.key]) {
@@ -296,7 +297,9 @@
         var triBrackets = [
             { key: 'places_5_7', start: 5 },
             { key: 'places_7_9', start: 7 },
-            { key: 'places_10_12', start: 10 }
+            { key: 'places_10_12', start: 10 },
+            { key: 'places_9_11', start: 9 },
+            { key: 'places_12_14', start: 12 }
         ];
         triBrackets.forEach(function (tb) {
             var ms = byBracket[tb.key];
@@ -564,6 +567,9 @@
                 if (b === 'places_7_8') return '🥉 Places 7-8';
                 if (b === 'places_9_10') return '🎾 Places 9-10';
                 if (b === 'places_11_12') return '🎾 Places 11-12';
+                if (b === 'places_9_11') return '🎾 Triangulaire 3èmes · places 9-11';
+                if (b === 'places_12_14') return '🎾 Triangulaire 4èmes · places 12-14';
+                if (b === 'places_13_14') return '🎾 Places 13-14';
                 if (b && b.indexOf('places_') === 0) {
                     return '🎾 Places ' + b.replace('places_', '').split('_').join('-');
                 }

@@ -301,6 +301,9 @@
         if (b === 'places_7_8') return 'Places 7-8';
         if (b === 'places_9_10') return 'Places 9-10';
         if (b === 'places_11_12') return 'Places 11-12';
+        if (b === 'places_9_11') return 'Triangulaire 3es · 9-11';
+        if (b === 'places_12_14') return 'Triangulaire 4es · 12-14';
+        if (b === 'places_13_14') return 'Places 13-14';
         return b || '';
     }
 
