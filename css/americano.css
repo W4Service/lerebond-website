@@ -419,6 +419,12 @@
     line-height: 1.45;
 }
 
+/* Anomalie à corriger, à distinguer d'une simple explication. */
+.am-note--alerte {
+    background: rgba(214,69,65,0.18);
+    border-left-color: #d64541;
+}
+
 /* ---------- Grille complète ---------- */
 .am-grille-tour { margin-bottom: 1.2rem; }
 .am-grille-tour-head {
