@@ -13,6 +13,12 @@
 
     var TIRAGES_PAR_TOUR = 4000;
 
+    // Barème du classement alternatif « points de match » (cf. calculerClassementMatchs)
+    var PTS_VICTOIRE = 3;
+    var PTS_NUL      = 1;
+    var PTS_DEFAITE  = 0;
+    var PTS_REPOS    = 1;   // le repos est subi (rotation de la grille), pas choisi
+
     /* ---------- utilitaires ---------- */
 
     function shuffle(arr, rng) {
@@ -78,6 +84,22 @@
     }
 
     /**
+     * Comptabilise un match dans les matrices de rencontres et les compteurs.
+     * Partagé par la génération et par la relecture d'un historique.
+     */
+    function enregistrerMatch(matPart, matAdv, toursJoues, a1, a2, b1, b2) {
+        matPart[a1][a2]++; matPart[a2][a1]++;
+        matPart[b1][b2]++; matPart[b2][b1]++;
+
+        var pairsAdv = [[a1, b1], [a1, b2], [a2, b1], [a2, b2]];
+        for (var p = 0; p < pairsAdv.length; p++) {
+            var x = pairsAdv[p][0], y = pairsAdv[p][1];
+            matAdv[x][y]++; matAdv[y][x]++;
+        }
+        toursJoues[a1]++; toursJoues[a2]++; toursJoues[b1]++; toursJoues[b2]++;
+    }
+
+    /**
      * Coût d'un découpage en matchs.
      * quatuors : liste de [a1,a2,b1,b2]
      */
@@ -99,12 +121,17 @@
      * Génère la grille complète d'un tournoi.
      * @param {number} nbJoueurs
      * @param {number} nbTerrains
-     * @param {number} nbTours
+     * @param {number} nbTours   nombre de tours À GÉNÉRER
      * @param {number} [seed]
+     * @param {Array}  [historique]  tours déjà disputés, au même format que la
+     *        valeur de retour. Fournis, les paires et les repos déjà vus sont
+     *        pris en compte : les tours générés ne rejouent pas les mêmes
+     *        associations et la rotation des repos reste équitable. La
+     *        numérotation des tours reprend après le dernier de l'historique.
      * @returns {Array} tours : [{ tour, matchs:[{terrain,a1,a2,b1,b2}], repos:[idx] }]
      *          Les indices renvoyés sont les index joueurs 0..N-1.
      */
-    function genererGrille(nbJoueurs, nbTerrains, nbTours, seed) {
+    function genererGrille(nbJoueurs, nbTerrains, nbTours, seed, historique) {
         var rng = makeRng(typeof seed === 'number' ? seed : (Date.now() & 0x7fffffff));
 
         var places = placesParTour(nbJoueurs, nbTerrains);
@@ -119,9 +146,23 @@
         var i;
         for (i = 0; i < nbJoueurs; i++) { toursJoues.push(0); dernierRepos.push(-1); }
 
+        // Rejoue l'historique pour repartir dans l'état exact où le tournoi
+        // s'est arrêté : sans ça, les tours ajoutés referaient des paires
+        // déjà vues et casseraient la rotation des repos.
+        var tourDepart = 0;
+        (historique || []).forEach(function (h) {
+            (h.matchs || []).forEach(function (m) {
+                enregistrerMatch(matPart, matAdv, toursJoues, m.a1, m.a2, m.b1, m.b2);
+            });
+            (h.repos || []).forEach(function (idx) {
+                if (idx >= 0 && idx < nbJoueurs) dernierRepos[idx] = h.tour;
+            });
+            if (h.tour > tourDepart) tourDepart = h.tour;
+        });
+
         var grille = [];
 
-        for (var t = 1; t <= nbTours; t++) {
+        for (var t = tourDepart + 1; t <= tourDepart + nbTours; t++) {
             var repos = choisirRepos(nbJoueurs, places, toursJoues, dernierRepos, rng);
             var reposSet = {};
             for (i = 0; i < repos.length; i++) reposSet[repos[i]] = true;
@@ -163,14 +204,7 @@
                 var q = meilleur[k];
                 var a1 = q[0], a2 = q[1], b1 = q[2], b2 = q[3];
 
-                matPart[a1][a2]++; matPart[a2][a1]++;
-                matPart[b1][b2]++; matPart[b2][b1]++;
-                var pairsAdv = [[a1, b1], [a1, b2], [a2, b1], [a2, b2]];
-                for (var p = 0; p < pairsAdv.length; p++) {
-                    var x = pairsAdv[p][0], y = pairsAdv[p][1];
-                    matAdv[x][y]++; matAdv[y][x]++;
-                }
-                toursJoues[a1]++; toursJoues[a2]++; toursJoues[b1]++; toursJoues[b2]++;
+                enregistrerMatch(matPart, matAdv, toursJoues, a1, a2, b1, b2);
 
                 matchs.push({ terrain: k + 1, a1: a1, a2: a2, b1: b1, b2: b2 });
             }
@@ -250,9 +284,100 @@
         return { lignes: lignes, memeNombreDeTours: memeNombreDeTours };
     }
 
+    /**
+     * Classement alternatif « points de match ».
+     * On ne tient pas compte du nombre de points marqués : seul compte le
+     * résultat de chaque match (victoire 3, nul 1, défaite 0).
+     *
+     * Le joueur au repos marque PTS_REPOS : la rotation des repos est imposée
+     * par la grille, il ne doit ni être pénalisé ni être avantagé. Tous les
+     * joueurs totalisent donc le même nombre de tours comptabilisés et le
+     * classement se fait sur le total brut.
+     *
+     * Deux joueurs à total identique sont ex aequo (même rang).
+     *
+     * @param {Array} joueurs  [{id, nom, ordre}]
+     * @param {Array} matchs   [{tour, a1_id,a2_id,b1_id,b2_id, score_a, score_b, valide}]
+     * @returns {{lignes:Array}}
+     *   lignes triées ; chaque ligne : {id, nom, ptsMatch, victoires, nuls,
+     *   defaites, repos, toursJoues, rang}
+     */
+    function calculerClassementMatchs(joueurs, matchs) {
+        var stats = {};
+        joueurs.forEach(function (j) {
+            stats[j.id] = {
+                id: j.id, nom: j.nom, ptsMatch: 0,
+                victoires: 0, nuls: 0, defaites: 0, repos: 0, toursJoues: 0
+            };
+        });
+
+        function crediter(ids, resultat) {
+            ids.forEach(function (id) {
+                var s = stats[id]; if (!s) return;
+                s.toursJoues++;
+                if (resultat > 0) { s.victoires++; s.ptsMatch += PTS_VICTOIRE; }
+                else if (resultat === 0) { s.nuls++; s.ptsMatch += PTS_NUL; }
+                else { s.defaites++; s.ptsMatch += PTS_DEFAITE; }
+            });
+        }
+
+        // Un tour ne compte que s'il est pris en compte : les joueurs qui y ont
+        // disputé un match comptabilisé sont repérés tour par tour, les autres
+        // étaient au repos sur ce tour.
+        var toursComptes = {};
+
+        matchs.forEach(function (m) {
+            if (!m.valide) return;
+            if (m.score_a === null || m.score_b === null ||
+                m.score_a === undefined || m.score_b === undefined) return;
+
+            var ecart = m.score_a - m.score_b;
+            crediter([m.a1_id, m.a2_id], ecart === 0 ? 0 : (ecart > 0 ? 1 : -1));
+            crediter([m.b1_id, m.b2_id], ecart === 0 ? 0 : (ecart > 0 ? -1 : 1));
+
+            if (!toursComptes[m.tour]) toursComptes[m.tour] = {};
+            [m.a1_id, m.a2_id, m.b1_id, m.b2_id].forEach(function (id) {
+                toursComptes[m.tour][id] = true;
+            });
+        });
+
+        // Points de repos : pour chaque tour comptabilisé, tout joueur qui n'y
+        // figure dans aucun match était sur le banc.
+        Object.keys(toursComptes).forEach(function (tour) {
+            var ontJoue = toursComptes[tour];
+            joueurs.forEach(function (j) {
+                if (ontJoue[j.id]) return;
+                var s = stats[j.id]; if (!s) return;
+                s.repos++;
+                s.ptsMatch += PTS_REPOS;
+            });
+        });
+
+        var lignes = Object.keys(stats).map(function (id) { return stats[id]; });
+
+        lignes.sort(function (a, b) {
+            if (b.ptsMatch !== a.ptsMatch) return b.ptsMatch - a.ptsMatch;
+            return a.nom.localeCompare(b.nom, 'fr');
+        });
+
+        // Rangs ex aequo : même total => même rang, puis saut (1, 2, 2, 4).
+        lignes.forEach(function (l, i) {
+            l.rang = (i > 0 && l.ptsMatch === lignes[i - 1].ptsMatch)
+                ? lignes[i - 1].rang
+                : i + 1;
+        });
+
+        return { lignes: lignes };
+    }
+
     var api = {
         genererGrille: genererGrille,
         calculerClassement: calculerClassement,
+        calculerClassementMatchs: calculerClassementMatchs,
+        PTS_MATCH: {
+            victoire: PTS_VICTOIRE, nul: PTS_NUL,
+            defaite: PTS_DEFAITE, repos: PTS_REPOS
+        },
         placesParTour: placesParTour,
         POIDS: { partenaire: W_PARTENAIRE, adversaire: W_ADVERSAIRE, repos: W_REPOS }
     };

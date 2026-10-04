@@ -594,6 +594,27 @@
 
         var html = '';
 
+        // Tour annoncé mais absent de la grille : on le dit au lieu d'afficher
+        // une page vide (cas d'un nb_tours augmenté sans régénérer la grille).
+        // Avant le chrono : il n'y a rien à chronométrer tant qu'il n'y a pas
+        // de match.
+        if (!lst.length) {
+            el.innerHTML = '<div class="am-card">' +
+                '<div class="am-card-title">Aucun match pour le tour ' + t + '</div>' +
+                '<div class="am-note am-note--alerte">La grille ne contient que ' +
+                    toursGeneres() + ' tours alors que le tournoi est réglé sur ' +
+                    tournoi.nb_tours + '. Les matchs de ce tour n\'ont jamais été générés.</div>' +
+                '<div class="am-btn-row" style="margin-top:1rem">' +
+                    '<button class="am-btn am-btn--primary" id="am-aller-grille">' +
+                        '📋 Générer les tours manquants</button>' +
+                '</div>' +
+            '</div>';
+            document.getElementById('am-aller-grille').addEventListener('click', function () {
+                vue = 'grille'; rendre();
+            });
+            return;
+        }
+
         // Chrono
         html += '<div class="am-chrono-card">' +
             '<div class="am-chrono-label">Tour ' + t + ' / ' + tournoi.nb_tours +
@@ -895,8 +916,52 @@
         '</div>';
         html += '</div>';
 
+        html += rendreClassementMatchs();
+
         el.innerHTML = html;
         document.getElementById('am-export-csv').addEventListener('click', exporterCsv);
+    }
+
+    /**
+     * Second tableau, à titre de comparaison : classement aux points de match
+     * (victoire 3 / nul 1 / défaite 0), indépendant des scores marqués.
+     * Visible uniquement ici, dans l'appli admin.
+     */
+    function rendreClassementMatchs() {
+        var r = Engine.calculerClassementMatchs(joueurs, matchs);
+        var bareme = Engine.PTS_MATCH;
+
+        var html = '<div class="am-card">' +
+            '<div class="am-card-title">Comparaison — classement aux points de match</div>' +
+            '<div class="am-note">Seul le résultat compte, pas le nombre de points marqués : ' +
+                'victoire <strong>' + bareme.victoire + '</strong>, ' +
+                'nul <strong>' + bareme.nul + '</strong>, ' +
+                'défaite <strong>' + bareme.defaite + '</strong>. ' +
+                'Le joueur au repos marque <strong>' + bareme.repos + '</strong> : ' +
+                'le banc est imposé par la grille, il ne doit ni pénaliser ni avantager. ' +
+                'À total égal, les joueurs sont ex aequo.</div>';
+
+        html += '<div class="am-table-wrap"><table class="am-table"><thead><tr>' +
+            '<th>#</th><th>Joueur</th>' +
+            '<th class="am-col-cle">Total</th>' +
+            '<th>V</th><th>N</th><th>D</th><th>Repos</th><th>Tours</th>' +
+        '</tr></thead><tbody>';
+
+        r.lignes.forEach(function (l, i) {
+            var exAequo = (i > 0 && l.rang === r.lignes[i - 1].rang);
+            html += '<tr>' +
+                '<td class="am-rang">' + (exAequo ? '' : l.rang) + '</td>' +
+                '<td class="am-nom-cell">' + esc(l.nom) + '</td>' +
+                '<td class="am-col-cle">' + l.ptsMatch + '</td>' +
+                '<td>' + l.victoires + '</td>' +
+                '<td>' + l.nuls + '</td>' +
+                '<td>' + l.defaites + '</td>' +
+                '<td>' + l.repos + '</td>' +
+                '<td>' + l.toursJoues + '</td>' +
+            '</tr>';
+        });
+
+        return html + '</tbody></table></div></div>';
     }
 
     /* ---------- Vue : grille complète ---------- */
@@ -939,8 +1004,122 @@
             '<button class="am-btn am-btn--outline" id="am-imprimer">🖨 Imprimer (A4)</button>' +
         '</div></div>';
 
+        html += rendreProlonger(grille);
+
         el.innerHTML = html;
         document.getElementById('am-imprimer').addEventListener('click', function () { window.print(); });
+
+        var btnP = document.getElementById('am-prolonger');
+        if (btnP) btnP.addEventListener('click', prolongerTournoi);
+    }
+
+    /** Nombre de tours réellement présents dans la grille. */
+    function toursGeneres() {
+        return (tournoi.grille || []).length;
+    }
+
+    /**
+     * Encart « prolonger ». Il sert deux cas :
+     *  - ajouter des tours à un tournoi qui se passe bien ;
+     *  - réparer un tournoi dont nb_tours a été augmenté sans régénérer la
+     *    grille, qui se retrouve alors bloqué sur un tour vide.
+     */
+    function rendreProlonger(grille) {
+        var generes = grille.length;
+        var manquants = (tournoi.nb_tours || 0) - generes;
+
+        var html = '<div class="am-card am-no-print">' +
+            '<div class="am-card-title">Prolonger le tournoi</div>';
+
+        if (manquants > 0) {
+            html += '<div class="am-note am-note--alerte">' +
+                '<strong>' + manquants + ' tour' + (manquants > 1 ? 's' : '') + ' annoncé' +
+                (manquants > 1 ? 's' : '') + ' mais pas généré' + (manquants > 1 ? 's' : '') + '.</strong> ' +
+                'Le tournoi est réglé sur ' + tournoi.nb_tours + ' tours alors que la grille ' +
+                'n\'en contient que ' + generes + ' : à partir du tour ' + (generes + 1) +
+                ', aucun match ne s\'affiche. Génère les tours manquants pour débloquer.</div>';
+        } else {
+            html += '<div class="am-note">La grille couvre les ' + generes + ' tours du tournoi. ' +
+                'Tu peux ajouter des tours si les joueurs veulent continuer.</div>';
+        }
+
+        var defaut = manquants > 0 ? manquants : 2;
+
+        html += '<label class="am-label" for="am-nb-ajout">Tours à ajouter</label>' +
+            '<input class="am-input" id="am-nb-ajout" type="number" inputmode="numeric" ' +
+                'min="1" max="20" value="' + defaut + '">' +
+        '<div class="am-note">Les nouveaux tours tiennent compte des matchs déjà joués : ' +
+            'pas de paire déjà vue, et la rotation des repos reste équilibrée.</div>' +
+        '<div class="am-btn-row" style="margin-top:1rem">' +
+            '<button class="am-btn am-btn--primary" id="am-prolonger">➕ Générer les tours</button>' +
+        '</div>';
+
+        return html + '</div>';
+    }
+
+    async function prolongerTournoi() {
+        var champ = document.getElementById('am-nb-ajout');
+        var nb = parseInt(champ && champ.value, 10);
+        if (!nb || nb < 1) { toast('Indique un nombre de tours valide.', 'error'); return; }
+
+        var btn = document.getElementById('am-prolonger');
+        if (btn) { btn.disabled = true; btn.textContent = 'Calcul de la grille…'; }
+
+        function echec(msg) {
+            toast(msg, 'error');
+            if (btn) { btn.disabled = false; btn.textContent = '➕ Générer les tours'; }
+        }
+
+        var grille = tournoi.grille || [];
+        var nouveaux = Engine.genererGrille(
+            joueurs.length, tournoi.nb_terrains, nb, undefined, grille
+        );
+        if (!nouveaux.length) { echec('Génération impossible avec ce format.'); return; }
+
+        // Les matchs sont matérialisés en base, comme à la création.
+        var parOrdre = {};
+        joueurs.forEach(function (j) { parOrdre[j.ordre] = j.id; });
+
+        var lignes = [];
+        nouveaux.forEach(function (t) {
+            t.matchs.forEach(function (m) {
+                lignes.push({
+                    tournoi_id: tournoi.id, tour: t.tour, terrain: m.terrain,
+                    a1_id: parOrdre[m.a1], a2_id: parOrdre[m.a2],
+                    b1_id: parOrdre[m.b1], b2_id: parOrdre[m.b2],
+                    score_a: null, score_b: null, valide: false
+                });
+            });
+        });
+
+        var resM = await supa.from('americano_matchs').insert(lignes).select();
+        if (resM.error) { echec('Erreur matchs : ' + resM.error.message); return; }
+
+        // La grille n'est mise à jour qu'une fois les matchs insérés : si cette
+        // écriture échoue, on reste sur un état cohérent et relançable.
+        var grilleComplete = grille.concat(nouveaux);
+        var totalTours = grilleComplete.length;
+
+        var resT = await supa.from('americano_tournois')
+            .update({ grille: grilleComplete, nb_tours: totalTours })
+            .eq('id', tournoi.id).select().single();
+
+        if (resT.error) {
+            // Les matchs sont en base mais pas la grille : on les retire pour
+            // ne pas laisser de tours fantômes derrière nous.
+            await supa.from('americano_matchs')
+                .delete()
+                .in('id', (resM.data || []).map(function (m) { return m.id; }));
+            echec('Erreur tournoi : ' + resT.error.message);
+            return;
+        }
+
+        tournoi = resT.data;
+        matchs = matchs.concat(resM.data || []);
+
+        rendre();
+        toast(nb + ' tour' + (nb > 1 ? 's' : '') + ' ajouté' + (nb > 1 ? 's' : '') +
+            ' — le tournoi va jusqu\'au tour ' + totalTours, 'ok');
     }
 
     /* ---------- Vue : fin de tournoi ---------- */
