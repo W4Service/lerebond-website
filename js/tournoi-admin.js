@@ -103,6 +103,24 @@
         joueurs = resJ.data || [];
     }
 
+    // Compare deux identités de joueur comme le fait la base : sans tenir compte de
+    // la casse, des accents ni des espaces superflus. Sans ça, « Gael » ne reconnaît
+    // pas « Gaël » et « Thomas » rate un « Thomas » suivi d'un espace : la détection
+    // de doublon échoue et l'erreur SQL remonte brute.
+    function normaliserIdentite(txt) {
+        return String(txt == null ? '' : txt)
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')   // retire les diacritiques
+            .replace(/\s+/g, ' ');              // espaces multiples -> un seul
+    }
+
+    function memeJoueur(prenomA, nomA, prenomB, nomB) {
+        return normaliserIdentite(prenomA) === normaliserIdentite(prenomB)
+            && normaliserIdentite(nomA) === normaliserIdentite(nomB);
+    }
+
     function findJoueur(id) {
         if (!id) return null;
         return joueurs.find(function (j) { return j.id === id; }) || null;
@@ -148,7 +166,7 @@
         if (!nom || !prenom) return null;
         // Cherche dans le cache local d'abord
         var match = joueurs.find(function (j) {
-            return j.nom.toLowerCase() === nom.toLowerCase() && j.prenom.toLowerCase() === prenom.toLowerCase();
+            return memeJoueur(j.prenom, j.nom, prenom, nom);
         });
         if (match) return match.id;
         // Insert
@@ -4582,8 +4600,7 @@
         // expliquer la situation, plutôt que de laisser remonter l'erreur SQL brute.
         var existant = joueurs.find(function (x) {
             return x.id !== joueurId
-                && (x.nom || '').toLowerCase() === nouveauNom.toLowerCase()
-                && (x.prenom || '').toLowerCase() === nouveauPrenom.toLowerCase();
+                && memeJoueur(x.prenom, x.nom, nouveauPrenom, nouveauNom);
         });
         if (existant) {
             // Combien d'équipes réfèrent chaque fiche ? Utile pour décider quoi faire.

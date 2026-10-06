@@ -12,7 +12,8 @@ var bloc = src.slice(i, src.indexOf('\n    }\n', i));
 console.log('=== Le conflit est détecté avant d\'écrire ===');
 check('recherche d\'un homonyme dans la liste', /var existant = joueurs\.find/.test(bloc));
 check('la fiche en cours est exclue de la recherche', /x\.id !== joueurId/.test(bloc));
-check('comparaison insensible à la casse', /toLowerCase\(\)/.test(bloc));
+check('la comparaison passe par memeJoueur (casse, accents, espaces)',
+      /memeJoueur\(x\.prenom, x\.nom, nouveauPrenom, nouveauNom\)/.test(bloc));
 
 console.log('\n=== L\'utilisateur comprend ce qui bloque ===');
 check('le message nomme le joueur en conflit',
@@ -62,6 +63,34 @@ check('casse différente : conflit détecté quand même',
       !!detecte(liste, '1', 'THOMAS', 'wuilmot'));
 check('se renommer soi-même : pas de conflit',
       !detecte(liste, '1', 'Gaël', 'Poujol'));
+
+console.log('\n=== Accents, casse et espaces : comparés comme en base ===');
+function extraireFn(nom) {
+    var i = src.indexOf('function ' + nom + '(');
+    var j = src.indexOf('{', i), d = 0, k = j;
+    do { if (src[k] === '{') d++; else if (src[k] === '}') d--; k++; } while (d > 0);
+    return src.slice(i, k);
+}
+var normBloc = extraireFn('normaliserIdentite');
+var memeBloc = extraireFn('memeJoueur');
+var meme = new Function(normBloc + '\n' + memeBloc + '\nreturn memeJoueur;')();
+
+check('les accents sont ignorés : Gaël = Gael',
+      meme('Gaël', 'Poujol', 'Gael', 'Poujol'));
+check('la casse est ignorée : THOMAS = thomas',
+      meme('THOMAS', 'Wuilmot', 'thomas', 'wuilmot'));
+check('les espaces en trop sont ignorés',
+      meme('Thomas ', ' Wuilmot', 'Thomas', 'Wuilmot'));
+check('les espaces internes multiples sont réduits',
+      meme('Jean  Pierre', 'Durand', 'Jean Pierre', 'Durand'));
+check('deux joueurs réellement différents restent distincts',
+      !meme('Gaël', 'Poujol', 'Thomas', 'Wuilmot'));
+check('un prénom proche ne suffit pas à confondre',
+      !meme('Gaël', 'Poujol', 'Gaëlle', 'Poujol'));
+
+console.log('\n=== La création utilise la même comparaison ===');
+check('le rattachement d\'un joueur existant passe par memeJoueur',
+      /var match = joueurs\.find\(function \(j\) \{\s*\n\s*return memeJoueur/.test(src));
 
 console.log('\n' + (ko ? ko + ' ÉCHEC(S)' : 'tout ok'));
 process.exit(ko ? 1 : 0);
