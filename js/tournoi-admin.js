@@ -1100,6 +1100,8 @@
     // et vérifier le tirage, et placements écrits en base à la fin.
 
     var tirageEnCours = null;
+    var annuaireReplie = true;   // l'annuaire est long : replié par défaut
+    var annuaireFiltre = '';
 
     // Vérifie que la base porte bien les colonnes dont le tirage a besoin.
     // Ces colonnes viennent de supabase/migrations/20260918_tournoi_ja.sql ; tant que
@@ -4451,6 +4453,7 @@
             root.appendChild(renderTabsBar());
             if (activeTab === 'pointage') {
                 root.appendChild(renderPointageSection());
+                root.appendChild(renderAnnuaireSection());
             } else {
                 var setup = el('div', { class: 'tournoi-setup-grid' });
                 setup.appendChild(renderEquipesSection());
@@ -4499,6 +4502,239 @@
         }
         var parts = (eq.nom || '').split('/').map(function (s) { return s.trim(); }).filter(Boolean);
         return [parts[0] || 'Joueur 1', parts[1] || 'Joueur 2'];
+    }
+
+    // ===== Annuaire des joueurs =====
+    // Liste TOUS les joueurs de la base, pas seulement ceux du tournoi courant : un
+    // doublon vient souvent d'un ancien tournoi, invisible depuis le pointage.
+    // Permet de renommer, fusionner et supprimer sans passer par SQL.
+    function renderAnnuaireSection() {
+        var card = el('div', { class: 'tournoi-card' });
+        var head = el('div', { class: 'annuaire-head' });
+        head.appendChild(el('h3', { class: 'tournoi-section-title' },
+            '👥 Annuaire des joueurs (' + joueurs.length + ')'));
+
+        var replie = annuaireReplie;
+        var btnToggle = el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: function () { annuaireReplie = !annuaireReplie; render(); }
+        }, replie ? '▸ Afficher' : '▾ Masquer');
+        head.appendChild(btnToggle);
+        card.appendChild(head);
+
+        if (replie) return card;
+
+        card.appendChild(el('p', { class: 'tournoi-hint' },
+            'Tous les joueurs enregistrés, tous tournois confondus. '
+            + 'Les doublons sont signalés : deux fiches ne peuvent pas porter le même '
+            + 'nom et prénom, mais tu peux les fusionner ou en supprimer une.'));
+
+        var filtre = el('input', {
+            type: 'text',
+            class: 'tournoi-input',
+            style: 'width:100%;margin-bottom:0.8rem',
+            placeholder: 'Filtrer par nom ou prénom…',
+            value: annuaireFiltre,
+            oninput: function (e) {
+                annuaireFiltre = e.target.value;
+                majListeAnnuaire();
+            }
+        });
+        card.appendChild(filtre);
+
+        var liste = el('div', { class: 'annuaire-liste' });
+        card.appendChild(liste);
+
+        // Combien d'équipes réfèrent chaque joueur, et dans quels tournois.
+        function usageDe(joueurId) {
+            return equipes.filter(function (e) {
+                return e.joueur_j1_id === joueurId || e.joueur_j2_id === joueurId;
+            });
+        }
+
+        // Repère les fiches qui se ressemblent (même identité normalisée).
+        var parIdentite = {};
+        joueurs.forEach(function (j) {
+            var cle = normaliserIdentite(j.prenom) + '|' + normaliserIdentite(j.nom);
+            (parIdentite[cle] = parIdentite[cle] || []).push(j.id);
+        });
+
+        function majListeAnnuaire() {
+            liste.innerHTML = '';
+            var q = normaliserIdentite(annuaireFiltre);
+            var visibles = joueurs.filter(function (j) {
+                if (!q) return true;
+                return normaliserIdentite(j.prenom).indexOf(q) >= 0
+                    || normaliserIdentite(j.nom).indexOf(q) >= 0;
+            }).sort(function (a, b) {
+                var c = (a.nom || '').localeCompare(b.nom || '', 'fr');
+                return c !== 0 ? c : (a.prenom || '').localeCompare(b.prenom || '', 'fr');
+            });
+
+            if (visibles.length === 0) {
+                liste.appendChild(el('p', { class: 'poule-empty' }, 'Aucun joueur trouvé.'));
+                return;
+            }
+
+            visibles.forEach(function (j) {
+                var usage = usageDe(j.id);
+                var cle = normaliserIdentite(j.prenom) + '|' + normaliserIdentite(j.nom);
+                var enDouble = (parIdentite[cle] || []).length > 1;
+
+                var ligne = el('div', { class: 'annuaire-ligne' + (enDouble ? ' annuaire-ligne--double' : '') });
+
+                var infos = el('div', { class: 'annuaire-infos' });
+                infos.appendChild(el('span', { class: 'annuaire-nom' },
+                    (j.prenom || '?') + ' ' + (j.nom || '?')));
+                var meta = [];
+                if (j.points_fft != null) meta.push(j.points_fft + ' pts');
+                meta.push(usage.length === 0
+                    ? 'aucune équipe'
+                    : usage.length + ' équipe' + (usage.length > 1 ? 's' : ''));
+                infos.appendChild(el('span', { class: 'annuaire-meta' }, meta.join(' · ')));
+                if (enDouble) {
+                    infos.appendChild(el('span', { class: 'annuaire-alerte' }, '⚠️ fiche en double'));
+                }
+                ligne.appendChild(infos);
+
+                var actions = el('div', { class: 'annuaire-actions' });
+                actions.appendChild(el('button', {
+                    class: 'btn-live btn-live--outline btn-live--small',
+                    title: 'Modifier le nom et le prénom',
+                    onclick: function () { renommerJoueur(j.id); }
+                }, '✏️'));
+                actions.appendChild(el('button', {
+                    class: 'btn-live btn-live--outline btn-live--small',
+                    title: 'Fusionner cette fiche avec une autre',
+                    onclick: function () { fusionnerJoueur(j.id); }
+                }, '⇄'));
+                actions.appendChild(el('button', {
+                    class: 'btn-live btn-live--outline btn-live--small',
+                    title: usage.length
+                        ? 'Supprimer — cette fiche est utilisée par ' + usage.length + ' équipe(s)'
+                        : 'Supprimer cette fiche inutilisée',
+                    onclick: function () { supprimerJoueur(j.id); }
+                }, '🗑'));
+                ligne.appendChild(actions);
+
+                liste.appendChild(ligne);
+            });
+        }
+
+        majListeAnnuaire();
+        return card;
+    }
+
+    // Fusionne une fiche dans une autre, choisie par l'utilisateur.
+    async function fusionnerJoueur(joueurId) {
+        if (guardReadOnly()) return;
+        var j = findJoueur(joueurId);
+        if (!j) { showToast('Joueur introuvable', 'error'); return; }
+
+        // Candidats : d'abord les homonymes, puis tous les autres.
+        var homonymes = joueurs.filter(function (x) {
+            return x.id !== joueurId && memeJoueur(x.prenom, x.nom, j.prenom, j.nom);
+        });
+        var candidats = homonymes.length ? homonymes : joueurs.filter(function (x) {
+            return x.id !== joueurId;
+        }).sort(function (a, b) { return (a.nom || '').localeCompare(b.nom || '', 'fr'); });
+
+        if (candidats.length === 0) { showToast('Aucune autre fiche à fusionner.', 'error'); return; }
+
+        var menu = 'Fusionner « ' + j.prenom + ' ' + j.nom + ' » DANS quelle fiche ?\n\n'
+            + 'Les équipes de « ' + j.prenom + ' ' + j.nom + ' » seront rattachées à la fiche '
+            + 'choisie, puis cette fiche-ci sera supprimée.\n\n';
+        candidats.slice(0, 30).forEach(function (c, i) {
+            var n = equipes.filter(function (e) {
+                return e.joueur_j1_id === c.id || e.joueur_j2_id === c.id;
+            }).length;
+            menu += '  ' + (i + 1) + ' — ' + c.prenom + ' ' + c.nom + ' (' + n + ' équipe(s))\n';
+        });
+        menu += '\nTape un numéro :';
+
+        var choix = prompt(menu, '1');
+        if (choix == null) return;
+        var idx = parseInt(String(choix).trim(), 10) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= Math.min(candidats.length, 30)) {
+            showToast('Choix invalide', 'error');
+            return;
+        }
+        var cible = candidats[idx];
+
+        if (!confirm('Fusionner « ' + j.prenom + ' ' + j.nom + ' » dans « '
+            + cible.prenom + ' ' + cible.nom + ' » ?\n\nCette action est irréversible.')) return;
+
+        var ok = await basculerEquipes(joueurId, cible.id);
+        if (!ok) return;
+
+        var rd = await supa.from('joueurs').delete().eq('id', joueurId);
+        if (rd.error) {
+            showToast('Équipes rattachées, mais suppression impossible : ' + rd.error.message, 'error');
+            console.error(rd.error);
+        } else {
+            joueurs = joueurs.filter(function (x) { return x.id !== joueurId; });
+        }
+        showToast('Fusionné dans « ' + cible.prenom + ' ' + cible.nom + ' »', 'ok');
+        render();
+    }
+
+    // Rattache les équipes d'un joueur à un autre. Renvoie false en cas d'échec.
+    async function basculerEquipes(deId, versId) {
+        var aBasculer = equipes.filter(function (e) {
+            return e.joueur_j1_id === deId || e.joueur_j2_id === deId;
+        });
+        for (var i = 0; i < aBasculer.length; i++) {
+            var e = aBasculer[i];
+            var patch = {};
+            if (e.joueur_j1_id === deId) patch.joueur_j1_id = versId;
+            if (e.joueur_j2_id === deId) patch.joueur_j2_id = versId;
+            var rb = await supa.from('equipes').update(patch).eq('id', e.id).select().single();
+            if (rb.error) {
+                showToast('Erreur pendant la fusion : ' + rb.error.message, 'error');
+                console.error(rb.error);
+                return false;
+            }
+            var k = equipes.findIndex(function (x) { return x.id === rb.data.id; });
+            if (k >= 0) equipes[k] = rb.data;
+        }
+        return true;
+    }
+
+    // Supprime une fiche joueur. Prévient si des équipes en dépendent : la base met
+    // alors leurs références à NULL, et l'équipe perd silencieusement son joueur.
+    async function supprimerJoueur(joueurId) {
+        if (guardReadOnly()) return;
+        var j = findJoueur(joueurId);
+        if (!j) { showToast('Joueur introuvable', 'error'); return; }
+
+        var usage = equipes.filter(function (e) {
+            return e.joueur_j1_id === joueurId || e.joueur_j2_id === joueurId;
+        });
+
+        var msg = 'Supprimer « ' + j.prenom + ' ' + j.nom + ' » ?\n\n';
+        if (usage.length > 0) {
+            msg += '⚠️ Cette fiche est utilisée par ' + usage.length + ' équipe(s) de CE tournoi.\n'
+                 + 'Elles perdront ce joueur, qui apparaîtra comme « ? ».\n\n'
+                 + 'Si c\'est un doublon, utilise plutôt ⇄ Fusionner : les équipes seront '
+                 + 'reportées sur la fiche conservée.\n\n';
+        } else {
+            msg += 'Cette fiche n\'est utilisée par aucune équipe de ce tournoi.\n'
+                 + '(Elle peut l\'être dans un autre tournoi : la suppression y laissera '
+                 + 'aussi un joueur vide.)\n\n';
+        }
+        msg += 'Cette action est irréversible. Confirmer ?';
+        if (!confirm(msg)) return;
+
+        var res = await supa.from('joueurs').delete().eq('id', joueurId);
+        if (res.error) {
+            showToast('Erreur : ' + res.error.message, 'error');
+            console.error(res.error);
+            return;
+        }
+        joueurs = joueurs.filter(function (x) { return x.id !== joueurId; });
+        showToast('Joueur supprimé', 'ok');
+        await loadDetails();
+        render();
     }
 
     function renderPointageSection() {
@@ -4612,35 +4848,44 @@
             var nbActuel = equipesDe(joueurId);
             var nbExistant = equipesDe(existant.id);
 
-            if (!confirm('⚠️ « ' + nouveauPrenom + ' ' + nouveauNom + ' » existe déjà '
-                + 'dans la liste des joueurs.\n\n'
-                + 'Deux joueurs ne peuvent pas porter le même nom et prénom.\n\n'
-                + 'Fiche existante : ' + nbExistant + ' équipe(s)\n'
-                + 'Fiche à renommer : ' + nbActuel + ' équipe(s)\n\n'
-                + 'Veux-tu FUSIONNER les deux fiches ? Les équipes de la fiche renommée '
-                + 'seront rattachées à la fiche existante, puis la fiche en double sera '
-                + 'supprimée.\n\n'
-                + 'Annuler = ne rien changer (choisis alors une orthographe différente, '
-                + 'par exemple en ajoutant une initiale).')) return;
+            // La base interdit deux fiches identiques : on ne peut pas simplement
+            // écrire. Trois issues possibles, c'est au juge-arbitre de choisir.
+            var choix = prompt('⚠️ « ' + nouveauPrenom + ' ' + nouveauNom + ' » existe déjà.\n\n'
+                + 'Deux fiches ne peuvent pas porter le même nom et prénom.\n\n'
+                + '  Fiche existante  : ' + nbExistant + ' équipe(s)\n'
+                + '  Fiche à renommer : ' + nbActuel + ' équipe(s)\n\n'
+                + 'Que faire ?\n\n'
+                + '  1 — FUSIONNER : les équipes de la fiche renommée passent sur la '
+                + 'fiche existante, puis le doublon est supprimé.\n'
+                + '  2 — DISTINGUER : garder deux fiches en ajoutant un suffixe au '
+                + 'prénom (ex. « ' + nouveauPrenom + ' 2 »).\n'
+                + '  3 — Annuler.\n\n'
+                + 'Tape 1, 2 ou 3 :', '1');
+            if (choix == null) return;
+            choix = String(choix).trim();
+            if (choix === '3') return;
 
-            // Fusion : on bascule les équipes vers la fiche conservée.
-            var aBasculer = equipes.filter(function (e) {
-                return e.joueur_j1_id === joueurId || e.joueur_j2_id === joueurId;
-            });
-            for (var i = 0; i < aBasculer.length; i++) {
-                var e = aBasculer[i];
-                var patch = {};
-                if (e.joueur_j1_id === joueurId) patch.joueur_j1_id = existant.id;
-                if (e.joueur_j2_id === joueurId) patch.joueur_j2_id = existant.id;
-                var rb = await supa.from('equipes').update(patch).eq('id', e.id).select().single();
-                if (rb.error) {
-                    showToast('Erreur pendant la fusion : ' + rb.error.message, 'error');
-                    console.error(rb.error);
-                    return;
-                }
-                var k = equipes.findIndex(function (x) { return x.id === rb.data.id; });
-                if (k >= 0) equipes[k] = rb.data;
+            if (choix === '2') {
+                // On distingue les deux fiches : le renommage peut alors aboutir.
+                var suffixe = prompt('Suffixe à ajouter au prénom pour distinguer '
+                    + 'cette fiche de l\'autre « ' + nouveauPrenom + ' ' + nouveauNom + ' » :',
+                    '2');
+                if (suffixe == null) return;
+                suffixe = suffixe.trim();
+                if (!suffixe) { showToast('Suffixe vide : rien n\'a été changé.', 'error'); return; }
+                nouveauPrenom = nouveauPrenom + ' ' + suffixe;
+                // On retombe sur l'écriture normale, plus bas, avec le prénom modifié.
+                existant = null;
+            } else if (choix !== '1') {
+                showToast('Choix invalide', 'error');
+                return;
             }
+        }
+
+        if (existant) {
+            // Fusion : les équipes passent sur la fiche conservée, puis le doublon part.
+            var ok = await basculerEquipes(joueurId, existant.id);
+            if (!ok) return;
 
             var rd = await supa.from('joueurs').delete().eq('id', joueurId);
             if (rd.error) {
