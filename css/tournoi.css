@@ -2071,3 +2071,61 @@ select.tournoi-input option {
     color: rgba(244, 240, 230, 0.5);
     font-size: 0.8rem;
 }
+
+/* ===== Annuaire des joueurs =====
+   Liste tous les joueurs de la base, au-delà du tournoi courant : c'est là qu'on
+   repère et règle les fiches en double. */
+.annuaire-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.4rem;
+}
+.annuaire-head .tournoi-section-title { margin-bottom: 0; }
+.annuaire-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+.annuaire-ligne {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.5rem 0.7rem;
+    background: rgba(244, 240, 230, 0.04);
+    border: 1px solid rgba(244, 240, 230, 0.1);
+    border-radius: 8px;
+}
+.annuaire-ligne--double {
+    border-color: rgba(244, 169, 65, 0.5);
+    background: rgba(244, 169, 65, 0.08);
+}
+.annuaire-infos {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+.annuaire-nom {
+    font-weight: 600;
+    color: #f4f0e6;
+    font-size: 0.92rem;
+}
+.annuaire-meta {
+    font-size: 0.75rem;
+    color: rgba(244, 240, 230, 0.55);
+}
+.annuaire-alerte {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #f4a941;
+}
+.annuaire-actions {
+    display: flex;
+    gap: 0.3rem;
+    flex-shrink: 0;
+}

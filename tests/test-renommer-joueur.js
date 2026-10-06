@@ -22,20 +22,27 @@ check('il explique la règle (pas de même nom+prénom)',
       bloc.indexOf('ne peuvent pas porter le même nom') >= 0);
 check('il indique combien d\'équipes dépendent de chaque fiche',
       /nbExistant|nbActuel/.test(bloc));
-check('il suggère une issue si on ne veut pas fusionner',
-      bloc.indexOf('orthographe différente') >= 0);
+check('il propose de distinguer les deux fiches',
+      bloc.indexOf('DISTINGUER') >= 0);
 
 console.log('\n=== La fusion est proposée et complète ===');
+// La bascule est factorisée dans basculerEquipes(), partagée avec l'annuaire.
 check('les équipes sont rebasculées vers la fiche conservée',
-      /joueur_j1_id = existant\.id|patch\.joueur_j1_id = existant\.id/.test(bloc));
+      /basculerEquipes\(joueurId, existant\.id\)/.test(bloc));
+var blocBasc = (function () {
+    var i = src.indexOf('async function basculerEquipes');
+    var j = src.indexOf('{', i), d = 0, k = j;
+    do { if (src[k] === '{') d++; else if (src[k] === '}') d--; k++; } while (d > 0);
+    return src.slice(i, k);
+})();
 check('les deux rôles J1 et J2 sont traités',
-      /patch\.joueur_j1_id/.test(bloc) && /patch\.joueur_j2_id/.test(bloc));
+      /patch\.joueur_j1_id = versId/.test(blocBasc) && /patch\.joueur_j2_id = versId/.test(blocBasc));
 check('le doublon est supprimé après bascule',
       /from\('joueurs'\)\.delete\(\)\.eq\('id', joueurId\)/.test(bloc));
 check('le cache local est mis à jour',
       /joueurs = joueurs\.filter/.test(bloc));
 check('une erreur pendant la bascule interrompt la fusion',
-      /Erreur pendant la fusion/.test(bloc));
+      /Erreur pendant la fusion/.test(blocBasc) && /return false;/.test(blocBasc));
 
 console.log('\n=== Filet de sécurité si le doublon échappe au contrôle local ===');
 check('l\'erreur SQL de doublon est reconnue',
