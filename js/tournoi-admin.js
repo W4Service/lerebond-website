@@ -4577,12 +4577,79 @@
             showToast('Nom et prénom obligatoires', 'error');
             return;
         }
+        // Un joueur est identifié par son nom + prénom : la base refuse deux fiches
+        // identiques (index uniq_joueurs_nom_prenom). On détecte le conflit ici pour
+        // expliquer la situation, plutôt que de laisser remonter l'erreur SQL brute.
+        var existant = joueurs.find(function (x) {
+            return x.id !== joueurId
+                && (x.nom || '').toLowerCase() === nouveauNom.toLowerCase()
+                && (x.prenom || '').toLowerCase() === nouveauPrenom.toLowerCase();
+        });
+        if (existant) {
+            // Combien d'équipes réfèrent chaque fiche ? Utile pour décider quoi faire.
+            var equipesDe = function (id) {
+                return equipes.filter(function (e) {
+                    return e.joueur_j1_id === id || e.joueur_j2_id === id;
+                }).length;
+            };
+            var nbActuel = equipesDe(joueurId);
+            var nbExistant = equipesDe(existant.id);
+
+            if (!confirm('⚠️ « ' + nouveauPrenom + ' ' + nouveauNom + ' » existe déjà '
+                + 'dans la liste des joueurs.\n\n'
+                + 'Deux joueurs ne peuvent pas porter le même nom et prénom.\n\n'
+                + 'Fiche existante : ' + nbExistant + ' équipe(s)\n'
+                + 'Fiche à renommer : ' + nbActuel + ' équipe(s)\n\n'
+                + 'Veux-tu FUSIONNER les deux fiches ? Les équipes de la fiche renommée '
+                + 'seront rattachées à la fiche existante, puis la fiche en double sera '
+                + 'supprimée.\n\n'
+                + 'Annuler = ne rien changer (choisis alors une orthographe différente, '
+                + 'par exemple en ajoutant une initiale).')) return;
+
+            // Fusion : on bascule les équipes vers la fiche conservée.
+            var aBasculer = equipes.filter(function (e) {
+                return e.joueur_j1_id === joueurId || e.joueur_j2_id === joueurId;
+            });
+            for (var i = 0; i < aBasculer.length; i++) {
+                var e = aBasculer[i];
+                var patch = {};
+                if (e.joueur_j1_id === joueurId) patch.joueur_j1_id = existant.id;
+                if (e.joueur_j2_id === joueurId) patch.joueur_j2_id = existant.id;
+                var rb = await supa.from('equipes').update(patch).eq('id', e.id).select().single();
+                if (rb.error) {
+                    showToast('Erreur pendant la fusion : ' + rb.error.message, 'error');
+                    console.error(rb.error);
+                    return;
+                }
+                var k = equipes.findIndex(function (x) { return x.id === rb.data.id; });
+                if (k >= 0) equipes[k] = rb.data;
+            }
+
+            var rd = await supa.from('joueurs').delete().eq('id', joueurId);
+            if (rd.error) {
+                showToast('Équipes rattachées, mais suppression du doublon impossible : '
+                    + rd.error.message, 'error');
+                console.error(rd.error);
+            } else {
+                joueurs = joueurs.filter(function (x) { return x.id !== joueurId; });
+            }
+            showToast('Fiches fusionnées sur « ' + existant.prenom + ' ' + existant.nom + ' »', 'ok');
+            render();
+            return;
+        }
+
         var res = await supa.from('joueurs').update({
             prenom: nouveauPrenom,
             nom: nouveauNom
         }).eq('id', joueurId).select().single();
         if (res.error) {
-            showToast('Erreur : ' + res.error.message, 'error');
+            // Filet de sécurité : le doublon peut avoir été créé entre-temps par un
+            // autre poste, ou différer par des accents que la comparaison locale rate.
+            var duplicata = /uniq_joueurs_nom_prenom|duplicate key/.test(res.error.message || '');
+            showToast(duplicata
+                ? 'Un joueur « ' + nouveauPrenom + ' ' + nouveauNom + ' » existe déjà. '
+                  + 'Choisis une autre orthographe, ou recharge la page pour pouvoir fusionner.'
+                : 'Erreur : ' + res.error.message, 'error');
             console.error(res.error);
             return;
         }
