@@ -59,17 +59,26 @@ check('l\'admin retient l\'identifiant FFT du joueur choisi', /patch\.fft_id_crm
 check('direct seulement avec prénom ET nom', F.rechercheDirectePossible('dupont julien') && !F.rechercheDirectePossible('dupont'));
 
 var appels = [];
-global.fetch = async function (url) {
-    appels.push(url);
-    return { ok: true, json: async function () { return { mois: '2026-10-06', joueurs: [
-        { rang: 22770, nom: 'POUJOL', prenom: 'Gael', genre: 'H', club: 'LE REBOND', id_crm: 8546867885 }] }; } };
-};
-function fauxSupa(lignes) { return { rpc: async function () { return { data: lignes, error: null }; } }; }
+var reponseDirecte = { data: { mois: '2026-10-06', joueurs: [
+    { rang: 22770, nom: 'POUJOL', prenom: 'Gael', genre: 'H', club: 'LE REBOND', id_crm: 8546867885 }] }, error: null };
+function fauxSupa(lignes, echec) {
+    return {
+        rpc: async function () { return { data: lignes, error: null }; },
+        functions: { invoke: async function (nom, o) {
+            appels.push(nom + ' ' + JSON.stringify(o.body));
+            return echec ? { data: null, error: new Error('injoignable') } : reponseDirecte;
+        } }
+    };
+}
 
 (async function () {
     var r1 = await F.rechercherPartout(fauxSupa([]), 'Gael Poujol', {});
     check('cache vide + nom complet → Ten\'Up interrogé', appels.length === 1 && r1.length === 1 && r1[0].direct === true);
-    check('le genre demandé est transmis', (await F.rechercherPartout(fauxSupa([]), 'Gael Poujol', { genre: 'H' }), /&genre=H$/.test(appels[1])));
+    check('le genre demandé est transmis', (await F.rechercherPartout(fauxSupa([]), 'Gael Poujol', { genre: 'H' }), /"genre":"H"/.test(appels[1])));
+    check('passe par l\'Edge Function, pas par le Pi', /^fft-recherche /.test(appels[0]));
+    appels = [];
+    var r4 = await F.rechercherPartout(fauxSupa([], true), 'Damien Esponde', {});
+    check('Ten\'Up injoignable → signalé, pas « aucun classé »', r4.length === 0 && r4.directIndisponible === true);
     appels = [];
     var r2 = await F.rechercherPartout(fauxSupa([{ rang: 22770, nom: 'POUJOL', prenom: 'Gaël', genre: 'H', id_crm: 8546867885 }]), 'gael poujol', {});
     check('déjà en cache sous ce nom exact → pas d\'appel Ten\'Up', appels.length === 0 && r2.length === 1);

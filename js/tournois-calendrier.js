@@ -238,7 +238,9 @@
                 if (g !== generation) return;
                 zone.innerHTML = '';
                 if (!r.length) {
-                    zone.appendChild(el('p', 'tcal-fft__vide', FFTRecherche.rechercheDirectePossible(q)
+                    zone.appendChild(el('p', 'tcal-fft__vide', r.directIndisponible
+                        ? 'Le classement national ne répond pas pour le moment. Réessayez dans quelques instants.'
+                        : FFTRecherche.rechercheDirectePossible(q)
                         ? 'Aucun classé à ce nom. Un joueur non classé, ou anonyme sur Ten\'Up, n\'apparaît pas.'
                         : 'Tapez le prénom et le nom complets pour chercher dans tout le classement national.'));
                     return;
