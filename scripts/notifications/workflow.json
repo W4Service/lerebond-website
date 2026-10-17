@@ -1,0 +1,255 @@
+{
+ "name": "Le Rebond — Notifications tournois",
+ "nodes": [
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "minutes",
+       "minutesInterval": 2
+      }
+     ]
+    }
+   },
+   "name": "Toutes les 2 minutes",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "UPDATE notifications SET tentatives = tentatives + 1\nWHERE id IN (\n    SELECT id FROM notifications\n    WHERE statut = 'a_envoyer' AND tentatives < 5\n    ORDER BY cree_le\n    LIMIT 20\n    FOR UPDATE SKIP LOCKED)\nRETURNING id, canal, destinataire, sujet, corps, type, tentatives",
+    "options": {}
+   },
+   "name": "Prendre un lot",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    220,
+    200
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "canal-email",
+       "leftValue": "={{ $json.canal }}",
+       "rightValue": "email",
+       "operator": {
+        "type": "string",
+        "operation": "equals"
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "name": "E-mail ?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    440,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "mode": "runOnceForEachItem",
+    "jsCode": "// Met le texte brut du message en forme (charte Le Rebond) et prépare l'appel Graph.\nconst n = $input.item.json;\nconst echapper = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst lienner = s => s.replace(/(https:\\/\\/le-rebond\\.fr\\/[^\\s<]+)/g,\n    '<a href=\"$1\" style=\"display:inline-block;margin:6px 0;padding:10px 18px;background:#efa707;color:#1a1a1a;border-radius:8px;text-decoration:none;font-weight:600\">Ouvrir mon espace joueur</a>');\nconst paragraphes = echapper(n.corps).split(/\\n{2,}/)\n    .map(p => '<p style=\"margin:0 0 14px;line-height:1.5\">' + lienner(p).replace(/\\n/g, '<br>') + '</p>').join('');\nconst html = '<!DOCTYPE html><html lang=\"fr\"><body style=\"margin:0;background:#f4f0e6;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a\">'\n    + '<div style=\"max-width:560px;margin:0 auto;padding:24px\">'\n    + '<div style=\"background:#680920;color:#f4f0e6;padding:18px 22px;border-radius:12px 12px 0 0;font-size:20px;font-weight:700\">Le Rebond — Tournois de padel</div>'\n    + '<div style=\"background:#ffffff;padding:22px;border-radius:0 0 12px 12px\">' + paragraphes + '</div>'\n    + '<p style=\"font-size:12px;color:#8a7f75;text-align:center;margin-top:14px\">Le Rebond · 403 rue de l\\'Europe, 60400 Noyon · 09 60 35 42 05</p>'\n    + '</div></body></html>';\nreturn { json: {\n    id: n.id,\n    graph: {\n        message: {\n            subject: n.sujet || 'Le Rebond — tournoi de padel',\n            body: { contentType: 'HTML', content: html },\n            toRecipients: [{ emailAddress: { address: n.destinataire } }],\n            replyTo: [{ emailAddress: { address: $env.MS_SENDER_EMAIL } }]\n        },\n        saveToSentItems: true\n    }\n} };\n"
+   },
+   "name": "Mettre en page",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    660,
+    100
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "=https://graph.microsoft.com/v1.0/users/{{ $env.MS_SENDER_EMAIL }}/sendMail",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "microsoftOAuth2Api",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.graph) }}",
+    "options": {}
+   },
+   "name": "Envoyer (Graph)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    880,
+    100
+   ],
+   "credentials": {
+    "microsoftOAuth2Api": {
+     "id": "b05FlvDa9smA6GSa",
+     "name": "Microsoft account"
+    }
+   },
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "UPDATE notifications SET statut = 'envoye', envoye_le = now(), erreur = NULL WHERE id = $1::uuid",
+    "options": {
+     "queryReplacement": "={{ [ $('Mettre en page').item.json.id ] }}"
+    }
+   },
+   "name": "Marquer envoyé",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    1100,
+    20
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "UPDATE notifications SET statut = CASE WHEN tentatives >= 5 THEN 'echec' ELSE 'a_envoyer' END, erreur = left($2, 500) WHERE id = $1::uuid",
+    "options": {
+     "queryReplacement": "={{ [ $('Mettre en page').item.json.id, JSON.stringify($json.error || $json).slice(0, 500) ] }}"
+    }
+   },
+   "name": "Marquer erreur",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    1100,
+    180
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "UPDATE notifications SET statut = 'echec', erreur = 'SMS non activé : pas encore de passerelle SMS Le Rebond' WHERE id = $1::uuid",
+    "options": {
+     "queryReplacement": "={{ [ $json.id ] }}"
+    }
+   },
+   "name": "SMS non activé",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    660,
+    320
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Toutes les 2 minutes": {
+   "main": [
+    [
+     {
+      "node": "Prendre un lot",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prendre un lot": {
+   "main": [
+    [
+     {
+      "node": "E-mail ?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "E-mail ?": {
+   "main": [
+    [
+     {
+      "node": "Mettre en page",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "SMS non activé",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Mettre en page": {
+   "main": [
+    [
+     {
+      "node": "Envoyer (Graph)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Envoyer (Graph)": {
+   "main": [
+    [
+     {
+      "node": "Marquer envoyé",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Marquer erreur",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "Europe/Paris",
+  "callerPolicy": "workflowsFromSameOwner"
+ }
+}
