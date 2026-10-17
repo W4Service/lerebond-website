@@ -5,9 +5,10 @@
    branchable sur n'importe quel champ texte. Utilisé par l'admin tournoi et la
    page publique /tournois/.
 
-   Si le cache ne connaît pas le joueur, on interroge Ten'Up en direct via le
-   workflow n8n « Le Rebond — Classement FFT (Ten'Up) ». Ten'Up ne trouve que le
-   nom + prénom complets : la recherche directe ne part qu'avec au moins deux mots.
+   Si le cache ne connaît pas le joueur, on interroge Ten'Up en direct via l'Edge
+   Function Supabase « fft-recherche » (Ten'Up refuse les appels directs depuis un
+   autre site). Ten'Up ne trouve que le nom + prénom complets : la recherche
+   directe ne part qu'avec au moins deux mots.
 
    Rappel : au padel, le poids d'une paire est la somme des RANGS des deux
    joueurs (n°1 = meilleur). C'est le rang qu'on reporte dans equipes.points_j1/j2.
@@ -15,7 +16,6 @@
 (function () {
     var LONGUEUR_MIN = 3;   // en dessous, la recherche n'est ni utile ni rapide (cf. migration)
     var DELAI_MS = 250;
-    var URL_DIRECT = 'https://n8n.wepe.fr/webhook/rebond-fft';
 
     function normaliser(txt) {
         return String(txt == null ? '' : txt)
@@ -59,19 +59,20 @@
         return mots.length >= 2;
     }
 
-    // Interroge Ten'Up via n8n. Le résultat est aussi mis en cache côté serveur.
-    async function rechercherEnDirect(q, options) {
+    // Interroge Ten'Up via l'Edge Function. Le résultat est aussi mis en cache côté serveur.
+    async function rechercherEnDirect(supa, q, options) {
         options = options || {};
         if (!rechercheDirectePossible(q)) return [];
-        var url = URL_DIRECT + '?q=' + encodeURIComponent(String(q).trim())
-            + (options.genre ? '&genre=' + options.genre : '');
-        var r = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!r.ok) throw new Error('Ten\'Up indisponible (' + r.status + ')');
-        var d = await r.json();
-        return (d.joueurs || []).map(function (j) { j.direct = true; return j; });
+        var res = await supa.functions.invoke('fft-recherche', {
+            body: { q: String(q).trim(), genre: options.genre || null }
+        });
+        if (res.error) throw res.error;
+        return ((res.data && res.data.joueurs) || []).map(function (j) { j.direct = true; return j; });
     }
 
     // Cache d'abord ; si rien ne correspond au nom complet saisi, Ten'Up en direct.
+    // Le tableau renvoyé porte .directIndisponible = true si Ten'Up n'a pas pu être
+    // interrogé : « aucun résultat » ne veut alors PAS dire « non classé ».
     async function rechercherPartout(supa, q, options) {
         var locaux = await rechercher(supa, q, options);
         var cle = normaliser(q).split(' ').sort().join(' ');
@@ -79,15 +80,17 @@
             return normaliser(j.prenom + ' ' + j.nom).split(' ').sort().join(' ') === cle;
         });
         if (exact || !rechercheDirectePossible(q)) return locaux;
-        var directs = [];
-        try { directs = await rechercherEnDirect(q, options); } catch (e) { console.warn(e); }
+        var directs = [], indisponible = false;
+        try { directs = await rechercherEnDirect(supa, q, options); } catch (e) { console.warn(e); indisponible = true; }
         var vus = {};
-        return directs.concat(locaux).filter(function (j) {
+        var tous = directs.concat(locaux).filter(function (j) {
             var k = j.id_crm ? 'id' + j.id_crm : 'n' + normaliser(j.prenom + ' ' + j.nom) + j.genre;
             if (vus[k]) return false;
             vus[k] = true;
             return true;
         });
+        tous.directIndisponible = indisponible;
+        return tous;
     }
 
     // Branche une liste de suggestions sous `input`.
@@ -176,7 +179,9 @@
                     if (g !== generation) return;  // une frappe plus récente a déjà relancé
                     resultats = r;
                     actif = -1;
-                    afficher(r.length ? '' : 'Aucun classé FFT à ce nom');
+                    afficher(r.length ? '' : (r.directIndisponible
+                        ? 'Classement national injoignable, réessaie dans un instant'
+                        : 'Aucun classé FFT à ce nom'));
                 } catch (err) {
                     if (g !== generation) return;
                     console.error('Recherche FFT :', err);
