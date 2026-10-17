@@ -13,6 +13,8 @@
     var equipes = [];
     var matchs = [];
     var joueurs = []; // cache de tous les joueurs (pour autocomplete + résolution)
+    // Joueur du classement FFT choisi dans les suggestions du formulaire d'ajout d'équipe.
+    var choixFFT = { j1: null, j2: null };
     var archivedTournois = [];
     var closedTournois = [];
     var activeTab = 'matchs'; // 'matchs' | 'pointage'
@@ -285,22 +287,97 @@
             showToast('Un joueur ne peut pas être en double dans une équipe', 'error');
             return;
         }
+        await enregistrerChoixFFT(j1Id, choixFFT.j1);
+        await enregistrerChoixFFT(j2Id, choixFFT.j2);
         // On garde un 'nom' équipe pour la rétro-compat des requêtes order('nom'), construit côté serveur
         var nomEquipe = nomJ1 + ' / ' + nomJ2;
         var res = await supa.from('equipes').insert({
             tournoi_id: currentTournoi.id,
             nom: nomEquipe,
             joueur_j1_id: j1Id,
-            joueur_j2_id: j2Id
+            joueur_j2_id: j2Id,
+            // Le classement FFT connu des joueurs pré-remplit le poids de la paire.
+            points_j1: rangFFT(j1Id),
+            points_j2: rangFFT(j2Id)
         }).select().single();
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         equipes.push(res.data);
+        choixFFT = { j1: null, j2: null };
         els.eqNomJ1.value = '';
         els.eqPrenomJ1.value = '';
         els.eqNomJ2.value = '';
         els.eqPrenomJ2.value = '';
         els.eqNomJ1.focus();
         render();
+    }
+
+    // Rattache une fiche joueur à la ligne du classement FFT choisie dans les suggestions.
+    async function enregistrerChoixFFT(joueurId, choix) {
+        if (!joueurId || !choix) return;
+        var patch = {
+            fft_rang: choix.rang, fft_points: choix.points, fft_mois: choix.mois,
+            genre: choix.genre, fft_statut: 'classe', fft_verifie_le: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        // L'identifiant FFT ne change pas d'un mois à l'autre : la mise à jour quotidienne
+        // retrouvera ce joueur sans ambiguïté, même avec des homonymes.
+        if (choix.id_crm) patch.fft_id_crm = choix.id_crm;
+        if (choix.club) patch.fft_club = choix.club;
+        if (choix.licence) patch.licence = choix.licence;
+        var res = await supa.from('joueurs').update(patch).eq('id', joueurId).select().single();
+        if (res.error) {
+            showToast('Classement FFT non enregistré : ' + res.error.message, 'error');
+            console.error(res.error);
+            return;
+        }
+        var i = joueurs.findIndex(function (j) { return j.id === joueurId; });
+        if (i >= 0) joueurs[i] = res.data;
+    }
+
+    // Rang FFT connu d'un joueur (null si jamais rattaché au classement).
+    // C'est le rang, pas les points, qui fait le poids d'une paire.
+    function rangFFT(joueurId) {
+        var j = findJoueur(joueurId);
+        return j && j.fft_rang != null ? j.fft_rang : null;
+    }
+
+    // Complète les poids manquants des paires à partir du classement FFT des joueurs.
+    // Ne remplace jamais une valeur déjà saisie.
+    function patchClassementManquant(eq) {
+        var patch = {};
+        var r1 = rangFFT(eq.joueur_j1_id), r2 = rangFFT(eq.joueur_j2_id);
+        if (eq.points_j1 == null && r1 != null) patch.points_j1 = r1;
+        if (eq.points_j2 == null && r2 != null) patch.points_j2 = r2;
+        return Object.keys(patch).length ? patch : null;
+    }
+
+    async function reprendreClassementsFFT() {
+        if (guardReadOnly()) return;
+        var maj = 0;
+        for (var k = 0; k < equipes.length; k++) {
+            var patch = patchClassementManquant(equipes[k]);
+            if (!patch) continue;
+            var res = await supa.from('equipes').update(patch).eq('id', equipes[k].id).select().single();
+            if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); break; }
+            equipes[k] = res.data;
+            maj++;
+        }
+        render();
+        showToast(maj + ' équipe' + (maj > 1 ? 's' : '') + ' complétée' + (maj > 1 ? 's' : ''), 'ok');
+    }
+
+    // Met à jour le classement FFT de toute la base joueurs depuis le dernier import.
+    async function actualiserClassementsFFT() {
+        var res = await supa.rpc('actualiser_classements_joueurs');
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        var r = res.data || {};
+        var resJ = await supa.from('joueurs').select('*').order('nom');
+        if (!resJ.error) joueurs = resJ.data || joueurs;
+        render();
+        var msg = ((r.par_licence || 0) + (r.par_nom || 0)) + ' joueurs rattachés au classement';
+        if (r.homonymes) msg += ', ' + r.homonymes + ' homonymes à choisir à la main';
+        if (r.non_trouves) msg += ', ' + r.non_trouves + ' non classés';
+        showToast(msg, 'ok');
     }
 
     async function deleteEquipe(id) { if (guardReadOnly()) return;
@@ -4519,6 +4596,11 @@
             class: 'btn-live btn-live--outline btn-live--small',
             onclick: function () { annuaireReplie = !annuaireReplie; render(); }
         }, replie ? '▸ Afficher' : '▾ Masquer');
+        head.appendChild(el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: actualiserClassementsFFT,
+            title: 'Rattache chaque joueur au dernier classement FFT importé (par licence, sinon par nom quand il n\'y a pas d\'homonyme)'
+        }, '🔄 Actualiser les classements FFT'));
         head.appendChild(btnToggle);
         card.appendChild(head);
 
@@ -4587,13 +4669,19 @@
                 infos.appendChild(el('span', { class: 'annuaire-nom' },
                     (j.prenom || '?') + ' ' + (j.nom || '?')));
                 var meta = [];
-                if (j.points_fft != null) meta.push(j.points_fft + ' pts');
+                if (j.fft_rang != null) meta.push('#' + j.fft_rang.toLocaleString('fr-FR') + ' FFT' + (j.fft_club ? ' · ' + j.fft_club : ''));
+                else if (j.fft_statut === 'non_classe') meta.push('non classé FFT');
+                else if (j.points_fft != null) meta.push(j.points_fft + ' pts');
                 meta.push(usage.length === 0
                     ? 'aucune équipe'
                     : usage.length + ' équipe' + (usage.length > 1 ? 's' : ''));
                 infos.appendChild(el('span', { class: 'annuaire-meta' }, meta.join(' · ')));
                 if (enDouble) {
                     infos.appendChild(el('span', { class: 'annuaire-alerte' }, '⚠️ fiche en double'));
+                }
+                if (j.fft_statut === 'homonymes') {
+                    infos.appendChild(el('span', { class: 'annuaire-alerte' },
+                        '⚠️ plusieurs classés FFT à ce nom : choisis le bon dans les suggestions à la prochaine inscription'));
                 }
                 ligne.appendChild(infos);
 
@@ -5853,8 +5941,8 @@
                 type: 'number', min: '0',
                 class: 'tournoi-input tournoi-input--mini fft-points-input',
                 value: eq[col] != null ? eq[col] : '',
-                placeholder: 'pts',
-                title: 'Points FFT de ' + nom,
+                placeholder: 'clt',
+                title: 'Classement FFT (rang) de ' + nom,
                 onchange: function (e) {
                     setEquipePoints(eq.id, col, e.target.value).then(function () { updateBadge(); });
                 }
@@ -5918,6 +6006,9 @@
         rowJ2.appendChild(inpPrenom2);
         addForm.appendChild(rowJ2);
 
+        brancherSuggestionsFFT('j1', inpNom1, inpPrenom1, rowJ1);
+        brancherSuggestionsFFT('j2', inpNom2, inpPrenom2, rowJ2);
+
         // Submit on Enter dans le dernier champ
         inpPrenom2.addEventListener('keydown', function (e) { if (e.key === 'Enter') addEquipe(); });
 
@@ -5928,6 +6019,18 @@
         els.eqPrenomJ1 = inpPrenom1;
         els.eqNomJ2 = inpNom2;
         els.eqPrenomJ2 = inpPrenom2;
+
+        if (currentTournoi.mode_classement === 'fft') {
+            var aCompleter = equipes.filter(patchClassementManquant).length;
+            if (aCompleter > 0) {
+                card.appendChild(el('button', {
+                    class: 'btn-live btn-live--outline btn-live--small',
+                    style: 'margin-top:0.75rem;width:100%',
+                    onclick: reprendreClassementsFFT,
+                    title: 'Remplit les classements FFT vides à partir de la fiche des joueurs (ne touche pas aux valeurs déjà saisies)'
+                }, '📥 Reprendre les classements FFT (' + aCompleter + ' équipe' + (aCompleter > 1 ? 's' : '') + ')'));
+            }
+        }
 
         // Bouton répartir par niveau (visible dès qu'il y a au moins une poule)
         // Composeur : part de l'effectif inscrit, crée les poules et répartit.
@@ -5983,6 +6086,50 @@
         card.appendChild(unassignedZone);
 
         return card;
+    }
+
+    // Suggestions du classement FFT sous les champs nom/prénom d'un joueur.
+    // Choisir une suggestion remplit nom + prénom et retient le classement, enregistré
+    // sur la fiche joueur à l'ajout de l'équipe.
+    function brancherSuggestionsFFT(slot, inpNom, inpPrenom, ligne) {
+        choixFFT[slot] = null;  // champs neufs (re-render) : un ancien choix ne vaut plus
+        if (!window.FFTRecherche) return;
+        var badge = el('span', { class: 'fft-choix' });
+        badge.hidden = true;
+        ligne.appendChild(badge);
+
+        function majBadge() {
+            var c = choixFFT[slot];
+            badge.hidden = !c;
+            badge.textContent = c ? '#' + FFTRecherche.formaterNombre(c.rang) + ' FFT' : '';
+            badge.title = c ? 'Classement FFT de ' + FFTRecherche.moisAffiche(c.mois) + (c.club ? ' — ' + c.club : '') : '';
+        }
+        // Retoucher le nom à la main après un choix l'annule : on ne garde pas le
+        // classement de quelqu'un d'autre.
+        function verifier() {
+            var c = choixFFT[slot];
+            if (c && !memeJoueur(inpPrenom.value, inpNom.value, c.prenom, c.nom)) {
+                choixFFT[slot] = null;
+                majBadge();
+            }
+        }
+        [inpNom, inpPrenom].forEach(function (inp) {
+            inp.addEventListener('input', verifier);
+            FFTRecherche.attacher(inp, {
+                supa: supa,
+                requete: function () { return inpNom.value + ' ' + inpPrenom.value; },
+                genre: function () {
+                    var g = currentTournoi && currentTournoi.genre;
+                    return g === 'dames' ? 'F' : (g === 'messieurs' ? 'H' : null);
+                },
+                onChoix: function (j) {
+                    inpNom.value = j.nom;
+                    inpPrenom.value = j.prenom;
+                    choixFFT[slot] = j;
+                    majBadge();
+                }
+            });
+        });
     }
 
     function renderPoulesSection() {

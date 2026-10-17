@@ -2129,3 +2129,104 @@ select.tournoi-input option {
     gap: 0.3rem;
     flex-shrink: 0;
 }
+
+/* ===== Suggestions du classement FFT (js/fft-recherche.js) ===== */
+.fft-ac {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: #3a0512;
+    border: 1px solid rgba(239, 167, 7, 0.45);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 0.25rem;
+}
+.fft-ac__item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.6rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 7px;
+    cursor: pointer;
+}
+.fft-ac__item--actif { background: rgba(239, 167, 7, 0.18); }
+.fft-ac__rang {
+    grid-row: span 2;
+    align-self: center;
+    font-weight: 700;
+    color: #efa707;
+    font-variant-numeric: tabular-nums;
+    min-width: 4.2rem;
+}
+.fft-ac__nom { color: #f4f0e6; font-weight: 600; font-size: 0.92rem; }
+.fft-ac__meta { color: rgba(244, 240, 230, 0.55); font-size: 0.72rem; }
+.fft-ac__vide { padding: 0.5rem 0.6rem; color: rgba(244, 240, 230, 0.6); font-size: 0.85rem; }
+.add-equipe-row { position: relative; }
+.fft-choix {
+    grid-column: 2 / -1;
+    justify-self: start;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    background: #efa707;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    cursor: help;
+}
+.fft-choix[hidden] { display: none; }
+
+/* ===== Onglet Calendrier (js/tournoi-planning.js) ===== */
+#planning-root { display: flex; flex-direction: column; gap: 1.5rem; }
+.planning-grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 0.8rem 1rem;
+    margin-bottom: 0.8rem;
+}
+.planning-champ { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.planning-champ--plein { grid-column: 1 / -1; }
+.planning-champ .tournoi-input {
+    background: rgba(244, 240, 230, 0.06);
+    border: 1px solid rgba(244, 240, 230, 0.2);
+    border-radius: 8px;
+    color-scheme: dark;
+}
+.planning-champ textarea.tournoi-input { resize: vertical; }
+.planning-champ select.tournoi-input option { background: #4d061a; }
+.planning-options { display: flex; flex-wrap: wrap; gap: 0.6rem 1.5rem; margin: 0.8rem 0; }
+.planning-case { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; }
+.planning-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.planning-ligne {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    padding: 0.7rem 0.9rem;
+    margin-top: 0.5rem;
+    background: rgba(244, 240, 230, 0.04);
+    border: 1px solid rgba(244, 240, 230, 0.12);
+    border-radius: 10px;
+}
+.planning-ligne--brouillon { border-style: dashed; }
+.planning-ligne--passe { opacity: 0.6; }
+.planning-infos { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.planning-nom { font-weight: 700; font-size: 1rem; }
+.planning-meta { font-size: 0.8rem; color: rgba(244, 240, 230, 0.65); }
+.planning-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.planning-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(244, 240, 230, 0.12);
+}
+.planning-badge--publie { background: rgba(80, 200, 120, 0.25); color: #9be8b4; }
+.planning-badge--fft { background: rgba(239, 167, 7, 0.25); color: #f4c941; }
+.planning-badge--alerte { background: rgba(234, 26, 21, 0.3); color: #ffb3b1; }

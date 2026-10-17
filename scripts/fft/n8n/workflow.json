@@ -1,0 +1,284 @@
+{
+ "name": "Le Rebond — Classement FFT (Ten'Up)",
+ "nodes": [
+  {
+   "parameters": {
+    "path": "rebond-fft",
+    "responseMode": "responseNode",
+    "options": {
+     "allowedOrigins": "https://le-rebond.fr"
+    }
+   },
+   "name": "Recherche (webhook)",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2.1,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "9b2f6a51-3c4d-4e8f-a1b2-c3d4e5f6a7b8"
+  },
+  {
+   "parameters": {
+    "jsCode": "// n8n — Code « Recherche Ten'Up » (webhook GET /webhook/rebond-fft)\n// Paramètres : nom + prenom, OU q (« Julien Dupont » / « Dupont Julien »), genre facultatif (H|F).\n// Ten'Up ne trouve que le nom + prénom EXACTS (casse et accents ignorés) : on essaie\n// les deux découpages possibles de q. Au plus 4 appels par recherche.\nconst API = 'https://tenup.fft.fr/api/back/public/v2/classements/recherche';\nconst UA = 'LeRebondNoyon/1.0 (+https://le-rebond.fr)';\nconst helpers = this.helpers;\n\nasync function tenup(corps) {\n    try {\n        return await helpers.httpRequest({\n            method: 'POST', url: API, json: true, timeout: 15000,\n            headers: { 'User-Agent': UA, Accept: 'application/json' },\n            body: Object.assign({ pratique: 'PADEL' }, corps)\n        });\n    } catch (e) {\n        // 400 = « recherche impossible avec ces paramètres » : personne de classé à ce nom.\n        // Selon la version de n8n, le code HTTP n'est pas au même endroit (AxiosError, NodeApiError…).\n        const code = Number(e.httpCode || e.statusCode || e.status\n            || (e.response && (e.response.status || e.response.statusCode))\n            || (e.cause && (e.cause.status || (e.cause.response && e.cause.response.status)))\n            || (String(e.message).match(/status code (\\d{3})/) || [])[1]);\n        if (code === 400) return { joueurs: [] };\n        throw e;\n    }\n}\n\nconst p = ($input.first().json.query) || {};\nconst propre = s => String(s || '').trim().replace(/\\s+/g, ' ').slice(0, 60);\nlet paires = [];\nif (p.nom && p.prenom) {\n    paires.push([propre(p.nom), propre(p.prenom)]);\n} else if (p.q) {\n    const mots = propre(p.q).split(' ');\n    if (mots.length >= 2) {\n        paires.push([mots.slice(1).join(' '), mots[0]]);                      // « Julien Dupont »\n        paires.push([mots.slice(0, -1).join(' '), mots[mots.length - 1]]);    // « Dupont Julien »\n    }\n}\npaires = paires.filter((x, i, t) => x[0].length >= 2 && x[1].length >= 2\n    && t.findIndex(y => y[0] === x[0] && y[1] === x[1]) === i);\nconst genres = (p.genre === 'H' || p.genre === 'F') ? [p.genre] : ['H', 'F'];\n\nlet mois = null;\nconst joueurs = [];\nfor (const [nom, prenom] of paires) {\n    for (const sexe of genres) {\n        const r = await tenup({ sexe, nom, prenom });\n        if (r.referentiels && r.referentiels.datesClassement) mois = r.referentiels.datesClassement[0];\n        (r.joueurs || [])\n            .filter(j => j.utilisateurRecherche && j.nom)     // nom null = joueur anonyme sur Ten'Up\n            .forEach(j => joueurs.push(Object.assign({}, j, { sexe })));\n    }\n    if (joueurs.length) break;\n}\n\nreturn [{ json: {\n    mois,\n    joueurs: joueurs.map(j => ({\n        rang: j.classement, nom: j.nom, prenom: j.prenom, points: j.points, genre: j.sexe,\n        club: j.club, ligue: j.ligue, comite: j.comite, id_crm: j.idCrm, mois\n    })),\n    brut: joueurs\n} }];\n"
+   },
+   "name": "Recherche Ten'Up",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    240,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ JSON.stringify({ mois: $json.mois, joueurs: $json.joueurs }) }}",
+    "options": {
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Cache-Control",
+        "value": "public, max-age=3600"
+       }
+      ]
+     }
+    }
+   },
+   "name": "Répondre",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    480,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "SELECT fft_enregistrer_tenup($1::date, $2::jsonb) AS lignes",
+    "options": {
+     "queryReplacement": "={{ [ $('Recherche Ten\\'Up').first().json.mois, JSON.stringify($('Recherche Ten\\'Up').first().json.brut) ] }}"
+    }
+   },
+   "name": "Mettre en cache",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    720,
+    0
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   },
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "triggerAtHour": 7
+      }
+     ]
+    }
+   },
+   "name": "Chaque matin",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    300
+   ]
+  },
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "rebond-fft-verifier",
+    "responseMode": "onReceived",
+    "options": {},
+    "authentication": "headerAuth"
+   },
+   "name": "Déclenchement manuel",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2.1,
+   "position": [
+    0,
+    480
+   ],
+   "webhookId": "5c1f3c0e-6f1e-4b0e-9d1f-0a1b2c3d4e5f",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "zolL1meSwTfFqjPb",
+     "name": "Le Rebond — Jeton FFT"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "jsCode": "// Mois du dernier classement publié (une seule requête, petite réponse).\nconst r = await this.helpers.httpRequest({\n    method: 'POST', json: true, timeout: 15000,\n    url: 'https://tenup.fft.fr/api/back/public/v2/classements/recherche',\n    headers: { 'User-Agent': 'LeRebondNoyon/1.0 (+https://le-rebond.fr)', Accept: 'application/json' },\n    body: { pratique: 'PADEL', sexe: 'F', page: 1, codeLigue: 56, codesComites: ['5660'], afficheReferentiels: true }\n});\nconst mois = r.referentiels && r.referentiels.datesClassement && r.referentiels.datesClassement[0];\nif (!mois) throw new Error('Mois du classement introuvable dans la réponse Ten\\'Up');\nreturn [{ json: { mois } }];\n"
+   },
+   "name": "Mois du classement",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    240,
+    380
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "SELECT * FROM fft_joueurs_a_verifier($1::date, 120)",
+    "options": {
+     "queryReplacement": "={{ [ $json.mois ] }}"
+    }
+   },
+   "name": "Joueurs à vérifier",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    480,
+    380
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "jsCode": "// n8n — Code « Vérifier sur Ten'Up » (tâche quotidienne, une exécution pour tout le lot)\n// Entrée : les joueurs renvoyés par fft_joueurs_a_verifier(mois, limite).\n// Pour chacun : recherche par identifiant FFT s'il est connu, sinon par nom + prénom.\n//   1 classé trouvé  → 'classe'      (on retient son identifiant FFT)\n//   plusieurs        → 'homonymes'   (à trancher dans l'admin, les candidats vont en cache)\n//   aucun            → 'non_classe'\n// Une requête toutes les 0,8 s, et arrêt à 230 s : le node Code est coupé à 300 s ;\n// ce qui reste est repris le lendemain.\nconst API = 'https://tenup.fft.fr/api/back/public/v2/classements/recherche';\nconst UA = 'LeRebondNoyon/1.0 (+https://le-rebond.fr)';\nconst PAUSE_MS = 800, BUDGET_MS = 230000;\nconst helpers = this.helpers;\nconst pause = ms => new Promise(r => setTimeout(r, ms));\n\nasync function tenup(corps) {\n    try {\n        return await helpers.httpRequest({\n            method: 'POST', url: API, json: true, timeout: 15000,\n            headers: { 'User-Agent': UA, Accept: 'application/json' },\n            body: Object.assign({ pratique: 'PADEL' }, corps)\n        });\n    } catch (e) {\n        // Selon la version de n8n, le code HTTP n'est pas au même endroit (AxiosError, NodeApiError…).\n        const code = Number(e.httpCode || e.statusCode || e.status\n            || (e.response && (e.response.status || e.response.statusCode))\n            || (e.cause && (e.cause.status || (e.cause.response && e.cause.response.status)))\n            || (String(e.message).match(/status code (\\d{3})/) || [])[1]);\n        if (code === 400) return { joueurs: [] };\n        throw e;\n    }\n}\n\nconst debut = Date.now();\nconst mois = $('Mois du classement').first().json.mois;\nconst resultats = [], lignes = [];\nlet interrompu = false;\n\nfor (const item of $input.all()) {\n    if (Date.now() - debut > BUDGET_MS) { interrompu = true; break; }\n    const j = item.json;\n    const genres = (j.genre === 'H' || j.genre === 'F') ? [j.genre] : ['H', 'F'];\n    let trouves = [];\n    for (const sexe of genres) {\n        const corps = j.fft_id_crm ? { sexe, idCrm: Number(j.fft_id_crm) } : { sexe, nom: j.nom, prenom: j.prenom };\n        const r = await tenup(corps);\n        await pause(PAUSE_MS);\n        trouves = (r.joueurs || []).filter(x => x.utilisateurRecherche && x.nom).map(x => Object.assign({}, x, { sexe }));\n        if (trouves.length) break;\n    }\n    lignes.push(...trouves);\n    if (trouves.length === 1) {\n        const t = trouves[0];\n        resultats.push({ joueur_id: j.id, statut: 'classe', id_crm: t.idCrm, rang: t.classement,\n                         points: t.points, genre: t.sexe, club: t.club });\n    } else {\n        resultats.push({ joueur_id: j.id, statut: trouves.length > 1 ? 'homonymes' : 'non_classe' });\n    }\n}\n\nreturn [{ json: { mois, resultats, lignes, verifies: resultats.length, interrompu,\n                  duree_s: Math.round((Date.now() - debut) / 1000) } }];\n"
+   },
+   "name": "Vérifier sur Ten'Up",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    720,
+    380
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "SELECT fft_enregistrer_tenup($1::date, $2::jsonb) AS lignes_cache, fft_appliquer_verifications($1::date, $3::jsonb) AS bilan",
+    "options": {
+     "queryReplacement": "={{ [ $json.mois, JSON.stringify($json.lignes), JSON.stringify($json.resultats) ] }}"
+    }
+   },
+   "name": "Enregistrer",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    960,
+    380
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Recherche (webhook)": {
+   "main": [
+    [
+     {
+      "node": "Recherche Ten'Up",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Recherche Ten'Up": {
+   "main": [
+    [
+     {
+      "node": "Répondre",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Répondre": {
+   "main": [
+    [
+     {
+      "node": "Mettre en cache",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Chaque matin": {
+   "main": [
+    [
+     {
+      "node": "Mois du classement",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Déclenchement manuel": {
+   "main": [
+    [
+     {
+      "node": "Mois du classement",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Mois du classement": {
+   "main": [
+    [
+     {
+      "node": "Joueurs à vérifier",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Joueurs à vérifier": {
+   "main": [
+    [
+     {
+      "node": "Vérifier sur Ten'Up",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Vérifier sur Ten'Up": {
+   "main": [
+    [
+     {
+      "node": "Enregistrer",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "Europe/Paris",
+  "callerPolicy": "workflowsFromSameOwner"
+ }
+}
