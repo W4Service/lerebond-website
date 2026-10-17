@@ -368,7 +368,7 @@
 
     // Met à jour le classement FFT de toute la base joueurs depuis le dernier import.
     async function actualiserClassementsFFT() {
-        var res = await supa.rpc('actualiser_classements_joueurs');
+        var res = await supa.rpc('actualiser_classements_joueurs_staff');
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         var r = res.data || {};
         var resJ = await supa.from('joueurs').select('*').order('nom');

@@ -144,3 +144,125 @@
     .tcal-date__num { font-size: 1.5rem; }
     .tcal-fft__table th:nth-child(4), .tcal-fft__table td:nth-child(4) { display: none; }
 }
+
+/* ----- Liste des paires sur les cartes ----- */
+.tcal-paires-btn {
+    background: none; border: 0; padding: 0.3rem 0; cursor: pointer;
+    font: inherit; font-size: 0.85rem; font-weight: 600; color: var(--primary); text-decoration: underline;
+}
+.tcal-paires { margin: 0.5rem 0 0; padding-left: 1.4rem; font-size: 0.85rem; color: #1a1a1a; }
+.tcal-paires li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.2rem 0; border-bottom: 1px dashed #e8e0d5; }
+.tcal-paires__poids { color: #8a7f75; white-space: nowrap; }
+.tcal-paires__attente { color: #8a7f75; }
+
+/* ----- Pages sans photo (inscription, espace joueur) ----- */
+.page-hero--compact { min-height: 0; padding: 7.5rem 0 2.5rem; background: var(--primary); }
+.page-hero--compact .page-hero__title { font-size: clamp(1.8rem, 5vw, 3rem); }
+
+/* ----- Inscription ----- */
+.ins-container, .ej-container { max-width: 760px; }
+.ins-places {
+    margin: 0 0 1.25rem; padding: 0.75rem 1rem; border-radius: 12px;
+    background: rgba(47, 122, 70, 0.15); color: #f4f0e6; font-weight: 600;
+}
+.ins-places:empty { display: none; }
+.ins-places--attente { background: rgba(239, 167, 7, 0.18); }
+.ins-form, .ins-resultat, .ins-ferme, .ej-carte {
+    background: #f4f0e6; color: #1a1a1a; border-radius: var(--radius-lg, 16px);
+    padding: 1.5rem; box-shadow: var(--shadow-sm, 0 2px 8px rgba(26, 26, 26, 0.1));
+}
+.ins-joueur { border: 0; margin: 0 0 1.25rem; padding: 0; }
+.ins-joueur legend { font-weight: 700; font-size: 1.1rem; color: var(--primary); margin-bottom: 0.5rem; }
+.ins-ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.ins-champ { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; position: relative; }
+.ins-champ__label { font-size: 0.8rem; font-weight: 600; color: #5c534b; }
+.ins-champ__aide { font-size: 0.75rem; color: #8a7f75; }
+.ins-input {
+    width: 100%; padding: 0.7rem 0.9rem; font: inherit; font-size: 1rem; color: #1a1a1a;
+    background: #fff; border: 2px solid #e8e0d5; border-radius: 10px;
+}
+.ins-input:focus { outline: none; border-color: var(--accent); }
+.ins-fft { margin: 0 0 0.75rem; font-size: 0.82rem; color: #8a7f75; }
+.ins-fft--ok { color: #2f7a46; font-weight: 600; }
+.ins-poids { font-size: 0.9rem; font-weight: 600; color: var(--primary); }
+.ins-poids:empty { display: none; }
+.ins-alerte { white-space: pre-line; padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.9rem; }
+.ins-alerte--erreur { background: #fbe4e1; color: #8c2b1c; }
+.ins-accord { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.82rem; color: #5c534b; margin: 0.5rem 0 1rem; }
+.ins-accord input { margin-top: 0.2rem; }
+.ins-accord a { color: var(--primary); }
+.ins-envoyer { width: 100%; }
+.ins-envoyer:disabled { opacity: 0.5; cursor: not-allowed; }
+.ins-piege { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.ins-resultat, .ins-ferme { text-align: center; }
+.ins-resultat h2 { color: var(--primary); margin: 0.25rem 0 0.75rem; }
+.ins-resultat p { margin: 0 0 0.75rem; }
+.ins-resultat__icone { font-size: 2.5rem; }
+.ins-resultat__note { font-size: 0.8rem; color: #8a7f75; margin-top: 1rem !important; }
+/* Les suggestions FFT sur fond clair */
+.ins-champ .fft-ac {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 30; margin-top: 4px;
+    background: #fff; border: 2px solid var(--accent); border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); max-height: 300px; overflow-y: auto; padding: 0.25rem;
+}
+.ins-champ .fft-ac__item { display: grid; grid-template-columns: auto 1fr; column-gap: 0.6rem; padding: 0.45rem 0.6rem; border-radius: 7px; cursor: pointer; }
+.ins-champ .fft-ac__item--actif { background: rgba(239, 167, 7, 0.15); }
+.ins-champ .fft-ac__rang { grid-row: span 2; align-self: center; font-weight: 700; color: var(--primary); min-width: 4.2rem; }
+.ins-champ .fft-ac__nom { font-weight: 600; }
+.ins-champ .fft-ac__meta, .ins-champ .fft-ac__vide { font-size: 0.75rem; color: #8a7f75; }
+.ins-champ .fft-ac__vide { padding: 0.5rem; font-size: 0.85rem; }
+
+/* ----- Espace joueur ----- */
+#ej-contenu { display: flex; flex-direction: column; gap: 1.25rem; }
+.ej-carte h2 { color: var(--primary); margin: 0 0 0.75rem; font-size: 1.3rem; }
+.ej-carte h3 { margin: 1.25rem 0 0.5rem; font-size: 1rem; }
+.ej-carte > .btn { margin-top: 0.75rem; }
+.ej-note { font-size: 0.82rem; color: #8a7f75; }
+.ej-alerte { padding: 0.6rem 0.8rem; border-radius: 10px; background: rgba(239, 167, 7, 0.18); color: #6b4a00; font-size: 0.88rem; }
+.ej-chiffres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.ej-chiffre { background: #fff; border-radius: 12px; padding: 0.8rem; text-align: center; }
+.ej-chiffre__valeur { display: block; font-weight: 700; font-size: 1.2rem; color: var(--primary); overflow-wrap: anywhere; }
+.ej-chiffre__label { font-size: 0.75rem; color: #8a7f75; }
+.ej-courbe { width: 100%; height: auto; margin-top: 0.75rem; }
+.ej-courbe__ligne { fill: none; stroke: var(--primary); stroke-width: 2.5; }
+.ej-courbe__point { fill: var(--accent); stroke: var(--primary); stroke-width: 1.5; }
+.ej-courbe__texte { font-size: 12px; fill: #5c534b; }
+.ej-inscription { border-top: 1px solid #e8e0d5; padding: 0.9rem 0; }
+.ej-inscription--off { opacity: 0.6; }
+.ej-inscription__tete { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.ej-inscription__infos { margin: 0.3rem 0; font-size: 0.88rem; color: #5c534b; }
+.ej-statut { font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 100px; }
+.ej-statut--ok { background: rgba(47, 122, 70, 0.15); color: #2f7a46; }
+.ej-statut--attente { background: rgba(239, 167, 7, 0.2); color: #8a5a00; }
+.ej-statut--off { background: #e8e0d5; color: #5c534b; }
+.ej-convocation { font-weight: 600; color: var(--primary); margin: 0.4rem 0; }
+.ej-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+.ej-actions .btn { padding: 0.55rem 1.1rem; font-size: 0.85rem; }
+.ej-bouton-lien { background: none; border: 0; color: #8c2b1c; text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.85rem; }
+.ej-historique { padding-left: 1.2rem; font-size: 0.9rem; }
+.ej-historique li { margin-bottom: 0.35rem; }
+.ej-historique a, .ej-partenaire a { color: var(--primary); font-weight: 600; }
+.ej-partenaires { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; }
+.ej-partenaire { background: #fff; border-radius: 12px; padding: 0.7rem 0.9rem; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; }
+.ej-lien { display: flex; gap: 0.5rem; margin: 0.75rem 0; }
+.ej-sortir { align-self: center; background: none; border: 0; color: rgba(244, 240, 230, 0.7); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.85rem; }
+.ej-simu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.ej-simu__resultat { font-weight: 700; color: var(--primary); }
+.ej-simu__grille { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ej-simu__case { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 6px; background: #fff; color: #5c534b; }
+.ej-simu__case--actif { background: var(--accent); color: #1a1a1a; font-weight: 700; }
+
+@media (max-width: 600px) {
+    .ins-ligne, .ej-simu { grid-template-columns: 1fr; }
+    .ej-chiffres { grid-template-columns: 1fr 1fr; }
+    .ej-lien { flex-direction: column; }
+    .ins-form, .ins-resultat, .ej-carte { padding: 1.1rem; }
+}
+
+/* Boutons secondaires sur les cartes claires : --dark est un beige clair dans le thème
+   bordeaux, illisible sur crème. */
+.ej-carte .btn--outline-dark, .ins-ferme .btn--outline-dark, .ins-resultat .btn--outline-dark {
+    color: var(--primary); border-color: var(--primary);
+}
+.ej-carte .btn--outline-dark:hover, .ins-ferme .btn--outline-dark:hover { background: var(--primary); color: #f4f0e6; }
+.ej-actions .btn--primary, .ins-resultat .btn--primary, .ej-carte > .btn--primary { color: #1a1a1a; }
