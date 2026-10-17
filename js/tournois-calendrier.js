@@ -176,7 +176,7 @@
         if (t.nb_equipes_max) {
             var places = el('div', 'tcal-places');
             var restant = Math.max(0, t.nb_equipes_max - t.inscrits);
-            var texte = t.complet ? 'Complet — liste d\'attente'
+            var texte = t.complet ? 'Complet — liste d\'attente' + (t.liste_attente ? ' (' + t.liste_attente + ')' : '')
                 : (restant <= 2 ? 'Plus que ' + restant + ' place' + (restant > 1 ? 's' : '') + ' !' : restant + ' places disponibles');
             var ligne = el('div', 'tcal-places__ligne');
             ligne.appendChild(el('span', 'tcal-places__nb', t.inscrits + '/' + t.nb_equipes_max + ' équipes'));
@@ -200,7 +200,15 @@
             var live = el('a', 'btn btn--primary', 'Suivre en direct');
             live.href = 'live/tournoi/';
             actions.appendChild(live);
-        } else {
+        } else if (t.inscription_ouverte) {
+            // Inscription en ligne : on transmet le partenaire éventuel (« Rejouer ensemble »).
+            var lienEnLigne = el('a', 'btn btn--primary', t.complet || t.liste_attente ? 'S\'inscrire en liste d\'attente' : 'S\'inscrire');
+            var q = new URLSearchParams(location.search);
+            lienEnLigne.href = 'tournois/inscription/?t=' + t.id
+                + (q.get('pprenom') ? '&pprenom=' + encodeURIComponent(q.get('pprenom')) : '')
+                + (q.get('pnom') ? '&pnom=' + encodeURIComponent(q.get('pnom')) : '');
+            actions.appendChild(lienEnLigne);
+        } else if (t.status === 'planifie') {
             var lien = el('a', 'btn btn--primary', t.complet ? 'Liste d\'attente' : 'S\'inscrire');
             lien.href = t.lien_inscription || LIEN_APPLI;
             lien.target = '_blank';
@@ -208,9 +216,36 @@
             actions.appendChild(lien);
             if (!t.lien_inscription) actions.appendChild(el('span', 'tcal-note', 'via l\'appli Le Rebond, rubrique Événements'));
         }
+        if (t.inscrits > 0 || t.liste_attente > 0) actions.appendChild(boutonPaires(t, corps));
         corps.appendChild(actions);
         c.appendChild(corps);
         return c;
+    }
+
+    // Liste des paires inscrites (noms et classements publics, pas de coordonnées).
+    function boutonPaires(t, corps) {
+        var b = el('button', 'tcal-paires-btn', 'Voir les paires');
+        b.type = 'button';
+        var zone = null;
+        b.addEventListener('click', async function () {
+            if (zone) { zone.remove(); zone = null; b.textContent = 'Voir les paires'; return; }
+            b.disabled = true;
+            var res = await supa.rpc('paires_tournoi', { p_tournoi: t.id });
+            b.disabled = false;
+            zone = el('ol', 'tcal-paires');
+            (res.data || []).forEach(function (p) {
+                var li = el('li', p.statut === 'liste_attente' ? 'tcal-paires__attente' : null);
+                li.appendChild(el('span', null, p.joueur1 + ' / ' + p.joueur2));
+                li.appendChild(el('span', 'tcal-paires__poids', p.statut === 'liste_attente'
+                    ? 'attente n°' + p.rang_attente
+                    : (p.poids ? 'poids ' + Number(p.poids).toLocaleString('fr-FR') : 'NC')));
+                zone.appendChild(li);
+            });
+            if (!zone.children.length) zone.appendChild(el('li', null, 'Les paires inscrites hors ligne n\'apparaissent pas ici.'));
+            corps.appendChild(zone);
+            b.textContent = 'Masquer les paires';
+        });
+        return b;
     }
 
     // ----- Recherche de classement FFT -----

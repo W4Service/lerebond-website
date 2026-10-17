@@ -271,10 +271,25 @@
     async function checkAuth() {
         var res = await supa.auth.getSession();
         if (res.data && res.data.session) {
-            showAdmin(res.data.session.user);
+            if (await estStaff()) showAdmin(res.data.session.user);
+            else refuserNonStaff();
         } else {
             showLogin();
         }
+    }
+
+    // Seuls les comptes du club (table staff) pilotent l'admin. Si la vérification
+    // échoue (fonction absente), on laisse passer : la base refusera de toute façon
+    // les écritures d'un compte non staff.
+    async function estStaff() {
+        var r = await supa.rpc('est_staff');
+        return r.error ? true : r.data === true;
+    }
+
+    async function refuserNonStaff() {
+        await supa.auth.signOut();
+        showLogin();
+        loginError.textContent = 'Ce compte n\'a pas accès à l\'admin du club.';
     }
 
     function showLogin() {
@@ -304,8 +319,10 @@
         var res = await supa.auth.signInWithPassword({ email: email, password: password });
         if (res.error) {
             loginError.textContent = 'Erreur : ' + res.error.message;
-        } else {
+        } else if (await estStaff()) {
             showAdmin(res.data.user);
+        } else {
+            refuserNonStaff();
         }
     });
 

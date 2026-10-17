@@ -6,3 +6,4 @@ js/resa-config.js
 js/resa-config.min.js
 scripts/fft/.venv/
 __pycache__/
+supabase/.temp/

@@ -30,6 +30,8 @@
 
     var planifies = [];
     var enEdition = null;   // tournoi en cours de modification, null = création
+    var panneauOuvert = null;   // id du tournoi dont on affiche les inscriptions
+    var compteurs = {};         // id tournoi -> { inscrite, liste_attente }
 
     function el(tag, attrs, children) {
         var e = document.createElement(tag);
@@ -91,7 +93,24 @@
             .order('date', { ascending: true }).order('heure_debut', { ascending: true });
         if (res.error) { toast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         planifies = res.data || [];
+        compteurs = {};
+        if (planifies.length) {
+            var ri = await supa.from('inscriptions').select('tournoi_id, statut')
+                .in('tournoi_id', planifies.map(function (t) { return t.id; }))
+                .in('statut', ['inscrite', 'liste_attente']);
+            (ri.data || []).forEach(function (x) {
+                var c = compteurs[x.tournoi_id] = compteurs[x.tournoi_id] || { inscrite: 0, liste_attente: 0 };
+                c[x.statut]++;
+            });
+        }
         render();
+    }
+
+    // ISO → valeur d'un <input type="datetime-local"> (heure locale)
+    function versLocal(iso) {
+        var d = new Date(iso);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
     }
 
     // ----- Formulaire -----
@@ -124,7 +143,9 @@
             terrains: el('input', { type: 'number', min: '1', max: '10', class: 'tournoi-input' }),
             description: el('textarea', { class: 'tournoi-input', rows: '3', placeholder: 'Dotation, restauration, infos pratiques…' }),
             homologue: el('input', { type: 'checkbox' }),
-            publie: el('input', { type: 'checkbox' })
+            publie: el('input', { type: 'checkbox' }),
+            enLigne: el('input', { type: 'checkbox' }),
+            limite: el('input', { type: 'datetime-local', class: 'tournoi-input' })
         };
 
         i.categorie.appendChild(el('option', { value: '' }, '— Catégorie —'));
@@ -150,6 +171,8 @@
         i.description.value = t.description || '';
         i.homologue.checked = enEdition ? !!t.homologue : false;
         i.publie.checked = enEdition ? !!t.publie : true;
+        i.enLigne.checked = enEdition ? t.inscription_en_ligne !== false : true;
+        i.limite.value = t.date_limite_inscription ? versLocal(t.date_limite_inscription) : '';
 
         // Une catégorie P25…P2000 est par définition un tournoi homologué.
         i.categorie.addEventListener('change', function () {
@@ -170,7 +193,8 @@
             champ('Juge-arbitre', i.ja),
             champ('Terrains', i.terrains),
             champ('Format de score', i.format, true),
-            champ('Lien d\'inscription', i.lien, true),
+            champ('Date limite d\'inscription en ligne', i.limite),
+            champ('Lien d\'inscription (si pas en ligne)', i.lien, true),
             champ('Description', i.description, true)
         ]);
         card.appendChild(grille);
@@ -181,7 +205,8 @@
 
         var options = el('div', { class: 'planning-options' }, [
             el('label', { class: 'planning-case' }, [i.homologue, ' Homologué FFT (barème officiel en poule)']),
-            el('label', { class: 'planning-case' }, [i.publie, ' Publié sur le-rebond.fr/tournois/'])
+            el('label', { class: 'planning-case' }, [i.publie, ' Publié sur le-rebond.fr/tournois/']),
+            el('label', { class: 'planning-case' }, [i.enLigne, ' Inscriptions en ligne sur le site (sinon : lien ou appli)'])
         ]);
         card.appendChild(options);
 
@@ -238,6 +263,8 @@
             // Un tournoi homologué se classe aux classements FFT, sinon au niveau 1-10.
             mode_classement: homologue ? 'fft' : 'niveau',
             publie: !!i.publie.checked,
+            inscription_en_ligne: !!i.enLigne.checked,
+            date_limite_inscription: i.limite.value ? new Date(i.limite.value).toISOString() : null,
             updated_at: new Date().toISOString()
         };
 
@@ -318,7 +345,9 @@
             infos.appendChild(el('span', { class: 'planning-nom' }, t.nom));
             var details = [dateLongue(t.date)];
             if (t.heure_debut) details.push(heure(t.heure_debut) + (t.heure_fin ? '–' + heure(t.heure_fin) : ''));
-            if (t.nb_equipes_max) details.push((t.nb_inscrits || 0) + '/' + t.nb_equipes_max + ' équipes');
+            // Même calcul que le site public : inscriptions en ligne, ou compteur manuel s'il est plus grand.
+            var prises = Math.max(t.nb_inscrits || 0, (compteurs[t.id] && compteurs[t.id].inscrite) || 0);
+            if (t.nb_equipes_max) details.push(prises + '/' + t.nb_equipes_max + ' équipes');
             if (t.juge_arbitre) details.push('JA ' + t.juge_arbitre);
             infos.appendChild(el('span', { class: 'planning-meta' }, details.join(' · ')));
             var badges = el('span', { class: 'planning-badges' });
@@ -326,10 +355,21 @@
             badges.appendChild(el('span', { class: 'planning-badge' + (t.publie ? ' planning-badge--publie' : '') },
                 t.publie ? 'Publié' : 'Brouillon'));
             if (passe) badges.appendChild(el('span', { class: 'planning-badge planning-badge--alerte' }, 'Date passée'));
+            var c = compteurs[t.id];
+            if (t.inscription_en_ligne !== false) {
+                badges.appendChild(el('span', { class: 'planning-badge' + (t.inscriptions_fermees ? ' planning-badge--alerte' : ' planning-badge--publie') },
+                    t.inscriptions_fermees ? 'Inscriptions fermées' : 'Inscriptions en ligne'));
+            }
+            if (c) badges.appendChild(el('span', { class: 'planning-badge' },
+                c.inscrite + ' inscrite' + (c.inscrite > 1 ? 's' : '') + (c.liste_attente ? ' · ' + c.liste_attente + ' en attente' : '')));
             infos.appendChild(badges);
             ligne.appendChild(infos);
 
             var actions = el('div', { class: 'planning-actions' }, [
+                el('button', {
+                    class: 'btn-live btn-live--outline btn-live--small',
+                    onclick: function () { panneauOuvert = panneauOuvert === t.id ? null : t.id; render(); }
+                }, (panneauOuvert === t.id ? '▾ ' : '▸ ') + '👥 Inscriptions'),
                 el('button', {
                     class: 'btn-live btn-live--primary btn-live--small',
                     onclick: function () { lancer(t); },
@@ -352,8 +392,174 @@
             ]);
             ligne.appendChild(actions);
             card.appendChild(ligne);
+            if (panneauOuvert === t.id) {
+                var panneau = el('div', { class: 'inscr-panneau' }, el('p', { class: 'tournoi-hint' }, 'Chargement…'));
+                card.appendChild(panneau);
+                remplirPanneau(t, panneau);
+            }
         });
         return card;
+    }
+
+    // ===== Inscriptions d'un tournoi : liste, liste d'attente, convocations, export JA =====
+
+    function hhmm(iso) {
+        if (!iso) return '';
+        var d = new Date(iso);
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    async function remplirPanneau(t, panneau) {
+        var res = await supa.from('inscriptions')
+            .select('*, j1:joueurs!inscriptions_joueur1_id_fkey(nom, prenom, fft_rang, fft_club, licence), '
+                  + 'j2:joueurs!inscriptions_joueur2_id_fkey(nom, prenom, fft_rang, fft_club, licence)')
+            .eq('tournoi_id', t.id).order('cree_le');
+        if (res.error) { panneau.innerHTML = ''; panneau.appendChild(el('p', { class: 'tournoi-hint' }, 'Erreur : ' + res.error.message)); return; }
+        var liste = res.data || [];
+        var ids = [];
+        liste.forEach(function (x) { ids.push(x.joueur1_id, x.joueur2_id); });
+        var contacts = {};
+        if (ids.length) {
+            var rc = await supa.from('joueurs_contacts').select('joueur_id, email, telephone').in('joueur_id', ids);
+            (rc.data || []).forEach(function (c) { contacts[c.joueur_id] = c; });
+        }
+        var inscrites = liste.filter(function (x) { return x.statut === 'inscrite'; })
+            .sort(function (a, b) { return (a.poids == null) - (b.poids == null) || (a.poids || 0) - (b.poids || 0); });
+        var attente = liste.filter(function (x) { return x.statut === 'liste_attente'; });
+        var retirees = liste.filter(function (x) { return x.statut === 'annulee' || x.statut === 'refusee'; });
+
+        panneau.innerHTML = '';
+        var barre = el('div', { class: 'inscr-barre' });
+        barre.appendChild(el('strong', null, inscrites.length + ' inscrite' + (inscrites.length > 1 ? 's' : '')
+            + (t.nb_equipes_max ? ' / ' + t.nb_equipes_max : '') + (attente.length ? ' · ' + attente.length + ' en attente' : '')));
+        barre.appendChild(el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: async function () {
+                await supa.from('tournois').update({ inscriptions_fermees: !t.inscriptions_fermees, updated_at: new Date().toISOString() }).eq('id', t.id);
+                await charger();
+            }
+        }, t.inscriptions_fermees ? 'Rouvrir les inscriptions' : 'Fermer les inscriptions'));
+        barre.appendChild(el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: function () { exporterCsv(t, inscrites.concat(attente), contacts); }
+        }, '⬇️ Export CSV (JA)'));
+        panneau.appendChild(barre);
+
+        if (!liste.length) {
+            panneau.appendChild(el('p', { class: 'poule-empty' }, 'Aucune inscription en ligne pour l\'instant.'));
+            return;
+        }
+
+        // Convocations : une heure par paire, préremplie avec une heure commune.
+        var heuresInputs = {};
+        if (inscrites.length) {
+            var conv = el('div', { class: 'inscr-convoc' });
+            var defaut = el('input', { type: 'time', class: 'tournoi-input inscr-heure', value: t.heure_debut ? String(t.heure_debut).slice(0, 5) : '09:00' });
+            conv.appendChild(el('span', null, 'Convocation :'));
+            conv.appendChild(defaut);
+            conv.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small',
+                onclick: function () { Object.keys(heuresInputs).forEach(function (k) { heuresInputs[k].value = defaut.value; }); }
+            }, 'Appliquer à toutes'));
+            conv.appendChild(el('button', {
+                class: 'btn-live btn-live--primary btn-live--small',
+                onclick: function () { envoyerConvocations(t, inscrites, heuresInputs); }
+            }, '📣 Envoyer les convocations'));
+            panneau.appendChild(conv);
+        }
+
+        function tableau(titre, lignes, avecHeure) {
+            panneau.appendChild(el('h4', { class: 'inscr-titre' }, titre));
+            lignes.forEach(function (x, n) {
+                var ligne = el('div', { class: 'inscr-ligne' });
+                var qui = el('div', { class: 'inscr-qui' });
+                function joueur(j, id, presence) {
+                    var c = contacts[id] || {};
+                    var b = el('div', { class: 'inscr-joueur' });
+                    b.appendChild(el('span', { class: 'inscr-nom' }, (j ? j.prenom + ' ' + j.nom : '?')
+                        + (j && j.fft_rang ? ' · ' + j.fft_rang.toLocaleString('fr-FR') + 'e' : ' · NC')
+                        + (presence === true ? ' ✅' : presence === false ? ' ❌' : '')));
+                    b.appendChild(el('span', { class: 'inscr-contact' }, [c.telephone, c.email].filter(Boolean).join(' · ') || 'pas de coordonnées'));
+                    return b;
+                }
+                qui.appendChild(joueur(x.j1, x.joueur1_id, x.presence_j1));
+                qui.appendChild(joueur(x.j2, x.joueur2_id, x.presence_j2));
+                ligne.appendChild(el('span', { class: 'inscr-num' }, String(n + 1)));
+                ligne.appendChild(qui);
+                var infos = el('div', { class: 'inscr-infos' });
+                infos.appendChild(el('span', null, x.poids ? 'poids ' + x.poids.toLocaleString('fr-FR') : 'poids NC'));
+                infos.appendChild(el('span', { class: x.partenaire_confirme ? 'inscr-ok' : 'inscr-attente' },
+                    x.partenaire_confirme ? 'partenaire ✓' : 'partenaire à confirmer'));
+                if (x.message) infos.appendChild(el('span', { class: 'inscr-message', title: x.message }, '💬 ' + x.message));
+                ligne.appendChild(infos);
+                var actions = el('div', { class: 'inscr-actions' });
+                if (avecHeure) {
+                    var h = el('input', { type: 'time', class: 'tournoi-input inscr-heure', value: hhmm(x.convocation_heure) || (t.heure_debut ? String(t.heure_debut).slice(0, 5) : '09:00') });
+                    heuresInputs[x.id] = h;
+                    actions.appendChild(h);
+                    if (x.convocation_envoyee_le) actions.appendChild(el('span', { class: 'inscr-ok', title: 'Convocation envoyée le ' + new Date(x.convocation_envoyee_le).toLocaleString('fr-FR') }, '📣'));
+                }
+                if (x.statut === 'inscrite' || x.statut === 'liste_attente') {
+                    actions.appendChild(el('button', { class: 'icon-btn icon-btn--danger', title: 'Désinscrire (la liste d\'attente avance)',
+                        onclick: function () { retirer(t, x, 'annulee'); } }, '🗑'));
+                    actions.appendChild(el('button', { class: 'icon-btn', title: 'Refuser (non conforme)',
+                        onclick: function () { retirer(t, x, 'refusee'); } }, '⛔'));
+                } else {
+                    actions.appendChild(el('span', { class: 'inscr-attente' }, (x.statut === 'refusee' ? 'refusée' : 'désinscrite') + (x.annulee_par ? ' par ' + x.annulee_par : '')));
+                }
+                ligne.appendChild(actions);
+                panneau.appendChild(ligne);
+            });
+        }
+        if (inscrites.length) tableau('Paires inscrites (par poids)', inscrites, true);
+        if (attente.length) tableau('Liste d\'attente (ordre d\'arrivée)', attente, false);
+        if (retirees.length) tableau('Désinscrites / refusées', retirees, false);
+    }
+
+    async function retirer(t, x, statut) {
+        var nom = (x.j1 ? x.j1.nom : '?') + ' / ' + (x.j2 ? x.j2.nom : '?');
+        if (!confirm((statut === 'refusee' ? 'Refuser' : 'Désinscrire') + ' la paire ' + nom + ' ?\n\nLes deux joueurs sont prévenus'
+            + (x.statut === 'inscrite' ? ' et la première paire en attente prend la place.' : '.'))) return;
+        var res = await supa.rpc('staff_retirer_inscription', { p_inscription: x.id, p_statut: statut });
+        if (res.error) { toast('Erreur : ' + res.error.message, 'error'); return; }
+        toast(res.data ? 'Paire retirée, ' + res.data + ' paire promue depuis la liste d\'attente' : 'Paire retirée', 'ok');
+        await charger();
+    }
+
+    async function envoyerConvocations(t, inscrites, heuresInputs) {
+        var heures = inscrites.map(function (x) {
+            var v = heuresInputs[x.id] && heuresInputs[x.id].value;
+            return v ? { inscription: x.id, heure: new Date(t.date + 'T' + v + ':00').toISOString() } : null;
+        }).filter(Boolean);
+        if (!heures.length) { toast('Aucune heure renseignée', 'error'); return; }
+        if (!confirm('Envoyer ' + heures.length + ' convocation(s) par e-mail et SMS ?\n\nChaque joueur pourra confirmer sa présence depuis son espace.')) return;
+        var res = await supa.rpc('staff_envoyer_convocations', { p_tournoi: t.id, p_heures: heures });
+        if (res.error) { toast('Erreur : ' + res.error.message, 'error'); return; }
+        toast(res.data + ' convocation(s) envoyée(s)', 'ok');
+        await charger();
+    }
+
+    // Export pour le juge-arbitre (séparateur « ; », ouvrable dans Excel).
+    function exporterCsv(t, lignes, contacts) {
+        function cellule(v) { v = v == null ? '' : String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+        var entete = ['Statut', 'Position', 'Poids de paire', 'Joueur 1', 'Classement joueur 1', 'Club joueur 1', 'Téléphone joueur 1', 'E-mail joueur 1',
+                      'Joueur 2', 'Classement joueur 2', 'Club joueur 2', 'Téléphone joueur 2', 'E-mail joueur 2',
+                      'Partenaire confirmé', 'Convocation', 'Présence J1', 'Présence J2', 'Inscrite le', 'Message'];
+        var n = 0, att = 0;
+        var rows = lignes.map(function (x) {
+            var c1 = contacts[x.joueur1_id] || {}, c2 = contacts[x.joueur2_id] || {};
+            var oui = function (b) { return b === true ? 'oui' : b === false ? 'non' : ''; };
+            return [x.statut === 'inscrite' ? 'Inscrite' : 'Liste d\'attente', x.statut === 'inscrite' ? ++n : ++att, x.poids,
+                x.j1 ? x.j1.prenom + ' ' + x.j1.nom : '', x.rang1, x.j1 && x.j1.fft_club, c1.telephone, c1.email,
+                x.j2 ? x.j2.prenom + ' ' + x.j2.nom : '', x.rang2, x.j2 && x.j2.fft_club, c2.telephone, c2.email,
+                oui(x.partenaire_confirme), x.convocation_heure ? new Date(x.convocation_heure).toLocaleString('fr-FR') : '',
+                oui(x.presence_j1), oui(x.presence_j2), new Date(x.cree_le).toLocaleString('fr-FR'), x.message].map(cellule).join(';');
+        });
+        var csv = '\ufeff' + [entete.join(';')].concat(rows).join('\r\n');
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = 'inscriptions-' + t.nom.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '-' + t.date + '.csv';
+        document.body.appendChild(a); a.click(); a.remove();
     }
 
     function render() {
