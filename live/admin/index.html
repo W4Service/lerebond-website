@@ -18,8 +18,8 @@
 @font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
 </style>
-<link rel="stylesheet" href="css/live.css?v=fcd11e97">
-<link rel="stylesheet" href="css/tournoi.css?v=fcd11e97">
+<link rel="stylesheet" href="css/live.css?v=00496043">
+<link rel="stylesheet" href="css/tournoi.css?v=00496043">
 </head>
 <body class="live-body">
 
@@ -68,6 +68,7 @@
 <div class="admin-switcher">
 <button type="button" id="tab-chrono" class="active" onclick="window.switchTab('chrono')">⏱ Chrono</button>
 <button type="button" id="tab-tournoi" onclick="window.switchTab('tournoi')">🏆 Tournoi</button>
+<button type="button" id="tab-planning" onclick="window.switchTab('planning')">📅 Calendrier</button>
 <a href="live/americano/" class="am-admin-link" style="display:inline-flex;align-items:center;padding:0.5rem 0.9rem;text-decoration:none;color:inherit;font-size:0.85rem;font-weight:600;opacity:0.75">🎾 Americano</a>
 </div>
 <span class="user-pill">👤 <span id="user-email">…</span></span>
@@ -151,40 +152,41 @@ Reset
 <main class="tournoi-admin-wrap" id="tournoi-section" style="display:none">
 <div id="tournoi-root"></div>
 </main>
+<!-- VUE CALENDRIER -->
+<main class="tournoi-admin-wrap" id="planning-section" style="display:none">
+<div id="planning-root"></div>
+</main>
 
 </div>
 
-<script src="js/vendor/supabase.min.js?v=fcd11e97"></script>
-<script src="js/vendor/qrcode.min.js?v=fcd11e97"></script>
-<script src="js/resa-config.min.js?v=fcd11e97"></script>
-<script src="js/supabase-client.js?v=fcd11e97"></script>
-<script src="js/chrono-admin.js?v=fcd11e97"></script>
-<script src="js/tournoi-qr.js?v=fcd11e97"></script>
-<script src="js/tournoi-classement.js?v=fcd11e97"></script>
-<script src="js/tournoi-tirage.js?v=fcd11e97"></script>
-<script src="js/tournoi-admin.js?v=fcd11e97"></script>
+<script src="js/vendor/supabase.min.js?v=00496043"></script>
+<script src="js/vendor/qrcode.min.js?v=00496043"></script>
+<script src="js/resa-config.min.js?v=00496043"></script>
+<script src="js/supabase-client.js?v=00496043"></script>
+<script src="js/chrono-admin.js?v=00496043"></script>
+<script src="js/tournoi-qr.js?v=00496043"></script>
+<script src="js/tournoi-classement.js?v=00496043"></script>
+<script src="js/tournoi-tirage.js?v=00496043"></script>
+<script src="js/fft-recherche.js?v=00496043"></script>
+<script src="js/tournoi-admin.js?v=00496043"></script>
+<script src="js/tournoi-planning.js?v=00496043"></script>
 <script>
 // Switcher tabs
 window.switchTab = function(tab) {
-    var chronoSec = document.getElementById('chrono-section');
-    var tournoiSec = document.getElementById('tournoi-section');
-    var tabChrono = document.getElementById('tab-chrono');
-    var tabTournoi = document.getElementById('tab-tournoi');
+    var vues = {
+        chrono:   { section: 'chrono-section',   onglet: 'tab-chrono',   titre: 'Pilote du Chrono' },
+        tournoi:  { section: 'tournoi-section',  onglet: 'tab-tournoi',  titre: 'Gestion du Tournoi' },
+        planning: { section: 'planning-section', onglet: 'tab-planning', titre: 'Calendrier des tournois' }
+    };
+    if (!vues[tab]) tab = 'chrono';
+    Object.keys(vues).forEach(function (k) {
+        document.getElementById(vues[k].section).style.display = k === tab ? '' : 'none';
+        document.getElementById(vues[k].onglet).classList.toggle('active', k === tab);
+    });
     var label = document.getElementById('topbar-label');
-    if (tab === 'chrono') {
-        chronoSec.style.display = '';
-        tournoiSec.style.display = 'none';
-        tabChrono.classList.add('active');
-        tabTournoi.classList.remove('active');
-        if (label) label.textContent = 'Pilote du Chrono';
-    } else {
-        chronoSec.style.display = 'none';
-        tournoiSec.style.display = '';
-        tabChrono.classList.remove('active');
-        tabTournoi.classList.add('active');
-        if (label) label.textContent = 'Gestion du Tournoi';
-        if (window.TournoiAdmin && window.TournoiAdmin.init) window.TournoiAdmin.init();
-    }
+    if (label) label.textContent = vues[tab].titre;
+    if (tab === 'tournoi' && window.TournoiAdmin && window.TournoiAdmin.init) window.TournoiAdmin.init();
+    if (tab === 'planning' && window.TournoiPlanning) window.TournoiPlanning.init();
     sessionStorage.setItem('admin-tab', tab);
 };
 
@@ -192,8 +194,8 @@ window.switchTab = function(tab) {
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
         var saved = sessionStorage.getItem('admin-tab');
-        if (saved === 'tournoi') {
-            window.switchTab('tournoi');
+        if (saved === 'tournoi' || saved === 'planning') {
+            window.switchTab(saved);
         }
     }, 500);
 });
