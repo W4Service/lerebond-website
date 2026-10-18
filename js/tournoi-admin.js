@@ -15,6 +15,8 @@
     var joueurs = []; // cache de tous les joueurs (pour autocomplete + résolution)
     // Joueur du classement FFT choisi dans les suggestions du formulaire d'ajout d'équipe.
     var choixFFT = { j1: null, j2: null };
+    var rangNC = { H: null, F: null };    // rang d'un non classé (dernier classé + ex aequo + 1)
+    var resultatsReplie = true;
     var archivedTournois = [];
     var closedTournois = [];
     var activeTab = 'matchs'; // 'matchs' | 'pointage'
@@ -103,6 +105,8 @@
         equipes = resE.data || [];
         matchs = resM.data || [];
         joueurs = resJ.data || [];
+        var resNC = await supa.from('fft_nc').select('genre, rang_nc').order('mois', { ascending: false }).limit(4);
+        (resNC.data || []).forEach(function (n) { if (rangNC[n.genre] == null) rangNC[n.genre] = n.rang_nc; });
     }
 
     // Compare deux identités de joueur comme le fait la base : sans tenir compte de
@@ -238,8 +242,19 @@
         if (!confirm('Clôturer ce tournoi ?\n\nIl ne sera plus modifiable, mais restera visible côté client dans l\'historique. Tu pourras le rouvrir ou l\'archiver plus tard.')) return;
         var res = await supa.from('tournois').update({ status: 'cloture', updated_at: new Date().toISOString() }).eq('id', currentTournoi.id);
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
+        // Les places issues des matchs deviennent les résultats officiels (sans écraser une
+        // place déjà saisie à la main). Elles restent modifiables dans « Résultats officiels ».
+        var auto = {};
+        computeClassementFinal().forEach(function (p) {
+            var eq = p.equipe_id && equipes.find(function (e) { return e.id === p.equipe_id; });
+            if (eq && eq.place_finale == null) auto[p.equipe_id] = p.place;
+        });
+        var nbAuto = Object.keys(auto).length;
+        if (nbAuto) await enregistrerResultats(auto, true);
         await loadActiveTournoi();
-        showToast('Tournoi clôturé', 'ok');
+        var sansPlace = equipes.filter(function (e) { return e.place_finale == null; }).length;
+        showToast('Tournoi clôturé' + (nbAuto ? ' · ' + nbAuto + ' places enregistrées' : '')
+            + (sansPlace ? ' · ' + sansPlace + ' équipe(s) sans place : complète les résultats' : ''), sansPlace ? 'error' : 'ok');
     }
 
     async function rouvrirTournoi(id) {
@@ -336,9 +351,23 @@
 
     // Rang FFT connu d'un joueur (null si jamais rattaché au classement).
     // C'est le rang, pas les points, qui fait le poids d'une paire.
+    // Règles FFT (chapitre II) : un non classé compte « dernier classé + ex aequo + 1 » ;
+    // une joueuse dans un tableau messieurs compte avec son équivalent masculin.
+    // null si le joueur n'a pas encore été vérifié (on ne devine pas).
     function rangFFT(joueurId) {
         var j = findJoueur(joueurId);
-        return j && j.fft_rang != null ? j.fft_rang : null;
+        if (!j) return null;
+        var tableau = currentTournoi && currentTournoi.genre;   // messieurs | dames | mixte | null (= messieurs)
+        if (j.fft_rang == null) {
+            if (j.fft_statut !== 'non_classe') return null;
+            if (tableau === 'dames') return rangNC.F;
+            if (tableau === 'mixte') return rangNC[j.genre === 'F' ? 'F' : 'H'];
+            return rangNC.H;
+        }
+        if (j.genre === 'F' && tableau !== 'dames' && tableau !== 'mixte') {
+            return FFTRecherche.rangEquivalentMessieurs(j.fft_rang);
+        }
+        return j.fft_rang;
     }
 
     // Complète les poids manquants des paires à partir du classement FFT des joueurs.
@@ -4537,6 +4566,7 @@
                 setup.appendChild(renderPoulesSection());
                 root.appendChild(setup);
                 root.appendChild(renderMatchsSection());
+                root.appendChild(renderResultatsSection());
             }
         }
     }
@@ -4579,6 +4609,55 @@
         }
         var parts = (eq.nom || '').split('/').map(function (s) { return s.trim(); }).filter(Boolean);
         return [parts[0] || 'Joueur 1', parts[1] || 'Joueur 2'];
+    }
+
+    // Affiche sous la ligne les classés FFT qui portent ce nom (club, comité, rang) et
+    // rattache la fiche à celui choisi : son identifiant FFT servira aux mises à jour.
+    async function choisirHomonyme(j, ligne) {
+        var suivant = ligne.nextSibling;
+        if (suivant && suivant.classList && suivant.classList.contains('homonymes-panneau')) { suivant.remove(); return; }
+        var panneau = el('div', { class: 'homonymes-panneau' }, el('p', { class: 'tournoi-hint' }, 'Recherche sur Ten\'Up…'));
+        ligne.parentNode.insertBefore(panneau, ligne.nextSibling);
+        var res = await supa.functions.invoke('fft-recherche', { body: { nom: j.nom, prenom: j.prenom, genre: j.genre || null } });
+        panneau.innerHTML = '';
+        if (res.error) { panneau.appendChild(el('p', { class: 'tournoi-hint' }, 'Ten\'Up injoignable, réessaie plus tard.')); return; }
+        var cands = (res.data && res.data.joueurs) || [];
+        panneau.appendChild(el('p', { class: 'tournoi-hint' }, cands.length
+            ? cands.length + ' classé(s) FFT « ' + j.prenom + ' ' + j.nom + ' ». Lequel est notre joueur ? (le club et le comité aident)'
+            : 'Plus aucun classé à ce nom ce mois-ci.'));
+        cands.sort(function (a, b) { return (b.comite === 'OISE') - (a.comite === 'OISE') || a.rang - b.rang; });
+        cands.forEach(function (c) {
+            panneau.appendChild(el('button', {
+                class: 'homonyme-choix',
+                onclick: async function () {
+                    var r = await supa.from('joueurs').update({
+                        fft_id_crm: c.id_crm, fft_rang: c.rang, fft_points: c.points, fft_club: c.club, fft_mois: c.mois,
+                        genre: j.genre || c.genre, fft_statut: 'classe', fft_verifie_le: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }).eq('id', j.id).select().single();
+                    if (r.error) {
+                        showToast(/duplicate|unique/i.test(r.error.message)
+                            ? 'Ce classé est déjà rattaché à une autre fiche : fusionne les deux fiches.' : 'Erreur : ' + r.error.message, 'error');
+                        return;
+                    }
+                    var i = joueurs.findIndex(function (x) { return x.id === j.id; });
+                    if (i >= 0) joueurs[i] = r.data;
+                    showToast(j.prenom + ' ' + j.nom + ' → ' + c.rang.toLocaleString('fr-FR') + 'e FFT', 'ok');
+                    render();
+                }
+            }, [el('strong', null, c.rang.toLocaleString('fr-FR') + 'e'), ' ' + c.prenom + ' ' + c.nom,
+                el('span', null, [c.club, c.comite].filter(Boolean).join(' · '))]));
+        });
+        panneau.appendChild(el('button', {
+            class: 'homonyme-choix homonyme-choix--aucun',
+            onclick: async function () {
+                var r = await supa.from('joueurs').update({ fft_statut: 'non_classe', fft_verifie_le: new Date().toISOString() }).eq('id', j.id).select().single();
+                if (r.error) { showToast('Erreur : ' + r.error.message, 'error'); return; }
+                var i = joueurs.findIndex(function (x) { return x.id === j.id; });
+                if (i >= 0) joueurs[i] = r.data;
+                render();
+            }
+        }, 'Aucun : notre joueur n\'est pas classé'));
     }
 
     // ===== Annuaire des joueurs =====
@@ -4686,6 +4765,13 @@
                 ligne.appendChild(infos);
 
                 var actions = el('div', { class: 'annuaire-actions' });
+                if (j.fft_statut === 'homonymes') {
+                    actions.appendChild(el('button', {
+                        class: 'btn-live btn-live--primary btn-live--small',
+                        title: 'Plusieurs classés FFT portent ce nom : choisir le bon',
+                        onclick: function () { choisirHomonyme(j, ligne); }
+                    }, '🔎 Choisir'));
+                }
                 actions.appendChild(el('button', {
                     class: 'btn-live btn-live--outline btn-live--small',
                     title: 'Modifier le nom et le prénom',
@@ -6785,6 +6871,89 @@
         }
 
         return card;
+    }
+
+    // ===== Résultats officiels =====
+    // Place finale de chaque paire (podium et points FFT sur le site et dans l'espace
+    // joueur). Préremplie depuis les matchs, corrigeable, modifiable même après clôture.
+    function renderResultatsSection() {
+        var card = el('div', { class: 'tournoi-card' });
+        var places = equipes.filter(function (e) { return e.place_finale != null; }).length;
+        var head = el('div', { class: 'annuaire-head' });
+        head.appendChild(el('h3', { class: 'tournoi-section-title' },
+            '🏅 Résultats officiels (' + places + '/' + equipes.length + ' placées)'));
+        head.appendChild(el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: function () { resultatsReplie = !resultatsReplie; render(); }
+        }, resultatsReplie ? '▸ Afficher' : '▾ Masquer'));
+        card.appendChild(head);
+        if (resultatsReplie) return card;
+
+        var calcule = {};
+        computeClassementFinal().forEach(function (p) { if (p.equipe_id) calcule[p.equipe_id] = p.place; });
+        var cat = currentTournoi.categorie;
+        var bareme = window.FFTBareme && cat && FFTBareme.CATEGORIES.indexOf(cat) >= 0 && currentTournoi.homologue;
+        card.appendChild(el('p', { class: 'tournoi-hint' },
+            'Préremplies avec le classement final des matchs quand il existe. Corrige si besoin puis enregistre : '
+            + 'les résultats apparaissent sur le site (podiums) et dans l\'espace des joueurs'
+            + (bareme ? ', avec les points FFT ' + cat + '.' : '.')));
+
+        var inputs = {};
+        var liste = equipes.slice().sort(function (a, b) {
+            var pa = a.place_finale || calcule[a.id] || 999, pb = b.place_finale || calcule[b.id] || 999;
+            return pa - pb || equipeAffichage(a).localeCompare(equipeAffichage(b), 'fr');
+        });
+        var table = el('div', { class: 'resultats-liste' });
+        liste.forEach(function (eq) {
+            var ligne = el('div', { class: 'resultats-ligne' });
+            var valeur = eq.place_finale || calcule[eq.id] || '';
+            var input = el('input', { type: 'number', min: '1', max: String(equipes.length), class: 'tournoi-input tournoi-input--mini resultats-place', value: valeur });
+            inputs[eq.id] = input;
+            var pts = el('span', { class: 'resultats-points' });
+            function majPoints() {
+                var p = parseInt(input.value, 10);
+                pts.textContent = bareme && p ? FFTBareme.points(cat, p, equipes.length) + ' pts FFT' : '';
+            }
+            input.addEventListener('input', majPoints);
+            majPoints();
+            ligne.appendChild(input);
+            ligne.appendChild(el('span', { class: 'resultats-nom' }, equipeAffichage2L(eq)));
+            if (eq.place_finale == null && calcule[eq.id]) ligne.appendChild(el('span', { class: 'resultats-auto' }, 'calculée'));
+            ligne.appendChild(pts);
+            table.appendChild(ligne);
+        });
+        card.appendChild(table);
+        card.appendChild(el('button', {
+            class: 'btn-live btn-live--primary btn-live--small', style: 'margin-top:0.75rem',
+            onclick: function () {
+                var places = {}, vues = {}, doublon = null;
+                Object.keys(inputs).forEach(function (id) {
+                    var p = parseInt(inputs[id].value, 10);
+                    places[id] = p > 0 ? p : null;
+                    if (p > 0) { if (vues[p]) doublon = p; vues[p] = true; }
+                });
+                if (doublon && !confirm('La place ' + doublon + ' est attribuée à plusieurs équipes. Enregistrer quand même (ex aequo) ?')) return;
+                enregistrerResultats(places, false);
+            }
+        }, '💾 Enregistrer les résultats'));
+        return card;
+    }
+
+    // places : { equipe_id: place | null }. Pas de garde « tournoi clôturé » : les
+    // résultats se corrigent aussi après la clôture.
+    async function enregistrerResultats(places, silencieux) {
+        var ids = Object.keys(places), n = 0;
+        for (var k = 0; k < ids.length; k++) {
+            var eq = equipes.find(function (e) { return e.id === ids[k]; });
+            if (eq && eq.place_finale === places[ids[k]]) continue;
+            var res = await supa.from('equipes').update({ place_finale: places[ids[k]] }).eq('id', ids[k]).select().single();
+            if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+            var i = equipes.findIndex(function (e) { return e.id === ids[k]; });
+            if (i >= 0) equipes[i] = res.data;
+            n++;
+        }
+        await supa.from('tournois').update({ resultats_le: new Date().toISOString() }).eq('id', currentTournoi.id);
+        if (!silencieux) { showToast(n ? 'Résultats enregistrés' : 'Rien à changer', 'ok'); render(); }
     }
 
     function renderClassementFinal(places) {

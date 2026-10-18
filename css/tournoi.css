@@ -2259,3 +2259,29 @@ select.tournoi-input option {
     .inscr-ligne { grid-template-columns: 1.4rem minmax(0, 1fr); }
     .inscr-infos, .inscr-actions { grid-column: 2; }
 }
+
+/* ===== Résultats officiels ===== */
+.resultats-liste { display: flex; flex-direction: column; gap: 0.3rem; }
+.resultats-ligne {
+    display: grid; grid-template-columns: 4.2rem minmax(0, 1fr) auto auto; align-items: center; gap: 0.6rem;
+    padding: 0.35rem 0.5rem; border-radius: 8px; background: rgba(244, 240, 230, 0.04);
+}
+.resultats-place { background: rgba(244, 240, 230, 0.08); border: 1px solid rgba(244, 240, 230, 0.25); border-radius: 8px; text-align: center; }
+.resultats-nom { min-width: 0; }
+.resultats-auto { font-size: 0.7rem; color: #f4c941; text-transform: uppercase; letter-spacing: 0.04em; }
+.resultats-points { font-size: 0.8rem; color: #9be8b4; white-space: nowrap; }
+
+/* ===== Choix d'un homonyme FFT (annuaire) ===== */
+.homonymes-panneau {
+    display: flex; flex-direction: column; gap: 0.35rem; margin: 0 0 0.4rem 1rem; padding: 0.7rem;
+    border-left: 3px solid #efa707; background: rgba(239, 167, 7, 0.08); border-radius: 0 8px 8px 0;
+}
+.homonyme-choix {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; text-align: left; cursor: pointer;
+    padding: 0.5rem 0.7rem; border-radius: 8px; border: 1px solid rgba(244, 240, 230, 0.2);
+    background: rgba(244, 240, 230, 0.05); color: #f4f0e6; font: inherit; font-size: 0.88rem;
+}
+.homonyme-choix:hover { border-color: #efa707; background: rgba(239, 167, 7, 0.15); }
+.homonyme-choix strong { color: #efa707; min-width: 5rem; }
+.homonyme-choix span { font-size: 0.75rem; color: rgba(244, 240, 230, 0.6); }
+.homonyme-choix--aucun { justify-content: center; color: rgba(244, 240, 230, 0.7); }

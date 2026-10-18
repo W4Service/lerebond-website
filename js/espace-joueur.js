@@ -240,6 +240,13 @@
                 var li = el('li');
                 li.appendChild(el('strong', null, t.tournoi));
                 li.appendChild(document.createTextNode(' — ' + new Date(t.date + 'T00:00:00').toLocaleDateString('fr-FR') + ' avec ' + t.partenaire + ' '));
+                if (t.place) {
+                    var medaille = { 1: '🥇 ', 2: '🥈 ', 3: '🥉 ' }[t.place] || '';
+                    var pts = t.homologue ? FFTBareme.points(t.categorie, t.place, t.nb_equipes) : null;
+                    li.appendChild(el('span', 'ej-place', medaille + (t.place === 1 ? '1er' : t.place + 'e') + ' / ' + t.nb_equipes
+                        + (pts != null ? ' · ' + pts + ' pts FFT' : '')));
+                    li.appendChild(document.createTextNode(' '));
+                }
                 var a = el('a', null, 'résultats');
                 a.href = 'live/tournoi/#t=' + t.tournoi_id;   // la page live lit le tournoi dans le hash
                 li.appendChild(a);

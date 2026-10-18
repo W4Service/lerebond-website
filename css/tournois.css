@@ -266,3 +266,11 @@
 }
 .ej-carte .btn--outline-dark:hover, .ins-ferme .btn--outline-dark:hover { background: var(--primary); color: #f4f0e6; }
 .ej-actions .btn--primary, .ins-resultat .btn--primary, .ej-carte > .btn--primary { color: #1a1a1a; }
+
+/* ----- Derniers podiums ----- */
+.tcal-resultat .tcal-corps { gap: 0.6rem; }
+.tcal-podium { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.tcal-podium li { display: flex; gap: 0.5rem; align-items: center; font-size: 0.92rem; color: #1a1a1a; }
+.tcal-podium__medaille { font-size: 1.15rem; }
+.tcal-classement { list-style: none; padding-left: 0; }
+.ej-place { font-weight: 600; color: var(--primary); }
