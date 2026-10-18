@@ -69,6 +69,7 @@
 <button type="button" id="tab-chrono" class="active" onclick="window.switchTab('chrono')">⏱ Chrono</button>
 <button type="button" id="tab-tournoi" onclick="window.switchTab('tournoi')">🏆 Tournoi</button>
 <button type="button" id="tab-planning" onclick="window.switchTab('planning')">📅 Calendrier</button>
+<button type="button" id="tab-videos" onclick="window.switchTab('videos')">🎥 Vidéos</button>
 <a href="live/americano/" class="am-admin-link" style="display:inline-flex;align-items:center;padding:0.5rem 0.9rem;text-decoration:none;color:inherit;font-size:0.85rem;font-weight:600;opacity:0.75">🎾 Americano</a>
 </div>
 <span class="user-pill">👤 <span id="user-email">…</span></span>
@@ -156,6 +157,8 @@ Reset
 <main class="tournoi-admin-wrap" id="planning-section" style="display:none">
 <div id="planning-root"></div>
 </main>
+<!-- VUE VIDÉOS -->
+<main class="tournoi-admin-wrap" id="videos-section" style="display:none"></main>
 
 </div>
 
@@ -171,13 +174,16 @@ Reset
 <script src="js/fft-bareme.js"></script>
 <script src="js/tournoi-admin.js"></script>
 <script src="js/tournoi-planning.js"></script>
+<script src="js/videos-source.js"></script>
+<script src="js/videos-admin.js"></script>
 <script>
 // Switcher tabs
 window.switchTab = function(tab) {
     var vues = {
         chrono:   { section: 'chrono-section',   onglet: 'tab-chrono',   titre: 'Pilote du Chrono' },
         tournoi:  { section: 'tournoi-section',  onglet: 'tab-tournoi',  titre: 'Gestion du Tournoi' },
-        planning: { section: 'planning-section', onglet: 'tab-planning', titre: 'Calendrier des tournois' }
+        planning: { section: 'planning-section', onglet: 'tab-planning', titre: 'Calendrier des tournois' },
+        videos:   { section: 'videos-section',   onglet: 'tab-videos',   titre: 'Vidéos diffusées sur le site' }
     };
     if (!vues[tab]) tab = 'chrono';
     Object.keys(vues).forEach(function (k) {
@@ -188,6 +194,7 @@ window.switchTab = function(tab) {
     if (label) label.textContent = vues[tab].titre;
     if (tab === 'tournoi' && window.TournoiAdmin && window.TournoiAdmin.init) window.TournoiAdmin.init();
     if (tab === 'planning' && window.TournoiPlanning) window.TournoiPlanning.init();
+    if (tab === 'videos' && window.VideosAdmin) window.VideosAdmin.init();
     sessionStorage.setItem('admin-tab', tab);
 };
 
