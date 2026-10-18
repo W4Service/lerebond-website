@@ -1,0 +1,66 @@
+/* ===== Galerie vidéos publique (Le Rebond) =====
+   Styles de la galerie qui remplace l'iframe LiveXperience sur
+   /videos/replays/ et /videos/live/. Les mêmes classes servent à
+   l'onglet d'administration, où elles vivent dans css/tournoi.css.
+   ===== */
+
+.videos-vide {
+    padding: 1.25rem;
+    color: #777;
+    font-size: 0.9rem;
+    text-align: center;
+    background: #fafafa;
+    border-radius: 6px;
+}
+
+.videos-grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1rem;
+}
+
+.video-carte {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.video-carte__vignette img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.video-carte__duree {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 1px 6px;
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font-size: 0.72rem;
+    border-radius: 3px;
+}
+
+.video-carte__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.7rem 0.8rem 0.8rem;
+}
+
+.video-carte__titre {
+    font-weight: 600;
+    font-size: 0.85rem;
+    line-height: 1.3;
+    color: #1a1a1a;
+}
+
+.video-carte__meta {
+    font-size: 0.75rem;
+    color: #888;
+}
