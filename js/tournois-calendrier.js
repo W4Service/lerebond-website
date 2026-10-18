@@ -325,8 +325,88 @@
         });
     }
 
+    // ----- Derniers résultats (tournois clôturés dont les places sont enregistrées) -----
+
+    function nomPaire(e) {
+        if (e.j1 || e.j2) {
+            return [e.j1, e.j2].map(function (j) { return j ? j.prenom + ' ' + j.nom : '?'; }).join(' / ');
+        }
+        return e.nom || '?';
+    }
+
+    async function chargerResultats() {
+        if (!supa) return;
+        var rt = await supa.from('tournois').select('id, nom, date, categorie, homologue')
+            .eq('status', 'cloture').not('resultats_le', 'is', null)
+            .order('date', { ascending: false }).limit(6);
+        if (rt.error || !rt.data || !rt.data.length) return;
+        var ids = rt.data.map(function (t) { return t.id; });
+        var re = await supa.from('equipes')
+            .select('tournoi_id, nom, place_finale, j1:joueurs!equipes_joueur_j1_id_fkey(prenom, nom), j2:joueurs!equipes_joueur_j2_id_fkey(prenom, nom)')
+            .in('tournoi_id', ids);
+        if (re.error) { console.error(re.error); return; }
+        var parTournoi = {};
+        (re.data || []).forEach(function (e) { (parTournoi[e.tournoi_id] = parTournoi[e.tournoi_id] || []).push(e); });
+        var zone = $('tcal-resultats');
+        rt.data.forEach(function (t) {
+            var eqs = parTournoi[t.id] || [];
+            var classees = eqs.filter(function (e) { return e.place_finale; })
+                .sort(function (a, b) { return a.place_finale - b.place_finale; });
+            if (!classees.length) return;
+            zone.appendChild(carteResultat(t, classees, eqs.length));
+        });
+        if (zone.children.length) $('resultats').hidden = false;
+    }
+
+    function carteResultat(t, classees, nbEquipes) {
+        var bareme = t.homologue && window.FFTBareme && FFTBareme.CATEGORIES.indexOf(t.categorie) >= 0;
+        var c = el('article', 'tcal-carte tcal-resultat');
+        var corps = el('div', 'tcal-corps');
+        var badges = el('div', 'tcal-badges');
+        if (t.categorie) badges.appendChild(el('span', 'tcal-badge tcal-badge--cat', libelleCategorie(t.categorie)));
+        badges.appendChild(el('span', 'tcal-badge', new Date(t.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })));
+        corps.appendChild(badges);
+        corps.appendChild(el('h4', 'tcal-titre', t.nom));
+        var podium = el('ol', 'tcal-podium');
+        var medailles = ['🥇', '🥈', '🥉'];
+        classees.filter(function (e) { return e.place_finale <= 3; }).forEach(function (e) {
+            var li = el('li');
+            li.appendChild(el('span', 'tcal-podium__medaille', medailles[e.place_finale - 1]));
+            li.appendChild(el('span', null, nomPaire(e)));
+            podium.appendChild(li);
+        });
+        corps.appendChild(podium);
+        if (classees.length > 3 || bareme) {
+            var b = el('button', 'tcal-paires-btn', 'Classement complet');
+            b.type = 'button';
+            var liste = null;
+            b.addEventListener('click', function () {
+                if (liste) { liste.remove(); liste = null; b.textContent = 'Classement complet'; return; }
+                liste = el('ol', 'tcal-paires tcal-classement');
+                classees.forEach(function (e) {
+                    var li = el('li');
+                    li.appendChild(el('span', null, e.place_finale + '. ' + nomPaire(e)));
+                    if (bareme) {
+                        var pts = FFTBareme.points(t.categorie, e.place_finale, nbEquipes);
+                        li.appendChild(el('span', 'tcal-paires__poids', pts + (pts > 1 ? ' pts' : ' pt') + ' FFT'));
+                    }
+                    liste.appendChild(li);
+                });
+                corps.appendChild(liste);
+                b.textContent = 'Masquer le classement';
+            });
+            corps.appendChild(b);
+        }
+        var live = el('a', 'tcal-paires-btn', 'Matchs et scores');
+        live.href = 'live/tournoi/#t=' + t.id;
+        corps.appendChild(live);
+        c.appendChild(corps);
+        return c;
+    }
+
     function init() {
         chargerTournois();
+        chargerResultats();
         initFFT();
     }
 

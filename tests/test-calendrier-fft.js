@@ -18,7 +18,7 @@ check('affichage prénom puis nom', F.nomAffiche({ prenom: 'Julie', nom: 'DUPONT
 
 console.log('\n=== Admin : le classement alimente le poids de paire ===');
 check('le RANG (pas les points) pré-remplit points_j1/j2',
-      /points_j1: rangFFT\(j1Id\)/.test(admin) && /return j && j\.fft_rang != null \? j\.fft_rang : null/.test(admin));
+      /points_j1: rangFFT\(j1Id\)/.test(admin) && /return j\.fft_rang;\n    \}/.test(admin));
 check('le choix FFT est enregistré sur la fiche joueur avant l\'insertion de l\'équipe',
       admin.indexOf('await enregistrerChoixFFT(j1Id') < admin.indexOf("points_j1: rangFFT(j1Id)"));
 check('les suggestions sont branchées AVANT « Entrée = ajouter l\'équipe »',

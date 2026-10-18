@@ -7,6 +7,7 @@
 //   3. cherche chacun par identifiant FFT s'il est connu, sinon par nom + prénom
 //      (1 classé → 'classe', plusieurs → 'homonymes', aucun → 'non_classe') ;
 //   4. enregistre le tout (fft_enregistrer_tenup + fft_appliquer_verifications).
+// Une fois par mois, il calcule aussi le rang d'un non classé (fft_nc) pour le poids des paires.
 // Un verrou en base empêche deux exécutions simultanées. Remplace la tâche n8n du Pi.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
@@ -44,9 +45,26 @@ Deno.serve(async () => {
         const mois = ref.referentiels?.datesClassement?.[0];
         if (!mois) throw new Error("Mois du classement introuvable dans la réponse Ten'Up");
 
+        // Rang d'un non classé pour ce mois (une fois par mois et par genre) :
+        // dernier classé + ex aequo à ce rang + 1 (chapitre II). On lit la dernière page.
+        const nc: Record<string, number> = {};
+        for (const sexe of ['H', 'F']) {
+            const { data: deja } = await db.from('fft_nc').select('rang_nc').eq('mois', mois).eq('genre', sexe).maybeSingle();
+            if (deja) continue;
+            const premiere = await tenup({ sexe, page: 1 }) as { total?: number };
+            const total = Number(premiere.total);
+            if (!total) continue;
+            const derniere = await tenup({ sexe, page: Math.ceil(total / 100) });
+            const rangs = (derniere.joueurs ?? []).map((x) => Number(x.classement)).filter((x) => x > 0);
+            if (!rangs.length) continue;
+            const r = await db.rpc('fft_enregistrer_nc', { p_mois: mois, p_genre: sexe, p_dernier_rang: Math.max(...rangs), p_nb_classes: total });
+            if (!r.error) nc[sexe] = r.data as number;
+            await pause(PAUSE_MS);
+        }
+
         const { data: joueurs, error } = await db.rpc('fft_joueurs_a_verifier', { p_mois: mois, p_limite: LOT });
         if (error) throw new Error(error.message);
-        if (!joueurs?.length) return json({ mois, verifies: 0 });
+        if (!joueurs?.length) return json({ mois, verifies: 0, nc });
 
         const resultats: Record<string, unknown>[] = [];
         const lignes: Joueur[] = [];
@@ -75,7 +93,7 @@ Deno.serve(async () => {
         if (e1.error) throw new Error(e1.error.message);
         const e2 = await db.rpc('fft_appliquer_verifications', { p_mois: mois, p_resultats: resultats });
         if (e2.error) throw new Error(e2.error.message);
-        return json({ mois, verifies: resultats.length, bilan: e2.data, duree_s: Math.round((Date.now() - debut) / 1000) });
+        return json({ mois, verifies: resultats.length, bilan: e2.data, nc, duree_s: Math.round((Date.now() - debut) / 1000) });
     } catch (e) {
         console.error(String(e));
         return json({ erreur: String(e) }, 502);

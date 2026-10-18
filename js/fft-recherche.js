@@ -217,7 +217,18 @@
         };
     }
 
+    // Équivalence dames → messieurs (chapitre II, MAJ février 2026), même table que
+    // fft_rang_equivalent_messieurs() côté base.
+    function rangEquivalentMessieurs(r) {
+        if (r == null) return null;
+        var paliers = [[10, 400], [30, 1000], [60, 2000], [100, 3500], [200, 10000], [500, 15000],
+                       [1000, 25000], [2000, 35000], [3000, 45000], [5000, 55000], [10000, 70000]];
+        for (var i = 0; i < paliers.length; i++) if (r <= paliers[i][0]) return r + paliers[i][1];
+        return r + 90000;
+    }
+
     window.FFTRecherche = {
+        rangEquivalentMessieurs: rangEquivalentMessieurs,
         LONGUEUR_MIN: LONGUEUR_MIN,
         normaliser: normaliser,
         rechercher: rechercher,
