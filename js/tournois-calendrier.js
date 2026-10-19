@@ -216,6 +216,11 @@
             actions.appendChild(lien);
             if (!t.lien_inscription) actions.appendChild(el('span', 'tcal-note', 'via l\'appli Le Rebond, rubrique Événements'));
         }
+        if (t.inscription_ouverte) {
+            var part = el('a', 'tcal-paires-btn', '🤝 Trouver un partenaire' + (t.cherchent_partenaire ? ' (' + t.cherchent_partenaire + ')' : ''));
+            part.href = 'tournois/partenaires/?t=' + t.id;
+            actions.appendChild(part);
+        }
         if (t.inscrits > 0 || t.liste_attente > 0) actions.appendChild(boutonPaires(t, corps));
         corps.appendChild(actions);
         c.appendChild(corps);

@@ -274,3 +274,21 @@
 .tcal-podium__medaille { font-size: 1.15rem; }
 .tcal-classement { list-style: none; padding-left: 0; }
 .ej-place { font-weight: 600; color: var(--primary); }
+
+/* ----- Recherche de partenaire et licence ----- */
+.part-liste, .lic-intro { margin-bottom: 1.25rem; }
+.part-titre { color: var(--primary); font-size: 1.25rem; margin: 0 0 0.75rem; }
+.part-joueur { border-top: 1px solid #e8e0d5; padding: 0.9rem 0; }
+.part-joueur__tete { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.part-joueur__rang { font-weight: 700; color: var(--primary); }
+.part-joueur__infos { margin: 0.2rem 0; font-size: 0.85rem; color: #8a7f75; }
+.part-joueur__message { margin: 0.3rem 0 0.6rem; font-style: italic; color: #5c534b; }
+.part-joueur .btn { padding: 0.55rem 1.1rem; font-size: 0.85rem; color: #1a1a1a; }
+.part-form { margin-top: 0.75rem; padding: 1rem; border-radius: 12px; background: #fff; }
+.part-form .btn { color: #1a1a1a; }
+.part-ok { background: rgba(47, 122, 70, 0.12); color: #2f7a46; }
+.part-deja { text-align: center; color: #f4f0e6; margin-top: 1.25rem; }
+.part-deja a { color: var(--accent); font-weight: 600; }
+.lic-intro p { margin: 0 0 0.6rem; }
+.ins-champ select.ins-input { appearance: auto; }
+.ins-envoyer.btn--primary, .ins-resultat .btn--primary { color: #1a1a1a; }

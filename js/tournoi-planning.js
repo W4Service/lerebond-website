@@ -32,6 +32,8 @@
     var enEdition = null;   // tournoi en cours de modification, null = création
     var panneauOuvert = null;   // id du tournoi dont on affiche les inscriptions
     var compteurs = {};         // id tournoi -> { inscrite, liste_attente }
+    var licences = [];          // demandes de licence (formulaire /licence/)
+    var voirLicencesTraitees = false;
 
     function el(tag, attrs, children) {
         var e = document.createElement(tag);
@@ -93,6 +95,9 @@
             .order('date', { ascending: true }).order('heure_debut', { ascending: true });
         if (res.error) { toast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         planifies = res.data || [];
+        var rl = await supa.from('demandes_licence').select('*').neq('statut', 'annulee')
+            .order('cree_le', { ascending: false }).limit(100);
+        licences = rl.error ? [] : (rl.data || []);
         compteurs = {};
         if (planifies.length) {
             var ri = await supa.from('inscriptions').select('tournoi_id, statut')
@@ -320,6 +325,8 @@
         if (res.error) { toast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         toast('Tournoi lancé 🏆', 'ok');
         if (window.switchTab) window.switchTab('tournoi');
+        // switchTab ne recharge pas si l'onglet vient d'être chargé : on force la relecture.
+        if (window.TournoiAdmin && window.TournoiAdmin.reload) window.TournoiAdmin.reload();
     }
 
     function renderListe() {
@@ -568,6 +575,59 @@
         root.innerHTML = '';
         root.appendChild(renderFormulaire());
         root.appendChild(renderListe());
+        root.appendChild(renderLicences());
+    }
+
+    // ===== Demandes de licence =====
+    function renderLicences() {
+        var nouvelles = licences.filter(function (d) { return d.statut === 'nouvelle'; });
+        var card = el('div', { class: 'tournoi-card' });
+        card.appendChild(el('h3', { class: 'tournoi-section-title' },
+            '📝 Demandes de licence' + (nouvelles.length ? ' (' + nouvelles.length + ' à traiter)' : '')));
+        card.appendChild(el('p', { class: 'tournoi-hint' }, [
+            'Envoyées depuis ',
+            el('a', { href: 'licence/', target: '_blank', style: 'color:#efa707' }, 'le-rebond.fr/licence'),
+            '. Rappelle le joueur pour le règlement, crée la licence sur Ten\'Up, puis marque la demande traitée.'
+        ]));
+        var visibles = voirLicencesTraitees ? licences : nouvelles;
+        if (!visibles.length) card.appendChild(el('p', { class: 'poule-empty' }, 'Aucune demande à traiter.'));
+        visibles.forEach(function (d) {
+            var ligne = el('div', { class: 'planning-ligne' + (d.statut === 'traitee' ? ' planning-ligne--passe' : '') });
+            var infos = el('div', { class: 'planning-infos' });
+            infos.appendChild(el('span', { class: 'planning-nom' }, d.prenom + ' ' + d.nom));
+            var age = Math.floor((Date.now() - new Date(d.date_naissance + 'T00:00:00')) / 31557600000);
+            infos.appendChild(el('span', { class: 'planning-meta' }, [
+                d.sexe === 'F' ? 'Femme' : 'Homme', 'née·né le ' + new Date(d.date_naissance + 'T00:00:00').toLocaleDateString('fr-FR') + ' (' + age + ' ans)',
+                d.nationalite, [d.code_postal, d.ville].filter(Boolean).join(' ')
+            ].filter(Boolean).join(' · ')));
+            infos.appendChild(el('span', { class: 'planning-meta' }, d.telephone + ' · ' + d.email + (d.adresse ? ' · ' + d.adresse : '')));
+            if (d.message) infos.appendChild(el('span', { class: 'planning-meta' }, '💬 ' + d.message));
+            infos.appendChild(el('span', { class: 'planning-badges' }, [
+                el('span', { class: 'planning-badge' + (d.statut === 'nouvelle' ? ' planning-badge--fft' : ' planning-badge--publie') },
+                    d.statut === 'nouvelle' ? 'À traiter' : 'Traitée'),
+                el('span', { class: 'planning-badge' }, 'reçue le ' + new Date(d.cree_le).toLocaleDateString('fr-FR'))
+            ]));
+            ligne.appendChild(infos);
+            ligne.appendChild(el('div', { class: 'planning-actions' }, [
+                el('button', {
+                    class: 'btn-live btn-live--' + (d.statut === 'nouvelle' ? 'primary' : 'outline') + ' btn-live--small',
+                    onclick: async function () {
+                        var nouveau = d.statut === 'nouvelle' ? 'traitee' : 'nouvelle';
+                        var r = await supa.from('demandes_licence').update({ statut: nouveau, traitee_le: nouveau === 'traitee' ? new Date().toISOString() : null }).eq('id', d.id);
+                        if (r.error) { toast('Erreur : ' + r.error.message, 'error'); return; }
+                        await charger();
+                    }
+                }, d.statut === 'nouvelle' ? '✓ Traitée' : 'Remettre à traiter')
+            ]));
+            card.appendChild(ligne);
+        });
+        if (licences.length > nouvelles.length) {
+            card.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small', style: 'margin-top:0.6rem',
+                onclick: function () { voirLicencesTraitees = !voirLicencesTraitees; render(); }
+            }, voirLicencesTraitees ? 'Masquer les demandes traitées' : 'Voir les demandes traitées (' + (licences.length - nouvelles.length) + ')'));
+        }
+        return card;
     }
 
     window.TournoiPlanning = {
