@@ -184,6 +184,15 @@
 
         form.addEventListener('submit', function (e) { e.preventDefault(); envoyer(form, message, piege, caseAccord); });
         zone.appendChild(form);
+        var aide = el('p', 'part-deja');
+        var a1 = el('a', null, 'Pas encore de partenaire ? Trouvez-en un →'); a1.href = 'tournois/partenaires/?t=' + tournoi.id;
+        aide.appendChild(a1);
+        if (tournoi.homologue) {
+            aide.appendChild(document.createTextNode(' · '));
+            var a2 = el('a', null, 'Pas de licence FFT ? Demandez-la →'); a2.href = 'licence/';
+            aide.appendChild(a2);
+        }
+        zone.appendChild(aide);
         preremplir();
     }
 

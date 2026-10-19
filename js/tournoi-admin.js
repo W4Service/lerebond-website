@@ -7472,11 +7472,23 @@
 
     // ===== Export =====
 
+    // init() est appelé deux fois au démarrage (connexion, puis restauration de l'onglet).
+    // Un second rendu juste après le premier effaçait la saisie en cours : on partage le
+    // chargement en cours, et on ne recharge pas si le dernier date de moins de 3 s.
+    var chargementEnCours = null, dernierChargement = 0;
+    function initUnique() {
+        if (chargementEnCours) return chargementEnCours;
+        if (Date.now() - dernierChargement < 3000) return Promise.resolve();
+        els = {};
+        chargementEnCours = loadActiveTournoi().finally(function () {
+            chargementEnCours = null;
+            dernierChargement = Date.now();
+        });
+        return chargementEnCours;
+    }
+
     window.TournoiAdmin = {
-        init: function () {
-            els = {};
-            loadActiveTournoi();
-        },
+        init: initUnique,
         reload: loadActiveTournoi
     };
 })();

@@ -45,6 +45,8 @@
             return afficherAccueil('Ce lien n\'est plus valable. Demandez-en un nouveau ci-dessous.');
         }
         donnees = res.data;
+        var rr = await supa.rpc('espace_joueur_recherches', { p_jeton: jeton });
+        donnees.recherches = rr.error ? [] : (rr.data || []);
         afficher();
     }
 
@@ -87,6 +89,7 @@
         zone.innerHTML = '';
         zone.appendChild(blocClassement());
         zone.appendChild(blocInscriptions());
+        if (donnees.recherches && donnees.recherches.length) zone.appendChild(blocRecherches());
         zone.appendChild(blocHistorique());
         zone.appendChild(blocSimulateur());
         var sortir = el('button', 'ej-sortir', 'Se déconnecter de cet appareil');
@@ -227,6 +230,29 @@
             charger();
         });
         return b;
+    }
+
+    function blocRecherches() {
+        var carte = el('section', 'ej-carte');
+        carte.appendChild(el('h2', null, 'Mes recherches de partenaire'));
+        donnees.recherches.forEach(function (r) {
+            var ligne = el('div', 'ej-inscription');
+            var tete = el('div', 'ej-inscription__tete');
+            tete.appendChild(el('strong', null, r.tournoi));
+            tete.appendChild(el('span', 'ej-statut ej-statut--attente', r.propositions + ' proposition' + (r.propositions > 1 ? 's' : '')));
+            ligne.appendChild(tete);
+            ligne.appendChild(el('p', 'ej-inscription__infos', dateLongue(r.date) + (r.message ? ' · « ' + r.message + ' »' : '')));
+            var actions = el('div', 'ej-actions');
+            var voir = el('a', 'btn btn--outline-dark', 'Voir la liste'); voir.href = 'tournois/partenaires/?t=' + r.tournoi_id;
+            actions.appendChild(voir);
+            actions.appendChild(bouton('Retirer ma recherche', 'lien', function () {
+                return supa.rpc('retirer_recherche', { p_jeton: jeton, p_recherche: r.id });
+            }));
+            ligne.appendChild(actions);
+            carte.appendChild(ligne);
+        });
+        carte.appendChild(el('p', 'ej-note', 'Votre recherche se ferme toute seule dès que vous êtes inscrit·e au tournoi.'));
+        return carte;
     }
 
     function blocHistorique() {

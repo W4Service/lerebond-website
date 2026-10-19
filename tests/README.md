@@ -13,6 +13,8 @@ cd tests && for f in test-*.js; do node "$f" || echo "ÉCHEC : $f"; done
   l'écran TV : ordre des étapes, remplissage progressif des poules, traçabilité.
 - `test-temps.js` — temps de repos réglementaire par format (1h30 / 1h / 30 min /
   15 min) et contrôle du repos écoulé.
+- `test-partenaires-licences.js` — recherche de partenaire (confidentialité, anti-abus,
+  fermeture à l'inscription), demandes de licence, initialisation unique de l'admin.
 - `test-resultats-poids.js` — résultats et podiums, poids FFT des non classés et des dames
   en tableau messieurs, alertes staff, choix des homonymes.
 - `test-inscriptions.js` — inscriptions en ligne : cuts et équivalences FFT (chapitre II),
