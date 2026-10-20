@@ -10,6 +10,10 @@
 --
 -- id_video : identifiant LiveXperience, ex. '408_3122_1626_20261015070004'.
 --            Stable dans le temps, c'est la clé du blocage.
+--
+-- Datée après 20261020_staff.sql : les règles d'accès ci-dessous appellent
+-- est_staff(), qui y est créée. Sur une base reconstruite de zéro, les
+-- migrations rejouent dans l'ordre des noms — d'où ce numéro.
 
 CREATE TABLE IF NOT EXISTS videos_bloquees (
     id_video    text PRIMARY KEY,

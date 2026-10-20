@@ -24,9 +24,9 @@
 <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png"/>
 <link rel="manifest" href="manifest.json"/>
 <link as="image" href="img/logo-8.avif" rel="preload" type="image/avif"/>
-<link href="css/bundle.min.css?v=58b6dd68" rel="stylesheet"/>
-<link href="css/dropdown.css?v=58b6dd68" rel="stylesheet"/>
-<link href="css/videos-galerie.css?v=58b6dd68" rel="stylesheet"/>
+<link href="css/bundle.min.css?v=76fd1358" rel="stylesheet"/>
+<link href="css/dropdown.css?v=76fd1358" rel="stylesheet"/>
+<link href="css/videos-galerie.css?v=76fd1358" rel="stylesheet"/>
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 <link rel="preconnect" href="https://wuilhome.le-rebond.com" crossorigin>
@@ -462,14 +462,14 @@
 </footer>
 
 <!-- Scripts -->
-<script defer src="js/main.min.js?v=58b6dd68"></script>
-<script src="js/resa-config.min.js?v=58b6dd68"></script>
-<script src="js/vendor/supabase.min.js?v=58b6dd68"></script>
-<script src="js/supabase-client.js?v=58b6dd68"></script>
-<script src="js/videos-source.js?v=58b6dd68"></script>
-<script src="js/videos-public.js?v=58b6dd68"></script>
+<script defer src="js/main.min.js?v=76fd1358"></script>
+<script src="js/resa-config.min.js?v=76fd1358"></script>
+<script src="js/vendor/supabase.min.js?v=76fd1358"></script>
+<script src="js/supabase-client.js?v=76fd1358"></script>
+<script src="js/videos-source.js?v=76fd1358"></script>
+<script src="js/videos-public.js?v=76fd1358"></script>
 <script>document.addEventListener("DOMContentLoaded",function(){if(window.VideosPublic)window.VideosPublic.init(".live-replays-iframe");});</script>
-<script src="js/resa-popup.min.js?v=58b6dd68"></script>
+<script src="js/resa-popup.min.js?v=76fd1358"></script>
 
 <div class="mobile-cta" role="region" aria-label="Réservation rapide">
 <div class="mobile-cta__actions">
@@ -517,6 +517,45 @@
   var REFRESH_MS = 30000;       // vérifie l'état des bornes toutes les 30s
   var FETCH_TIMEOUT_MS = 5000;  // 5s avant de considérer la borne injoignable
 
+  // Terrains dont la diffusion est coupée depuis l'administration (droit à
+  // l'image). Relu à chaque tick : couper un terrain prend effet en 30 s sur
+  // les pages déjà ouvertes, sans que le visiteur ait à recharger.
+  //
+  // Vaut null tant qu'on ne sait pas : dans ce cas on ne diffuse RIEN. Mieux
+  // vaut une page sans direct qu'un direct qu'on avait promis de couper.
+  var terrainsBloques = null;
+
+  function chargerBlocages() {
+    if (!window.LeRebondSupa) {
+      // Sans base, on ne peut pas savoir quoi couper. On ne diffuse pas.
+      console.error('[live] base indisponible : diffusion suspendue par précaution');
+      terrainsBloques = null;
+      return Promise.resolve();
+    }
+    return window.LeRebondSupa.from('terrains_bloques').select('terrain_id')
+      .then(function (res) {
+        if (res.error) {
+          console.error('[live] terrains coupés illisibles :', res.error);
+          terrainsBloques = null;
+          return;
+        }
+        var set = {};
+        (res.data || []).forEach(function (r) { set[r.terrain_id] = true; });
+        terrainsBloques = set;
+      })
+      .catch(function (err) {
+        console.error('[live] terrains coupés illisibles :', err);
+        terrainsBloques = null;
+      });
+  }
+
+  // Un terrain est diffusable seulement si on a pu lire la liste ET qu'il n'y
+  // figure pas. L'inconnu est traité comme un blocage, volontairement.
+  function estBloque(id) {
+    if (terrainsBloques === null) return true;
+    return !!terrainsBloques[id];
+  }
+
   // État courant : { ip: { status, html?, error? } }
   var state = {};
 
@@ -560,6 +599,11 @@
   }
 
   function checkTerrain(t) {
+    // Terrain coupé : on n'interroge même pas la borne. Inutile de récupérer
+    // une URL de flux qu'on refuse d'afficher, et ça évite de la laisser
+    // traîner dans l'état de la page.
+    if (estBloque(t.id)) return Promise.resolve({ status: 'bloque' });
+
     var url = 'https://' + t.host + '/live.asp';
     return fetchWithTimeout(url, FETCH_TIMEOUT_MS)
       .then(function(res) {
@@ -645,11 +689,14 @@
   var cardPlayers = {};  // id -> { player, hlsUrl, status }
 
   function buildCardDom(t, result) {
-    var liveOn = result.status === 'live';
+    var bloque = result.status === 'bloque';
+    // Un terrain coupé n'est jamais « live », quoi que dise la borne.
+    var liveOn = result.status === 'live' && !bloque;
     var err    = result.status === 'error';
 
     var badgeHtml;
-    if (liveOn)      badgeHtml = '<span class="live-badge on">En direct</span>';
+    if (bloque)      badgeHtml = '<span class="live-badge off">Non diffusé</span>';
+    else if (liveOn) badgeHtml = '<span class="live-badge on">En direct</span>';
     else if (err)    badgeHtml = '<span class="live-badge error">Injoignable</span>';
     else             badgeHtml = '<span class="live-badge off">Pas de match</span>';
 
@@ -684,6 +731,14 @@
         muted: true, autoplay: true, controls: false
       });
       cardPlayers[t.id] = { player: instance, hlsUrl: result.hlsUrl, status: 'live' };
+    } else if (bloque) {
+      playerWrap.innerHTML = ''
+        + '<div class="live-placeholder">'
+        + '<div class="icon">🚫</div>'
+        + '<div class="msg">Terrain non diffusé</div>'
+        + '<div class="sub">La diffusion de ce terrain est désactivée</div>'
+        + '</div>';
+      cardPlayers[t.id] = { player: null, status: 'bloque' };
     } else if (err) {
       playerWrap.innerHTML = ''
         + '<div class="live-placeholder">'
@@ -755,6 +810,9 @@
   var modalPlayerInstance = null;
 
   function openLiveModal(t) {
+    // Dernier verrou : même si une carte « live » traînait encore à l'écran
+    // au moment où le terrain vient d'être coupé, on n'ouvre pas le plein écran.
+    if (estBloque(t.id)) return;
     var st = state[t.id];
     if (!st || st.status !== 'live' || !st.hlsUrl) return;
 
@@ -804,9 +862,10 @@
   // ---------------------------------------------------------------------
   var consecutiveAllErrors = 0;
 
-  function updateStatusBar(live, off, err) {
+  function updateStatusBar(live, off, err, bloques) {
     var dot = document.getElementById('status-dot');
     var txt = document.getElementById('status-text');
+    bloques = bloques || 0;
 
     if (err === TERRAINS.length) {
       dot.classList.add('error');
@@ -818,14 +877,18 @@
     if (live > 0)  parts.push(live + ' match' + (live > 1 ? 's' : '') + ' en direct');
     if (off > 0)   parts.push(off  + ' terrain' + (off  > 1 ? 's libres' : ' libre'));
     if (err > 0)   parts.push(err  + ' injoignable' + (err > 1 ? 's' : ''));
+    if (bloques > 0) parts.push(bloques + ' non diffusé' + (bloques > 1 ? 's' : ''));
     txt.textContent = parts.join(' • ') || 'Aucun terrain';
   }
 
-  function updateReplaysBanner(live, err) {
+  function updateReplaysBanner(live, err, bloques) {
     var banner = document.getElementById('replays-banner');
     var wrap = document.getElementById('grid-wrap');
-    // Afficher les replays si aucun live actif (et qu'au moins une borne répond)
-    var showReplays = (live === 0) && (err < TERRAINS.length);
+    bloques = bloques || 0;
+    // Afficher les replays si aucun live actif (et qu'au moins une borne répond).
+    // Un terrain coupé n'est pas une borne en panne : si tous les terrains sont
+    // coupés, on propose les replays plutôt qu'une page muette.
+    var showReplays = (live === 0) && (err < TERRAINS.length - bloques || bloques > 0);
     banner.style.display = showReplays ? 'block' : 'none';
     wrap.classList.toggle('has-replays', showReplays);
   }
@@ -839,23 +902,29 @@
   var autoOpened = false;
 
   function tick() {
+    // La liste des terrains coupés est relue avant d'interroger les bornes :
+    // un terrain coupé pendant qu'un visiteur regarde la page cesse d'être
+    // diffusé au tick suivant, sans rechargement de sa part.
+    chargerBlocages().then(function () {
     Promise.all(TERRAINS.map(checkTerrain)).then(function(results) {
-      var live = 0, off = 0, err = 0;
+      var live = 0, off = 0, err = 0, bloques = 0;
       results.forEach(function(r, i) {
         state[TERRAINS[i].id] = r;
         if (r.status === 'live')  live++;
         else if (r.status === 'off') off++;
+        else if (r.status === 'bloque') bloques++;  // ni libre, ni en panne
         else err++;
       });
 
       // Si toutes les bornes sont en erreur plusieurs fois de suite,
-      // c'est probablement un pb de connexion ou tunnel.
-      if (err === TERRAINS.length) consecutiveAllErrors++;
+      // c'est probablement un pb de connexion ou tunnel. Les terrains coupés
+      // ne sont pas des erreurs : on les sort du décompte.
+      if (err > 0 && err === TERRAINS.length - bloques) consecutiveAllErrors++;
       else consecutiveAllErrors = 0;
 
       renderAll();
-      updateStatusBar(live, off, err);
-      updateReplaysBanner(live, err);
+      updateStatusBar(live, off, err, bloques);
+      updateReplaysBanner(live, err, bloques);
 
       // Ouverture auto de la modale du terrain demandé via ?terrain= (une seule fois)
       if (autoOpenTerrain && !autoOpened) {
@@ -866,6 +935,7 @@
           openLiveModal(target);
         }
       }
+    });
     });
   }
 

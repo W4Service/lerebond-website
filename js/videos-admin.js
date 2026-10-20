@@ -13,9 +13,19 @@
 (function (root) {
     'use strict';
 
+    // Les 4 bornes, telles que la page /videos/live/ les identifie. Les id
+    // doivent rester alignés sur son tableau TERRAINS : c'est la clé du blocage.
+    var TERRAINS_LIVE = [
+        { id: 'wuilhome', nom: 'Padel 1' },
+        { id: 'five',     nom: 'Five' },
+        { id: 'w4s',      nom: 'Padel 2' },
+        { id: 'wepe',     nom: 'Padel 3' }
+    ];
+
     var supa = null;
     var videos = [];        // ce que LiveXperience expose
     var bloquees = {};      // id_video -> ligne de videos_bloquees
+    var terrainsBloques = {};  // terrain_id -> ligne de terrains_bloques
     var filtreTerrain = '';
     var filtreDate = '';
     var chargement = false;
@@ -50,6 +60,16 @@
         chargement = true;
         erreurSource = null;
         render();
+
+        var resT = await supa.from('terrains_bloques').select('*');
+        if (resT.error) {
+            toast('Lecture des terrains coupés impossible : ' + resT.error.message, 'error');
+            console.error(resT.error);
+            terrainsBloques = {};
+        } else {
+            terrainsBloques = {};
+            (resT.data || []).forEach(function (t) { terrainsBloques[t.terrain_id] = t; });
+        }
 
         var resB = await supa.from('videos_bloquees').select('*');
         if (resB.error) {
@@ -109,6 +129,43 @@
         toast('Vidéo coupée du site. Elle reste en ligne chez LiveXperience.', 'ok');
     }
 
+    // ===== Diffusion en direct, terrain par terrain =====
+
+    async function couperTerrain(t) {
+        var motif = prompt(
+            'Couper la diffusion en direct du terrain « ' + t.nom +' ».\n\n'
+            + 'Le direct disparaît du site dans les 30 secondes, même pour les\n'
+            + 'visiteurs ayant déjà la page ouverte. La caméra de la borne continue\n'
+            + 'de filmer de son côté.\n\n'
+            + 'Motif (visible publiquement — ne pas écrire le nom du client) :',
+            'Droit à l\'image'
+        );
+        if (motif === null) return;
+
+        var res = await supa.from('terrains_bloques')
+            .upsert({ terrain_id: t.id, motif: motif || null }).select().single();
+        if (res.error) {
+            toast('Coupure impossible : ' + res.error.message, 'error');
+            console.error(res.error);
+            return;
+        }
+        terrainsBloques[t.id] = res.data;
+        render();
+        toast('Diffusion de ' + t.nom + ' coupée.', 'ok');
+    }
+
+    async function rouvrirTerrain(t) {
+        var res = await supa.from('terrains_bloques').delete().eq('terrain_id', t.id);
+        if (res.error) {
+            toast('Réouverture impossible : ' + res.error.message, 'error');
+            console.error(res.error);
+            return;
+        }
+        delete terrainsBloques[t.id];
+        render();
+        toast('Diffusion de ' + t.nom + ' rétablie.', 'ok');
+    }
+
     async function debloquer(id) {
         var res = await supa.from('videos_bloquees').delete().eq('id_video', id);
         if (res.error) {
@@ -134,6 +191,9 @@
             + 'et accessibles par lien direct. Pour une suppression définitive, il faut la '
             + 'demander à LiveXperience.'));
 
+        root_.appendChild(sectionTerrains());
+
+        root_.appendChild(el('h3', { class: 'videos-titre' }, '📼 Replays'));
         root_.appendChild(barreFiltres());
 
         if (chargement) {
@@ -181,6 +241,49 @@
         var grille = el('div', { class: 'videos-grille' });
         visibles.forEach(function (v) { grille.appendChild(carteVideo(v)); });
         root_.appendChild(grille);
+    }
+
+    // Diffusion en direct : un interrupteur par terrain. Séparé des replays,
+    // parce que ce n'est pas le même mécanisme — un direct n'a pas
+    // d'identifiant de vidéo, on coupe le terrain entier.
+    function sectionTerrains() {
+        var box = el('div', { class: 'videos-terrains' });
+        box.appendChild(el('h3', { class: 'videos-titre' }, '📡 Diffusion en direct'));
+        box.appendChild(el('p', { class: 'videos-terrains__aide' },
+            'Couper un terrain retire son direct de la page « En direct » dans les '
+            + '30 secondes, y compris pour les visiteurs déjà sur la page. La caméra '
+            + 'de la borne continue de filmer : seule la diffusion sur le site est '
+            + 'arrêtée.'));
+
+        var liste = el('div', { class: 'videos-terrains__liste' });
+        TERRAINS_LIVE.forEach(function (t) {
+            var coupe = !!terrainsBloques[t.id];
+            var ligne = el('div', {
+                class: 'terrain-ligne' + (coupe ? ' terrain-ligne--coupe' : '')
+            });
+
+            var gauche = el('div', { class: 'terrain-ligne__info' });
+            gauche.appendChild(el('span', { class: 'terrain-ligne__nom' }, t.nom));
+            gauche.appendChild(el('span', {
+                class: 'terrain-ligne__etat' + (coupe ? ' terrain-ligne__etat--coupe' : '')
+            }, coupe ? '🚫 non diffusé' : '● diffusé'));
+            if (coupe && terrainsBloques[t.id].motif) {
+                gauche.appendChild(el('span', { class: 'terrain-ligne__motif' },
+                    terrainsBloques[t.id].motif));
+            }
+            ligne.appendChild(gauche);
+
+            ligne.appendChild(el('button', {
+                type: 'button',
+                class: 'btn-live btn-live--small '
+                     + (coupe ? 'btn-live--outline' : 'btn-live--danger'),
+                onclick: function () { coupe ? rouvrirTerrain(t) : couperTerrain(t); }
+            }, coupe ? '↩ Rétablir' : '⛔ Couper le direct'));
+
+            liste.appendChild(ligne);
+        });
+        box.appendChild(liste);
+        return box;
     }
 
     function barreFiltres() {

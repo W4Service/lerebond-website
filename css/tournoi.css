@@ -2423,3 +2423,68 @@ select.tournoi-input option {
 }
 
 .video-carte__actions .btn-live { text-decoration: none; }
+
+/* ===== Diffusion en direct, terrain par terrain (onglet Vidéos) ===== */
+.videos-terrains {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid #ececec;
+}
+
+.videos-terrains__aide {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #777;
+}
+
+.videos-terrains__liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.5rem;
+}
+
+.terrain-ligne {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+}
+
+.terrain-ligne--coupe {
+    background: #fdf5f5;
+    border-color: #e0c4c4;
+}
+
+.terrain-ligne__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.terrain-ligne__nom {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+}
+
+.terrain-ligne__etat {
+    font-size: 0.75rem;
+    color: #2e7d32;
+}
+
+.terrain-ligne__etat--coupe { color: #a03030; }
+
+.terrain-ligne__motif {
+    font-size: 0.72rem;
+    color: #a03030;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

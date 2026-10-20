@@ -9,7 +9,8 @@ function check(n, c) { console.log((c ? '  ok   ' : '  FAIL ') + n); if (!c) ko+
 var source = fs.readFileSync('../js/videos-source.js', 'utf8');
 var admin = fs.readFileSync('../js/videos-admin.js', 'utf8');
 var pub = fs.readFileSync('../js/videos-public.js', 'utf8');
-var sql = fs.readFileSync('../supabase/migrations/20261018_videos_bloquees.sql', 'utf8');
+var sql = fs.readFileSync('../supabase/migrations/20261025_videos_bloquees.sql', 'utf8');
+var sqlT = fs.readFileSync('../supabase/migrations/20261025_terrains_bloques.sql', 'utf8');
 var pageAdmin = fs.readFileSync('../live/admin/index.html', 'utf8');
 var pageReplays = fs.readFileSync('../videos/replays/index.html', 'utf8');
 var pageLive = fs.readFileSync('../videos/live/index.html', 'utf8');
@@ -90,6 +91,46 @@ check('la carte « bloquée » n\'inclut pas de vignette',
       /function carteBloquee\(b\) \{[\s\S]*?\n    \}/.test(admin)
       && !/carteBloquee[\s\S]*?video-carte__vignette[\s\S]*?\n    \}/.test(
             admin.slice(admin.indexOf('function carteBloquee'))));
+
+console.log('\n=== Couper la diffusion en direct d\'un terrain ===');
+// Un direct n'a pas d'identifiant de video : on coupe le terrain entier.
+check('la table terrains_bloques existe', /CREATE TABLE IF NOT EXISTS terrains_bloques/.test(sqlT));
+check('la cle est l\'id de terrain utilise par la page live',
+      /terrain_id\s+text PRIMARY KEY/.test(sqlT));
+check('lecture publique, ecriture staff',
+      /FOR SELECT TO anon, authenticated USING \(true\)/.test(sqlT) && /est_staff\(\)/.test(sqlT));
+check('les 4 bornes sont listees cote admin',
+      /'wuilhome'/.test(admin) && /'five'/.test(admin)
+      && /'w4s'/.test(admin) && /'wepe'/.test(admin));
+check('couper ecrit dans terrains_bloques',
+      /from\('terrains_bloques'\)\s*\n?\s*\.upsert/.test(admin));
+check('retablir supprime la ligne',
+      /from\('terrains_bloques'\)\.delete\(\)\.eq\('terrain_id'/.test(admin));
+check('un interrupteur par terrain est rendu', /function sectionTerrains/.test(admin));
+check('l\'admin dit que la camera continue de filmer',
+      /continue\s*\n?\s*(\+ ')?de filmer|continue de filmer/.test(admin));
+
+console.log('\n=== Un terrain coupe ne diffuse rien ===');
+check('la page live lit les terrains coupes',
+      /from\('terrains_bloques'\)/.test(pageLive));
+check('la borne n\'est meme pas interrogee si le terrain est coupe',
+      /if \(estBloque\(t\.id\)\) return Promise\.resolve\(\{ status: 'bloque' \}\)/.test(pageLive));
+// Le point sensible : si on ne sait pas quels terrains sont coupes, on ne
+// diffuse rien, plutot que de diffuser un terrain censé etre coupé.
+check('liste inconnue = tout est considere coupe',
+      /if \(terrainsBloques === null\) return true;/.test(pageLive));
+check('un terrain coupe n\'est jamais traite comme live',
+      /var liveOn = result\.status === 'live' && !bloque;/.test(pageLive));
+check('le plein ecran est verrouille aussi',
+      /if \(estBloque\(t\.id\)\) return;/.test(pageLive));
+check('la coupure prend effet sans rechargement (relu a chaque tick)',
+      /chargerBlocages\(\)\.then\(function \(\) \{/.test(pageLive));
+check('la carte annonce « non diffuse »',
+      /Terrain non diffus/.test(pageLive) && /live-badge off">Non diffus/.test(pageLive));
+check('un terrain coupe n\'est pas compte comme une borne en panne',
+      /else if \(r\.status === 'bloque'\) bloques\+\+/.test(pageLive));
+check('les replays restent proposes si tous les terrains sont coupes',
+      /bloques > 0\)/.test(pageLive));
 
 console.log(ko === 0 ? '\nTous les tests passent.' : '\n' + ko + ' test(s) en échec.');
 process.exit(ko === 0 ? 0 : 1);
