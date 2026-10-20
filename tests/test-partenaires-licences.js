@@ -32,5 +32,15 @@ check('pas de rechargement moins de 3 s après le précédent', /Date\.now\(\) -
 var planning = fs.readFileSync('../js/tournoi-planning.js', 'utf8');
 check('« Lancer » force la relecture du tournoi', /window\.TournoiAdmin\.reload\(\)/.test(planning));
 
+console.log('\n=== Page Événements : le calendrier est la source des tournois ===');
+var ev = fs.readFileSync('../js/events-renderer.js', 'utf8');
+check('les tournois planifiés et publiés s\'affichent comme événements', /from\('tournois_calendrier'\)/.test(ev) && /eq\('status', 'planifie'\)/.test(ev));
+check('un tournoi aussi saisi dans events.json le même jour n\'apparaît qu\'une fois',
+      /!\(e\.category === 'padel' && \/\^tournoi\/\.test\(e\.type \|\| ''\) && datesTournois\[e\.date\]\)/.test(ev));
+check('l\'inscription s\'ouvre sur le site, pas dans un nouvel onglet', /ev\.interne && ev\.registration_link/.test(ev));
+var pageEv = fs.readFileSync('../evenements/index.html', 'utf8');
+check('la page charge le client Supabase avant le rendu',
+      pageEv.indexOf('js/supabase-client.js') > 0 && pageEv.indexOf('js/supabase-client.js') < pageEv.indexOf('js/events-renderer.js'));
+
 console.log(ko ? '\n' + ko + ' échec(s)' : '\nTout est vert.');
 process.exit(ko ? 1 : 0);
