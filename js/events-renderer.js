@@ -65,6 +65,9 @@
     }
 
     function buildRegistrationButton(ev) {
+        if (ev.interne && ev.registration_link) {
+            return '<a class="btn btn--primary" href="' + escapeHtml(ev.registration_link) + '">S\'inscrire</a>';
+        }
         if (ev.registration_link && ev.registration_link !== '#' && ev.registration_link !== '') {
             return '<a class="btn btn--primary" href="' + escapeHtml(ev.registration_link) + '" target="_blank" rel="noopener">S\'inscrire</a>';
         }
@@ -181,6 +184,45 @@
         }
     }
 
+    // Tournois planifiés dans l'admin (onglet Calendrier) : source unique des tournois.
+    // Ils s'affichent ici comme des événements, avec l'inscription en ligne.
+    function chargerTournois() {
+        var supa = window.LeRebondSupa;
+        if (!supa) return Promise.resolve([]);
+        var auj = new Date(); auj.setHours(0, 0, 0, 0);
+        var iso = auj.getFullYear() + '-' + String(auj.getMonth() + 1).padStart(2, '0') + '-' + String(auj.getDate()).padStart(2, '0');
+        return supa.from('tournois_calendrier').select('*').gte('date', iso).eq('status', 'planifie')
+            .then(function (res) { return res.error ? [] : (res.data || []).map(tournoiVersEvenement); })
+            .catch(function () { return []; });
+    }
+
+    function heure(h) { if (!h) return ''; var p = String(h).split(':'); return p[0] + 'h' + p[1]; }
+
+    function tournoiVersEvenement(t) {
+        var reste = t.nb_equipes_max ? Math.max(0, t.nb_equipes_max - t.inscrits) : null;
+        var genres = { messieurs: 'Messieurs', dames: 'Dames', mixte: 'Mixte' };
+        return {
+            id: 'tournoi-' + t.id,
+            title: t.nom,
+            date: t.date,
+            time_start: heure(t.heure_debut) || '—',
+            time_end: heure(t.heure_fin) || '—',
+            category: 'padel',
+            type: t.categorie === 'loisir' || !t.homologue ? 'tournoi-loisir' : 'tournoi',
+            description: t.description || ((t.homologue ? 'Tournoi homologué FFT ' + (t.categorie || '') : 'Tournoi loisir')
+                + (t.genre ? ' · ' + genres[t.genre] : '') + '. Inscription en ligne, liste d\'attente automatique.'),
+            price: t.prix_par_joueur != null ? Number(t.prix_par_joueur) + '€/joueur' : 'Tarif à venir',
+            max_participants: t.nb_equipes_max ? t.nb_equipes_max + ' paires max' : 'Paires',
+            image: 'img/padel-mains-vitre.webp',
+            registration_link: t.inscription_ouverte ? 'tournois/inscription/?t=' + t.id : (t.lien_inscription || ''),
+            featured: false,
+            status_text: t.complet || t.liste_attente ? 'Complet — liste d\'attente'
+                : (reste != null ? reste + ' place' + (reste > 1 ? 's' : '') + ' disponible' + (reste > 1 ? 's' : '') : 'Inscriptions ouvertes'),
+            coming_soon: false,
+            interne: true
+        };
+    }
+
     function init() {
         var grid = document.querySelector('.events-grid');
         if (!grid) return;
@@ -191,18 +233,27 @@
         // Determine base path (works from /evenements/ or root)
         var basePath = window.location.pathname.indexOf('/evenements') !== -1 ? '../' : '';
 
-        fetch(basePath + 'data/events.json')
+        var json = fetch(basePath + 'data/events.json')
             .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (data.events && data.events.length) {
-                    renderEvents(data.events);
-                } else {
-                    grid.innerHTML = '<p class="events-empty">Aucun événement pour le moment. Restez connectés !</p>';
-                }
-            })
-            .catch(function () {
+            .then(function (data) { return data.events || []; })
+            .catch(function () { return null; });
+
+        Promise.all([json, chargerTournois()]).then(function (r) {
+            var evenements = r[0], tournois = r[1];
+            if (evenements === null && !tournois.length) {
                 grid.innerHTML = '<p class="events-empty">Impossible de charger les événements.</p>';
-            });
+                return;
+            }
+            // Un tournoi padel saisi aussi dans events.json le même jour : on garde la version
+            // du calendrier (inscription en ligne, places à jour).
+            var datesTournois = {};
+            tournois.forEach(function (t) { datesTournois[t.date] = true; });
+            var liste = (evenements || []).filter(function (e) {
+                return !(e.category === 'padel' && /^tournoi/.test(e.type || '') && datesTournois[e.date]);
+            }).concat(tournois);
+            if (liste.length) renderEvents(liste);
+            else grid.innerHTML = '<p class="events-empty">Aucun événement pour le moment. Restez connectés !</p>';
+        });
     }
 
     // Run on DOM ready
