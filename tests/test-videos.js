@@ -11,7 +11,7 @@ var admin = fs.readFileSync('../js/videos-admin.js', 'utf8');
 var pub = fs.readFileSync('../js/videos-public.js', 'utf8');
 var sql = fs.readFileSync('../supabase/migrations/20261025_videos_bloquees.sql', 'utf8');
 var sqlT = fs.readFileSync('../supabase/migrations/20261025_terrains_bloques.sql', 'utf8');
-var pageAdmin = fs.readFileSync('../live/admin/index.html', 'utf8');
+var pageAdmin = fs.readFileSync('../admin/index.html', 'utf8');
 var pageReplays = fs.readFileSync('../videos/replays/index.html', 'utf8');
 var pageLive = fs.readFileSync('../videos/live/index.html', 'utf8');
 
