@@ -34,7 +34,7 @@ check('il se ferme quoi qu\'il arrive (finally)',
       /} finally \{\s*\n\s*suivi\.fermer\(\);/.test(src));
 
 console.log('\n=== Une erreur est montrée à l\'utilisateur ===');
-var k = src.indexOf("} catch (err) {", src.indexOf('async function lancerTirage'));
+var k = src.indexOf("} catch (err) {", src.indexOf('async function lancerTirage(format, methode)'));
 var blocC = src.slice(k, k + 600);
 check('l\'échec déclenche une alerte lisible', /alert\('Le tirage a échoué/.test(blocC));
 check('il précise que rien n\'a été réparti', blocC.indexOf('pas été réparties') >= 0);

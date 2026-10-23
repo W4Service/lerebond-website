@@ -92,6 +92,7 @@
             if (etat.total) {
                 box.appendChild(el('div', 'tirage-tv-sous', etat.total + ' paires à placer'));
             }
+            if (etat.tableau) box.appendChild(this.grilleTableau(etat.tableau));
             c.appendChild(box);
             return;
         }
@@ -99,6 +100,28 @@
         if (etat.phase === 'fini') {
             box.appendChild(el('div', 'tirage-tv-attente', 'Tirage terminé'));
             if (etat.poules) box.appendChild(this.grilleePoules(etat.poules));
+            if (etat.tableau) box.appendChild(this.grilleTableau(etat.tableau));
+            c.appendChild(box);
+            return;
+        }
+
+        // Tirage d'un tableau à élimination directe : on montre le tableau se
+        // remplir case par case, plutôt que la roue des poules. Les phases
+        // viennent de lancerTirageTableau (placement d'office, puis les tirages).
+        if (etat.tableau) {
+            if (etat.total) {
+                box.appendChild(el('div', 'tirage-tv-progression',
+                    'Paire ' + (etat.etape || 0) + ' / ' + etat.total));
+            }
+            if (etat.titre) box.appendChild(el('div', 'tirage-tv-sous', etat.titre));
+            var resT = el('div', 'tirage-tv-resultat');
+            if (etat.equipe) resT.appendChild(el('div', 'tirage-tv-equipe', etat.equipe));
+            if (etat.commentaire) {
+                resT.appendChild(el('div', 'tirage-tv-fleche', '↓'));
+                resT.appendChild(el('div', 'tirage-tv-motif', etat.commentaire));
+            }
+            box.appendChild(resT);
+            box.appendChild(this.grilleTableau(etat.tableau));
             c.appendChild(box);
             return;
         }
@@ -142,6 +165,31 @@
     };
 
     // Grille des poules en cours de constitution.
+    // Tableau en cours de tirage, groupé par quart de finale. Les cases encore
+    // vides restent visibles : le public voit ce qui reste à tirer, ce qui est
+    // tout l'intérêt d'un tirage « devant témoins ».
+    TirageTV.prototype.grilleTableau = function (cases) {
+        var grille = el('div', 'tirage-tv-poules');
+        for (var q = 1; q <= 4; q++) {
+            var dedans = cases.filter(function (c) { return c.quart === q; });
+            if (!dedans.length) continue;
+            var carte = el('div', 'tirage-tv-poule-carte');
+            carte.appendChild(el('div', 'tirage-tv-poule-nom', 'Quart ' + q));
+            var liste = el('div', 'tirage-tv-poule-liste');
+            for (var i = 0; i < dedans.length; i++) {
+                var cs = dedans[i];
+                liste.appendChild(el('div',
+                    'tirage-tv-poule-eq'
+                    + (cs.nouveau ? ' tirage-tv-poule-eq--neuf' : '')
+                    + (cs.nom ? '' : ' tirage-tv-poule-eq--vide'),
+                    cs.nom || '—'));
+            }
+            carte.appendChild(liste);
+            grille.appendChild(carte);
+        }
+        return grille;
+    };
+
     TirageTV.prototype.grilleePoules = function (poules) {
         var grille = el('div', 'tirage-tv-poules');
         for (var i = 0; i < poules.length; i++) {

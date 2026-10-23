@@ -238,10 +238,114 @@
         return true;
     }
 
+    /**
+     * Prépare le tirage d'un tableau à élimination directe (sans poules).
+     *
+     * Guide de la compétition padel, III.4 — Constitution des tableaux :
+     *
+     *   « Seules les TS 1 et 2 sont placées de part et d'autre du Tableau
+     *     (TS 1 en bas du tableau). Toutes les autres paires sont placées par
+     *     tirage au sort.
+     *     - Tirage au sort pour placement des TS 3 et 4
+     *     - Tirage au sort pour placement des TS 5 à 8 (ou groupe 5 à 8 si
+     *       uniquement 4 TS) »
+     *
+     * D'où trois temps, et non un tirage unique : TS1/TS2 placées d'office,
+     * puis un tirage pour TS3/TS4, puis un tirage pour le reste. Les deux
+     * tirages sont distincts parce qu'ils ne portent pas sur les mêmes places :
+     * TS3 et TS4 vont une par moitié libre, le groupe suivant comble le reste.
+     *
+     * Les positions sont numérotées de 0 à N-1 de haut en bas du tableau. Le
+     * quart 1 est {0,1}, le quart 2 {2,3}, etc. « TS 1 en bas » : on lui donne
+     * donc la dernière position, et TS2 la première — ils ne peuvent se
+     * rencontrer qu'en finale.
+     *
+     * @param {Object} opts
+     *   - equipes : [{id, nom}] triées de la plus forte à la plus faible
+     *   - nbTS    : têtes de série placées (2 ou 4 ; 0 = tirage intégral)
+     *   - seed    : graine du tirage
+     * @returns {{seed, etapes:[], positions:{equipeId: index}}}
+     *   etapes : la séquence à jouer à l'écran, dans l'ordre
+     */
+    function preparerTirageTableau(opts) {
+        var equipes = (opts.equipes || []).slice();
+        var taille = equipes.length;
+        var nbTS = opts.nbTS || 0;
+        var seed = (opts.seed == null ? 1 : opts.seed) >>> 0;
+        var rng = makeRng(seed);
+
+        var positions = {};
+        var etapes = [];
+        var libres = [];
+        for (var i = 0; i < taille; i++) libres.push(i);
+
+        function occuper(equipe, pos, phase, commentaire) {
+            positions[equipe.id] = pos;
+            libres = libres.filter(function (p) { return p !== pos; });
+            etapes.push({
+                phase: phase, equipe: equipe.id, nom: equipe.nom,
+                position: pos, quart: Math.floor(pos / 2) + 1,
+                commentaire: commentaire
+            });
+        }
+
+        // --- 1. TS1 et TS2 : placement d'office, aux deux extrémités.
+        if (nbTS >= 2 && taille >= 2) {
+            occuper(equipes[0], taille - 1, 'ts_office', 'TS 1 — bas du tableau (placement d\'office)');
+            occuper(equipes[1], 0, 'ts_office', 'TS 2 — haut du tableau (placement d\'office)');
+        }
+
+        // --- 2. TS3 et TS4 : tirage au sort, une par moitié encore sans TS.
+        // Elles ne doivent pouvoir croiser TS1/TS2 qu'en demi-finale, donc une
+        // dans la moitié haute, une dans la moitié basse — le sort décidant
+        // laquelle va où.
+        if (nbTS >= 4 && taille >= 4) {
+            var milieu = taille / 2;
+            // Places candidates : une par moitié, à l'extrémité intérieure du
+            // quart encore vide (tableau standard : quart 2 et quart 3).
+            var candidates = [milieu - 1, milieu];
+            var ordreTS34 = melanger([equipes[2], equipes[3]], rng);
+            var placesTS34 = melanger(candidates, rng);
+            for (var k = 0; k < 2; k++) {
+                occuper(ordreTS34[k], placesTS34[k], 'ts_tirage',
+                        'TS ' + (3 + k) + ' — tirée au sort (moitié '
+                        + (placesTS34[k] < milieu ? 'haute' : 'basse') + ')');
+            }
+        }
+
+        // --- 3. Le reste : tirage au sort intégral sur les places libres.
+        var restantes = equipes.filter(function (e) { return positions[e.id] == null; });
+        var tirees = melanger(restantes, rng);
+        var placesTirees = melanger(libres.slice(), rng);
+        for (var j = 0; j < tirees.length; j++) {
+            occuper(tirees[j], placesTirees[j], 'tirage',
+                    'tirée au sort — quart ' + (Math.floor(placesTirees[j] / 2) + 1));
+        }
+
+        return { seed: seed, etapes: etapes, positions: positions };
+    }
+
+    /**
+     * Rejoue un tirage de tableau et vérifie qu'il redonne bien les positions
+     * annoncées. Même usage que verifierTirage : pouvoir prouver, graine en
+     * main, qu'un tableau contesté n'a pas été forcé.
+     */
+    function verifierTirageTableau(opts, positionsAttendues) {
+        var rejoue = preparerTirageTableau(opts);
+        var ids = Object.keys(positionsAttendues);
+        if (ids.length !== Object.keys(rejoue.positions).length) return false;
+        for (var i = 0; i < ids.length; i++) {
+            if (rejoue.positions[ids[i]] !== positionsAttendues[ids[i]]) return false;
+        }
+        return true;
+    }
+
     var api = {
         preparerTirage: preparerTirage,
+        preparerTirageTableau: preparerTirageTableau,
         chapeauxParRang: chapeauxParRang,
         verifierTirage: verifierTirage,
+        verifierTirageTableau: verifierTirageTableau,
         melanger: melanger,
         makeRng: makeRng
     };

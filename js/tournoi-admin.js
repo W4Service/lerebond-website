@@ -1108,6 +1108,20 @@
                     finale: genererPhaseFinaleMaison3x4Tri
                 },
                 {
+                    id: 'tableau_8',
+                    nom: '8 équipes · tableau direct (quarts → finale)',
+                    detail: 'Quarts, demies, finale et petite finale (places 1-4). Les 4 '
+                          + 'perdants de quart jouent un tableau de consolation pour les '
+                          + 'places 5-8. 12 matchs, 3 par équipe, classement complet de 1 à 8. '
+                          + 'TS 1 et 2 placées d\'office aux deux extrémités, TS 3 et 4 tirées '
+                          + 'au sort, puis les 4 autres équipes.',
+                    homologable: true,
+                    requis: '8 équipes, sans poules',
+                    compo: { poules: [], horsPoule: 8 },
+                    applicable: isConfigTableau8,
+                    squelette: function () { return genererTableau8(null); }
+                },
+                {
                     id: 'maison_2p4',
                     nom: '2 poules de 4 · deux tableaux complets',
                     detail: 'Tableau A (places 1-4) avec les 1ers et 2es, tableau B (5-8) '
@@ -1294,6 +1308,133 @@
                 if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
             }
         };
+    }
+
+    // Déroule le tirage d'un tableau à élimination directe sur l'écran TV, puis
+    // crée les quarts. Séparé de lancerTirage() : celui-ci place des équipes
+    // dans des poules, ici on place des positions dans un tableau — les deux
+    // n'ont ni les mêmes étapes, ni le même affichage, ni la même écriture.
+    //
+    // Guide FFT III.4 : TS 1 et 2 d'office de part et d'autre du tableau,
+    // puis tirage de TS 3 et 4, puis tirage du groupe suivant. Le déroulé
+    // public suit ces trois temps, pour que le tirage soit vérifiable à l'œil.
+    async function lancerTirageTableau(format) {
+        if (guardReadOnly()) return;
+        if (tirageEnCours) { showToast('Un tirage est déjà en cours.', 'error'); return; }
+        if (!(await verifierColonnesTirage())) return;
+
+        if (matchs.some(function (m) { return m.phase === 'finale'; })) {
+            showToast('Le tableau existe déjà. Supprime-le avant de retirer au sort.', 'error');
+            return;
+        }
+
+        var homologue = !!(currentTournoi && currentTournoi.homologue);
+        // En tournoi homologué, 4 TS pour un tableau de 8 (III.4). En loisir,
+        // aucune TS imposée : tirage intégral, plus ouvert.
+        var nbTS = homologue ? 4 : 0;
+
+        var tries = trierParForce(equipes);
+        var seed = Date.now() & 0x7fffffff;
+        var plan = TournoiTirage.preparerTirageTableau({
+            equipes: tries.map(function (e) { return { id: e.id, nom: equipeAffichage(e) }; }),
+            nbTS: nbTS,
+            seed: seed
+        });
+
+        if (!confirm('Lancer le tirage au sort du tableau ?\n\n'
+            + 'Format : ' + format.nom + '\n'
+            + (nbTS
+                ? 'TS 1 et 2 placées d\'office aux deux extrémités du tableau,\n'
+                  + 'puis tirage de TS 3 et 4, puis tirage des 4 autres équipes\n'
+                  + '(règle FFT III.4, tournoi homologué)\n'
+                : 'Tournoi loisir : aucune tête de série, les 8 équipes sont tirées\n')
+            + '\nLe tirage s\'affichera sur l\'écran TV.'
+            + (homologue
+                ? '\nUne fois le tableau affiché, il ne devra plus être modifié.'
+                : ''))) return;
+
+        tirageEnCours = true;
+        var suivi = panneauTirage();
+        var placees = {};   // position -> {nom}
+
+        function instantaneTableau(dernier) {
+            var cases = [];
+            for (var i = 0; i < 8; i++) {
+                cases.push({
+                    position: i,
+                    quart: Math.floor(i / 2) + 1,
+                    nom: placees[i] ? placees[i].nom : null,
+                    nouveau: dernier === i
+                });
+            }
+            return cases;
+        }
+
+        var libelle = {
+            ts_office: 'Placement d\'office des têtes de série 1 et 2',
+            ts_tirage: 'Tirage au sort des têtes de série 3 et 4',
+            tirage: 'Tirage au sort des autres équipes'
+        };
+
+        try {
+            suivi.maj('Annonce du tirage sur l\'écran TV…', 0, plan.etapes.length);
+            await publierEtatTirage({ phase: 'attente', total: plan.etapes.length, tableau: instantaneTableau(null) });
+            await pause(2500);
+
+            for (var i = 0; i < plan.etapes.length; i++) {
+                var et = plan.etapes[i];
+                placees[et.position] = { nom: et.nom };
+
+                suivi.maj(libelle[et.phase] || 'Tirage', i + 1, plan.etapes.length,
+                          et.nom + ' → ' + et.commentaire);
+                await publierEtatTirage({
+                    phase: et.phase,
+                    etape: i + 1, total: plan.etapes.length,
+                    titre: libelle[et.phase] || 'Tirage du tableau',
+                    equipe: et.nom,
+                    commentaire: et.commentaire,
+                    tableau: instantaneTableau(et.position)
+                });
+                // Un placement d'office n'a pas de suspense : on passe plus vite.
+                await pause(et.phase === 'ts_office' ? 1400 : 2400);
+            }
+
+            suivi.maj('Création du tableau…', plan.etapes.length, plan.etapes.length);
+
+            // Trace du tirage : graine + ordre de sortie, pour pouvoir le rejouer
+            // et prouver qu'il n'a pas été forcé (chapitre I : tableau affiché
+            // non modifiable).
+            await supa.from('tournois').update({
+                tirage_seed: seed,
+                tirage_at: new Date().toISOString(),
+                tirage_ordre: plan.etapes.map(function (e) {
+                    return { equipe_id: e.equipe, nom: e.nom, position: e.position, type: e.phase };
+                }),
+                updated_at: new Date().toISOString()
+            }).eq('id', currentTournoi.id);
+
+            // Du haut (position 0) vers le bas (position 7) du tableau.
+            var ordre8 = new Array(8);
+            Object.keys(plan.positions).forEach(function (id) {
+                ordre8[plan.positions[id]] = id;
+            });
+            await genererTableau8(ordre8);
+
+            await publierEtatTirage({ phase: 'fini', tableau: instantaneTableau(null) });
+            await pause(6000);
+            await publierEtatTirage(null);
+
+            await loadDetails();
+            render();
+            showToast('Tirage terminé, tableau créé (graine ' + seed + ')', 'ok');
+        } catch (err) {
+            console.error('[tirage tableau]', err);
+            showToast('Tirage interrompu : ' + (err.message || err), 'error');
+            await publierEtatTirage(null).catch(function () {});
+        } finally {
+            tirageEnCours = false;
+            suivi.fermer();
+        }
     }
 
     // Déroule le tirage, étape par étape, sur l'écran TV.
@@ -1548,6 +1689,22 @@
             if (!confirm('Des matchs existent déjà et seront supprimés par la recomposition.\n\nContinuer ?')) return;
             await supa.from('matchs').delete().eq('tournoi_id', currentTournoi.id);
             matchs = [];
+        }
+
+        // Format sans poules (tableau direct) : le tirage place des positions
+        // dans un tableau, pas des équipes dans des poules. On détache les
+        // équipes d'éventuelles poules d'un format précédent, on supprime ces
+        // poules, puis on déroule le tirage du tableau.
+        if (format.compo.poules.length === 0) {
+            for (var ip = poules.length - 1; ip >= 0; ip--) {
+                var pidT = poules[ip].id;
+                await supa.from('equipes').update({ poule_id: null }).eq('poule_id', pidT);
+                equipes.forEach(function (e) { if (e.poule_id === pidT) e.poule_id = null; });
+                await supa.from('poules').delete().eq('id', pidT);
+            }
+            poules = [];
+            await lancerTirageTableau(format);
+            return;
         }
 
         // Tirage au sort public, ou composition directe.
@@ -2038,6 +2195,64 @@
     // Tableau A (places 1-4) = bracket 'principal' avec 1ers et 2es des poules.
     // Tableau B (places 5-8) = bracket 'tableau_b' avec 3es et 4es des poules.
     // Pour chaque tableau : demi 1 (rang 1/2 P1 vs rang 1/2 P2 croisés) puis finale + 3/4 générés par tour suivant.
+    // Tableau direct de 8 équipes : crée les 4 quarts à partir du tirage du
+    // tableau. Les demies, la finale, la petite finale et le tableau de
+    // consolation sont créés ensuite par genererTourSuivant(), au fur et à
+    // mesure des résultats — on ne peut pas les écrire d'avance, les liens
+    // gagnant/perdant entre matchs de phase finale n'existant pas en base.
+    //
+    // @param {Array} ordreTirage  ids des équipes, de la position 0 (haut du
+    //                             tableau) à la position 7 (bas). Si absent,
+    //                             on retombe sur l'ordre de force, ce qui donne
+    //                             un tableau valide mais non tiré au sort.
+    async function genererTableau8(ordreTirage) {
+        if (equipes.length !== 8) {
+            showToast('Ce format demande exactement 8 équipes.', 'error');
+            return;
+        }
+
+        var ordre8 = ordreTirage && ordreTirage.length === 8
+            ? ordreTirage
+            : trierParForce(equipes).map(function (e) { return e.id; });
+
+        // Garde-fou : un id inconnu ou un doublon donnerait un tableau faux et
+        // silencieusement injouable. Mieux vaut refuser bruyamment.
+        var connus = {};
+        equipes.forEach(function (e) { connus[e.id] = true; });
+        var vus = {};
+        for (var v = 0; v < ordre8.length; v++) {
+            if (!connus[ordre8[v]] || vus[ordre8[v]]) {
+                showToast('Tirage incohérent : le tableau n\'a pas été créé.', 'error');
+                console.error('[tableau8] ordre invalide', ordre8);
+                return;
+            }
+            vus[ordre8[v]] = true;
+        }
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var newMatchs = [];
+        // Quarts dans l'ordre du tableau : positions (0,1), (2,3), (4,5), (6,7).
+        // genererTourSuivant() s'appuie sur cet ordre pour les demies Q1/Q2 et Q3/Q4.
+        for (var q = 0; q < 4; q++) {
+            newMatchs.push({
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+                status: 'en_attente', ordre: q, terrain: ((q % nbT) + 1),
+                equipe_a_id: ordre8[q * 2],
+                equipe_b_id: ordre8[q * 2 + 1]
+            });
+        }
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) {
+            showToast('Erreur création du tableau : ' + res.error.message, 'error');
+            console.error(res.error);
+            return;
+        }
+        matchs = matchs.concat(res.data);
+        render();
+        showToast('Tableau de 8 créé : 4 quarts de finale.', 'ok');
+    }
+
     async function genererSqueletteMaison2p4() {
         var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
         if (poulesOrdonnees.length !== 2) return;
@@ -3518,6 +3733,13 @@
     }
 
     // Config 2 poules de 4 équipes (8 équipes total)
+    // Tableau direct de 8 équipes, sans poules : quarts, demies, finale, plus
+    // un tableau de consolation qui classe les perdants de quart. Les équipes
+    // ne sont rattachées à aucune poule ; c'est le tirage du tableau qui les place.
+    function isConfigTableau8() {
+        return poules.length === 0 && equipes.length === 8;
+    }
+
     function isConfig2p4() {
         if (poules.length !== 2) return false;
         var tailles = poules.map(function (p) {
@@ -3951,6 +4173,46 @@
                     ordre: consoOrdre++, terrain: terrains[3 % terrains.length],
                     equipe_a_id: perdantQ(lastRound[2]),
                     equipe_b_id: perdantQ(lastRound[3])
+                });
+            } else if (lastRound.length === 4 && isConfigTableau8()) {
+                // Tableau direct de 8 : les quarts sont rangés dans l'ordre du
+                // tableau (Q1 et Q2 en haut, Q3 et Q4 en bas), donc les demies
+                // opposent Q1/Q2 et Q3/Q4. Avec le seeding générique Q1/Q4, TS1
+                // et TS2 se rencontreraient en demie au lieu de la finale.
+                nextMatchs.push({
+                    phase: 'finale', bracket: bracket,
+                    tournoi_id: currentTournoi.id, status: 'en_attente',
+                    ordre: nextOrdre++, terrain: terrains[0],
+                    equipe_a_id: lastRound[0].vainqueur_id,
+                    equipe_b_id: lastRound[1].vainqueur_id
+                });
+                nextMatchs.push({
+                    phase: 'finale', bracket: bracket,
+                    tournoi_id: currentTournoi.id, status: 'en_attente',
+                    ordre: nextOrdre++, terrain: terrains[1 % terrains.length],
+                    equipe_a_id: lastRound[2].vainqueur_id,
+                    equipe_b_id: lastRound[3].vainqueur_id
+                });
+                // Les 4 perdants de quart enchaînent sur le tableau de
+                // consolation, en respectant les mêmes moitiés : le règlement
+                // rend les matchs de classement obligatoires, et c'est ce qui
+                // porte chaque équipe à 3 matchs.
+                var perdantQ8 = function (m) {
+                    return m.vainqueur_id === m.equipe_a_id ? m.equipe_b_id : m.equipe_a_id;
+                };
+                nextMatchs.push({
+                    phase: 'finale', bracket: 'consolation_5_8',
+                    tournoi_id: currentTournoi.id, status: 'en_attente',
+                    ordre: 0, terrain: terrains[2 % terrains.length],
+                    equipe_a_id: perdantQ8(lastRound[0]),
+                    equipe_b_id: perdantQ8(lastRound[1])
+                });
+                nextMatchs.push({
+                    phase: 'finale', bracket: 'consolation_5_8',
+                    tournoi_id: currentTournoi.id, status: 'en_attente',
+                    ordre: 1, terrain: terrains[3 % terrains.length],
+                    equipe_a_id: perdantQ8(lastRound[2]),
+                    equipe_b_id: perdantQ8(lastRound[3])
                 });
             } else if (lastRound.length === 4) {
                 // Quarts -> Demis (2 matchs)
