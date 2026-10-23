@@ -112,6 +112,10 @@
         };
         var places = [];
         var principal = byBracket['principal'] || [];
+        // Un tableau qui démarre en quarts a 4 matchs de plus en tête : les
+        // demies sont alors en 5e et 6e position, pas en 1re et 2e. Sans ça,
+        // on prenait les quarts pour des demies et le podium était faux.
+        if (principal.length >= 8) principal = principal.slice(4);
         if (principal.length >= 4) {
             var demi1 = principal[0], demi2 = principal[1];
             var finaleMatch = null, petiteFinale = null;

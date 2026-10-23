@@ -11,6 +11,11 @@ cd tests && for f in test-*.js; do node "$f" || echo "ÉCHEC : $f"; done
   cascade de départage. Les passages du règlement sont cités dans le test.
 - `test-tirage-deroule.js` — déroulé complet d'un tirage tel qu'il s'affiche sur
   l'écran TV : ordre des étapes, remplissage progressif des poules, traçabilité.
+- `test-tableau8.js` — tableau direct de 8 équipes (quarts, demies, finale,
+  consolation) : placement d'office des TS 1 et 2 « de part et d'autre du
+  Tableau », tirage des TS 3 et 4, reproductibilité du tirage par sa graine,
+  et simulation complète des 12 matchs vérifiant les 3 matchs par paire et le
+  classement de 1 à 8 (chapitre III.4).
 - `test-temps.js` — temps de repos réglementaire par format (1h30 / 1h / 30 min /
   15 min) et contrôle du repos écoulé.
 - `test-partenaires-licences.js` — recherche de partenaire (confidentialité, anti-abus,

@@ -2012,6 +2012,13 @@ select.tournoi-input option {
     animation: tirage-apparait 0.5s ease-out;
 }
 
+/* Place encore à tirer, dans un tableau à élimination directe. Les cases vides
+   restent affichées : le public voit ce qu'il reste à tirer. */
+.tirage-tv-poule-eq--vide {
+    opacity: 0.35;
+    font-style: italic;
+}
+
 /* Suivi du tirage côté admin. Le déroulé dure une quarantaine de secondes : sans
    ce panneau, on croit que rien ne se passe. */
 .tirage-suivi-overlay {
