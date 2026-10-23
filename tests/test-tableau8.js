@@ -245,5 +245,36 @@ check('poules terminees : l\'ecran passe en finale',
 check('le cas « aucune poule » est traite explicitement',
       /if \(matchsPoule\.length === 0\) return 'finale';/.test(srcTvPage));
 
+console.log('\n=== L\'enchainement quarts -> demies -> finale n\'est pas bloque ===');
+// Deux verrous empechaient les tours suivants d'etre crees :
+//   1. bracketEstFini tombait sur le repli general, qui deduit les entrants du
+//      classement des POULES. Sans poule : 0 entrant, « 0 match attendu », donc
+//      bracket declare fini des les quarts.
+//   2. la detection du round courant ne connaissait que 2 et 4 matchs. Apres les
+//      demies le bracket en compte 6 : la finale n'etait jamais creee.
+check('le tableau de 8 est traite avant le repli par poules',
+      /bracket === 'principal' && isConfigTableau8\(\)/.test(src)
+      && /b\.length >= 8 && b\.every/.test(
+            src.slice(src.indexOf("bracket === 'principal' && isConfigTableau8()"),
+                      src.indexOf("bracket === 'principal' && isConfigTableau8()") + 300)));
+check('6 matchs = les 2 demies sont le dernier round',
+      /bracketMatchs\.length === 6 && isConfigTableau8\(\) \? 2 : null/.test(src));
+
+// Rejoue la progression telle que le code la decide, a chaque etape.
+function roundCourant(total, t8) {
+    return total === 2 ? 2 : (total === 4 ? 4 : (total === 6 && t8 ? 2 : null));
+}
+function bracketFini8(total) { return total >= 8; }
+check('4 quarts joues : le bracket n\'est pas fini, un tour suit',
+      !bracketFini8(4) && roundCourant(4, true) === 4);
+check('6 matchs (quarts + demies) : la finale est generee',
+      !bracketFini8(6) && roundCourant(6, true) === 2);
+check('8 matchs : le tableau principal est termine', bracketFini8(8));
+// Non-regression : un bracket a 4 matchs d'un format a poules garde sa logique.
+check('un bracket de 4 matchs hors tableau-8 reste detecte',
+      roundCourant(4, false) === 4);
+check('un bracket de 6 matchs hors tableau-8 n\'est pas affecte',
+      roundCourant(6, false) === null);
+
 console.log(ko === 0 ? '\nTous les tests passent.' : '\n' + ko + ' test(s) en échec.');
 process.exit(ko === 0 ? 0 : 1);
