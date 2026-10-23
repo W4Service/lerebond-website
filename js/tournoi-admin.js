@@ -1329,9 +1329,16 @@
         }
 
         var homologue = !!(currentTournoi && currentTournoi.homologue);
-        // En tournoi homologué, 4 TS pour un tableau de 8 (III.4). En loisir,
-        // aucune TS imposée : tirage intégral, plus ouvert.
-        var nbTS = homologue ? 4 : 0;
+        // 4 TS, homologué ou non.
+        //
+        // Contrairement à la règle des 2 TS par poule — qui est une contrainte
+        // de tournoi homologué et suit donc le réglage du tournoi — le placement
+        // des TS dans un tableau fait partie du format lui-même : c'est lui qui
+        // garantit que les deux meilleures paires ne s'éliminent pas au premier
+        // tour. Un tableau de 8 sans TS n'est pas « plus ouvert », il est
+        // déséquilibré. Le JA qui veut un tirage intégral choisit un format sans
+        // TS, il ne décoche pas « homologué ».
+        var nbTS = 4;
 
         var tries = trierParForce(equipes);
         var seed = Date.now() & 0x7fffffff;
@@ -1342,12 +1349,12 @@
         });
 
         if (!confirm('Lancer le tirage au sort du tableau ?\n\n'
-            + 'Format : ' + format.nom + '\n'
-            + (nbTS
-                ? 'TS 1 et 2 placées d\'office aux deux extrémités du tableau,\n'
-                  + 'puis tirage de TS 3 et 4, puis tirage des 4 autres équipes\n'
-                  + '(règle FFT III.4, tournoi homologué)\n'
-                : 'Tournoi loisir : aucune tête de série, les 8 équipes sont tirées\n')
+            + 'Format : ' + format.nom + '\n\n'
+            + 'Déroulé (règle FFT III.4) :\n'
+            + '  1. TS 1 (' + (tries[0] ? equipeAffichage(tries[0]) : '?') + ') placée en bas du tableau\n'
+            + '  2. TS 2 (' + (tries[1] ? equipeAffichage(tries[1]) : '?') + ') placée en haut du tableau\n'
+            + '  3. Tirage au sort de TS 3 et TS 4\n'
+            + '  4. Tirage au sort des 4 autres équipes\n'
             + '\nLe tirage s\'affichera sur l\'écran TV.'
             + (homologue
                 ? '\nUne fois le tableau affiché, il ne devra plus être modifié.'
