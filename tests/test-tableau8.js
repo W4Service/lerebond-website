@@ -94,8 +94,21 @@ check('le tirage du tableau a son propre déroulé',
       /async function lancerTirageTableau/.test(src));
 check('la graine est enregistrée pour pouvoir rejouer le tirage',
       /lancerTirageTableau[\s\S]*?tirage_seed: seed/.test(src));
-check('4 TS en homologué, aucune en loisir',
-      /var nbTS = homologue \? 4 : 0;/.test(src));
+// Le placement des TS appartient au format, pas au réglage « homologué » :
+// c'est lui qui empêche les deux meilleures paires de s'éliminer au 1er tour.
+// Un tableau de 8 sans TS n'est pas « plus ouvert », il est déséquilibré.
+check('4 TS, que le tournoi soit homologué ou non', /var nbTS = 4;/.test(src)
+      && !/var nbTS = homologue/.test(src));
+// Le texte « Tournoi loisir : aucune TS » reste légitime pour le tirage des
+// POULES (2 TS par poule est bien une règle d'homologation) ; il ne doit plus
+// apparaître dans le tirage du tableau.
+var blocTableau = src.slice(src.indexOf('async function lancerTirageTableau'),
+                            src.indexOf('async function lancerTirage(format, methode)'));
+check('le dialogue annonce qui est TS 1 et TS 2, et les temps du tirage',
+      blocTableau.indexOf("TS 1 (' + (tries[0]") > 0
+      && blocTableau.indexOf("TS 2 (' + (tries[1]") > 0
+      && /Tirage au sort de TS 3 et TS 4/.test(blocTableau)
+      && blocTableau.indexOf('Tournoi loisir') < 0);
 
 console.log('\n=== Demies Q1/Q2 et Q3/Q4, pas Q1/Q4 ===');
 // Le seeding générique croise les quarts opposés. Ici le tableau est déjà
