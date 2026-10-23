@@ -4084,7 +4084,13 @@
             } else {
             // Si on a fait demi (2 matchs), on doit créer finale + match 3e/4e
             // Si on a fait quart (4 matchs), on doit créer demi (2 matchs)
-            var nbMatchsRoundCourant = bracketMatchs.length === 2 ? 2 : (bracketMatchs.length === 4 ? 4 : null);
+            // Tableau direct de 8 : après les demies, le bracket compte 6 matchs
+            // (4 quarts + 2 demies) — un total que la détection ci-dessous ne
+            // reconnaît pas, d'où la finale jamais créée. Le dernier round est
+            // alors les 2 demies.
+            var nbMatchsRoundCourant = bracketMatchs.length === 2 ? 2
+                : (bracketMatchs.length === 4 ? 4
+                : (bracketMatchs.length === 6 && isConfigTableau8() ? 2 : null));
             // Round courant = dernier round joué
             // On crée le round suivant : N/2 matchs (gagnants) + un match perdants si on est en demi
             var lastRound = bracketMatchs.slice(-nbMatchsRoundCourant);
@@ -4384,6 +4390,17 @@
         // Brackets "places_X_Y" du mode maison : 1 seul match attendu, fini dès qu'il est joué
         if (bracket.indexOf('places_') === 0) {
             return b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
+        // Tableau direct de 8 : principal = 8 matchs (4 quarts + 2 demies +
+        // finale + petite finale).
+        //
+        // À traiter ici, avant le repli général : celui-ci déduit les entrants
+        // du classement des poules. Sans poule, il ne trouve aucun entrant,
+        // conclut « 0 match attendu » et déclare le bracket fini dès les
+        // quarts — les demies n'étaient donc jamais créées.
+        if (bracket === 'principal' && isConfigTableau8()) {
+            return b.length >= 8 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
         }
 
         // Format 14 équipes : principal = 8 matchs
