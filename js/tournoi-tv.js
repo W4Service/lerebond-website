@@ -359,8 +359,11 @@
         var matchsPoule = matchs.filter(function (m) { return m.phase === 'poule'; });
         var matchsFinale = matchs.filter(function (m) { return m.phase === 'finale'; });
         if (matchsFinale.length > 0) {
-            var allPouleDone = matchsPoule.length > 0 && matchsPoule.every(function (m) { return m.status === 'termine'; });
-            if (allPouleDone) return 'finale';
+            // Un tournoi en tableau direct n'a aucun match de poule : exiger
+            // qu'il y en ait de terminés laissait l'écran en mode poule, donc
+            // vide. Pas de poule du tout = il n'y a rien à attendre.
+            if (matchsPoule.length === 0) return 'finale';
+            if (matchsPoule.every(function (m) { return m.status === 'termine'; })) return 'finale';
         }
         return 'poule';
     }

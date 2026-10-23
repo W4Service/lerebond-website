@@ -19,6 +19,7 @@ function check(n, c) { console.log((c ? '  ok   ' : '  FAIL ') + n); if (!c) ko+
 var src = fs.readFileSync('../js/tournoi-admin.js', 'utf8');
 var srcPrint = fs.readFileSync('../js/tournoi-print.js', 'utf8');
 var srcTV = fs.readFileSync('../js/tournoi-tirage-tv.js', 'utf8');
+var srcTvPage = fs.readFileSync('../js/tournoi-tv.js', 'utf8');
 
 function eq8() {
     var a = [];
@@ -216,6 +217,33 @@ check('les cases encore vides restent visibles',
 check('les quarts sont regroupes', /'Quart ' \+ q/.test(srcTV));
 check('la case vide a un style', /\.tirage-tv-poule-eq--vide/.test(
       fs.readFileSync('../css/tournoi.css', 'utf8')));
+
+console.log('\n=== L\'ecran TV bascule en mode tableau sans poules ===');
+// determineMode exigeait des matchs de poule TERMINES pour passer en mode
+// finale. Sans poules, la condition ne tombait jamais : l'ecran restait en
+// mode poule, donc vide.
+function extraireFnDe(nom, source) {
+    var i = source.indexOf('function ' + nom + '(');
+    if (i < 0) throw new Error('introuvable : ' + nom);
+    var j = source.indexOf('{', i), d = 0, k = j;
+    do { if (source[k] === '{') d++; else if (source[k] === '}') d--; k++; } while (d > 0);
+    return source.slice(i, k);
+}
+var determineMode = new Function('return ' + extraireFnDe('determineMode', srcTvPage))();
+var tAuto = { tv_mode: 'auto' };
+var quarts = [];
+for (var iq = 0; iq < 4; iq++) quarts.push({ phase: 'finale', bracket: 'principal', status: 'en_attente' });
+check('tableau direct : l\'ecran passe en mode finale', determineMode(tAuto, quarts) === 'finale');
+check('sans aucun match : on reste en mode poule', determineMode(tAuto, []) === 'poule');
+// Non-regression : un tournoi a poules ne doit pas basculer trop tot.
+check('poules en cours : l\'ecran reste en mode poule',
+      determineMode(tAuto, [{ phase: 'poule', status: 'en_cours' },
+                            { phase: 'finale', status: 'en_attente' }]) === 'poule');
+check('poules terminees : l\'ecran passe en finale',
+      determineMode(tAuto, [{ phase: 'poule', status: 'termine' },
+                            { phase: 'finale', status: 'en_attente' }]) === 'finale');
+check('le cas « aucune poule » est traite explicitement',
+      /if \(matchsPoule\.length === 0\) return 'finale';/.test(srcTvPage));
 
 console.log(ko === 0 ? '\nTous les tests passent.' : '\n' + ko + ' test(s) en échec.');
 process.exit(ko === 0 ? 0 : 1);
