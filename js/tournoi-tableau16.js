@@ -218,6 +218,14 @@
         return out;
     }
 
+    // Nom du tour d'un match, à partir de son `ordre` en base (l'indice dans
+    // MATCHS, qui ne bouge pas). « Tableau principal · Match 5 » ne dit pas si
+    // on regarde un 16e ou une demie : c'est le tour qui parle au public.
+    function libelleTour(ordre) {
+        var m = MATCHS[ordre];
+        return m ? m.lib : null;
+    }
+
     // Libellé de provenance, tant que l'équipe n'est pas connue : « Vainqueur
     // 16e de finale 1 », « Perdant Quart 2 ». Afficher « ? » n'apprendrait rien
     // au joueur qui cherche son prochain match sur le planning.
@@ -235,7 +243,8 @@
         programmer: programmer,
         convocations: convocations,
         dependances: dependances,
-        libelleProvenance: libelleProvenance
+        libelleProvenance: libelleProvenance,
+        libelleTour: libelleTour
     };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
