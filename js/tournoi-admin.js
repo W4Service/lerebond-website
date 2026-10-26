@@ -2169,7 +2169,11 @@
         if (guardReadOnly()) return;
         var format = await choisirFormatPhaseFinale('squelette');
         if (!format) return;
-        await format.squelette();
+        // Un générateur qui renvoie false a déjà expliqué pourquoi il a échoué :
+        // annoncer « pré-générée » par-dessus ferait croire à une réussite alors
+        // que rien n'a été créé.
+        var ok = await format.squelette();
+        if (ok === false) return;
         showToast('Phase finale pré-générée : ' + format.nom, 'ok');
     }
 
@@ -2392,8 +2396,20 @@
 
         var res = await supa.from('matchs').insert(lignes).select();
         if (res.error) {
-            showToast('Erreur création du tableau : ' + res.error.message, 'error');
-            console.error(res.error);
+            // Un toast disparaît et tronque les messages longs : l'échec restait
+            // invisible, donnant un tableau « créé » mais vide. Une alerte force
+            // la lecture, avec le code d'erreur qui dit quoi corriger.
+            console.error('[tableau16] insertion refusée', res.error, lignes[0]);
+            alert('⚠️ LE TABLEAU N\'A PAS ÉTÉ CRÉÉ\n\n'
+                + 'La base a refusé les 28 matchs :\n'
+                + (res.error.code ? '[' + res.error.code + '] ' : '') + res.error.message
+                + (res.error.details ? '\n\nDétail : ' + res.error.details : '')
+                + (res.error.hint ? '\nPiste : ' + res.error.hint : '')
+                + '\n\nSi le code est 42501, c\'est un refus de droits : vérifie que '
+                + 'tu es bien connecté avec un compte staff.\n'
+                + 'Si une colonne est inconnue, la migration '
+                + '20261026_tableau_source_match.sql n\'est pas passée.');
+            showToast('Tableau non créé : ' + res.error.message, 'error');
             return false;
         }
 
