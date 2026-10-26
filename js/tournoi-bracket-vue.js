@@ -124,6 +124,10 @@
         });
 
         var pied = [];
+        // L'heure d'abord : c'est l'information qu'on cherche sur un tableau
+        // affiché au mur, avant le terrain.
+        var h = opts.heureDe ? opts.heureDe(m) : null;
+        if (h) pied.push(h);
         if (m.terrain) pied.push('T' + m.terrain);
         if (places || m.place_vainqueur) {
             pied.push('places ' + (places || (m.place_vainqueur + '-' + (m.place_vainqueur + 1))));
