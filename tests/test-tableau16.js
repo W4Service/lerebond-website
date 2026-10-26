@@ -196,5 +196,21 @@ check('le perdant prend la place suivante',
       /place: m\.place_vainqueur \+ 1/.test(srcPrint));
 check('les places déjà calculées ne sont pas réécrites', /dejaVues/.test(srcPrint));
 
+console.log('\n=== Le module est atteint par le bon objet global ===');
+// tournoi-admin.js est une IIFE SANS parametre `root` : `root` y est une
+// variable locale de render() qui designe un element DOM. Ecrire
+// root.TournoiTableau16 levait une ReferenceError et le tableau n'etait
+// jamais cree — sans message lisible.
+check('le module est lu depuis window, pas depuis root',
+      /window\.TournoiTableau16/.test(src) && !/root\.TournoiTableau16/.test(src));
+check('aucun autre root.Tournoi* dans tournoi-admin.js',
+      !/root\.Tournoi[A-Za-z]/.test(src));
+// Garde-fou general : dans ce fichier, `root` ne doit servir qu'au DOM.
+var usagesRoot = (src.match(/\broot\.[A-Za-z]+/g) || []);
+var nonDom = usagesRoot.filter(function (u) {
+    return !/^root\.(innerHTML|appendChild|querySelector|querySelectorAll|classList|style|textContent|removeChild|insertBefore|children|firstChild)/.test(u);
+});
+check('root ne sert qu\'a manipuler le DOM', nonDom.length === 0);
+
 console.log(ko === 0 ? '\nTous les tests passent.' : '\n' + ko + ' test(s) en échec.');
 process.exit(ko === 0 ? 0 : 1);

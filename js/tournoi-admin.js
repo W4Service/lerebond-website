@@ -2356,7 +2356,7 @@
     //                         Positions 1-8 = entrée en 16es, 9-12 = en 8es,
     //                         13-16 = en quarts (les meilleures paires).
     async function genererTableau16(ordre16) {
-        if (!root.TournoiTableau16) {
+        if (!window.TournoiTableau16) {
             showToast('js/tournoi-tableau16.js n\'est pas chargé.', 'error');
             return false;
         }
@@ -2367,7 +2367,7 @@
 
         var plan;
         try {
-            plan = root.TournoiTableau16.construire(ordre16, {
+            plan = window.TournoiTableau16.construire(ordre16, {
                 nbTerrains: currentTournoi.nb_terrains || 3,
                 reposCreneaux: 1
             });
