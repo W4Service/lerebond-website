@@ -2495,3 +2495,54 @@ select.tournoi-input option {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* ===== Saisie de l'ordre d'un tableau de 16 ===== */
+.ordre16-liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.4rem;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin: 0.75rem 0;
+    padding-right: 0.25rem;
+}
+
+.ordre16-ligne {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Largeur fixe : les intitulés « T1 · 16e » et « T16 · quart » doivent
+   s'aligner, sinon les listes déroulantes dansent d'une ligne à l'autre. */
+.ordre16-pos {
+    flex: 0 0 5.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #680920;
+}
+
+.ordre16-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    background: #fff;
+}
+
+/* Une équipe placée à deux positions : le tableau serait faux et injouable.
+   On le montre sur place plutôt que de refuser à la validation sans dire où. */
+.ordre16-select--double {
+    border-color: #c0392b;
+    background: #fdecea;
+}
+
+.ordre16-avert {
+    margin: 0 0 0.5rem;
+    min-height: 1.2em;
+    font-size: 0.8rem;
+    color: #a03030;
+}

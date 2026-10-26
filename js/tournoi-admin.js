@@ -1108,6 +1108,27 @@
                     finale: genererPhaseFinaleMaison3x4Tri
                 },
                 {
+                    id: 'tableau_16',
+                    nom: '16 équipes · entrées échelonnées (16es → finale)',
+                    detail: '8 équipes entrent en 16es, 4 en 8es, 4 en quarts (les paires '
+                          + 'exemptées). Tout perdant continue en matchs de classement '
+                          + 'jusqu\'à sa place : classement complet de 1 à 16. '
+                          + '28 matchs, 3 au minimum par équipe, tous programmés d\'avance '
+                          + 'avec leur créneau et leur terrain.',
+                    homologable: true,
+                    requis: '16 équipes, sans poules',
+                    compo: { poules: [], horsPoule: 16 },
+                    applicable: isConfigTableau16,
+                    // L'ordre est saisi par le JA (tirage déjà fait sur papier)
+                    // plutôt que tiré par l'application.
+                    saisieOrdre: true,
+                    squelette: async function () {
+                        var ordre = await saisirOrdreTableau16();
+                        if (!ordre) return;
+                        await genererTableau16(ordre);
+                    }
+                },
+                {
                     id: 'tableau_8',
                     nom: '8 équipes · tableau direct (quarts → finale)',
                     detail: 'Quarts, demies, finale et petite finale (places 1-4). Les 4 '
@@ -1710,6 +1731,14 @@
                 await supa.from('poules').delete().eq('id', pidT);
             }
             poules = [];
+            // Certains formats de tableau demandent l'ordre des équipes plutôt
+            // que de le tirer : le juge-arbitre a déjà fait son tirage ailleurs.
+            // Ils portent `saisieOrdre` et pilotent leur propre création.
+            // Les autres (tableau de 8) passent par le tirage public.
+            if (format.saisieOrdre && typeof format.squelette === 'function') {
+                await format.squelette();
+                return;
+            }
             await lancerTirageTableau(format);
             return;
         }
@@ -1842,6 +1871,105 @@
             });
             overlay.appendChild(box);
             document.body.appendChild(overlay);
+        });
+    }
+
+    // Saisie manuelle de l'ordre d'un tableau de 16, pour un tirage déjà fait
+    // sur papier. Le tirage dans l'application reste disponible par ailleurs.
+    //
+    // L'ordre compte : positions 1-8 entrent en 16es, 9-12 en 8es, 13-16 en
+    // quarts. On le rappelle à l'écran, parce qu'une inversion ici fausse tout
+    // le tableau sans que rien ne le signale.
+    function saisirOrdreTableau16() {
+        return new Promise(function (resolve) {
+            var tries = trierParForce(equipes);
+            var choix = new Array(16);
+            // Proposition de départ : les meilleures paires aux positions 13-16
+            // (entrée en quarts), donc exemptées des premiers tours. Le JA ajuste.
+            tries.slice().reverse().forEach(function (e, i) { if (i < 16) choix[i] = e.id; });
+
+            var overlay = el('div', { class: 'format-picker-overlay' });
+            var box = el('div', { class: 'format-picker' });
+            box.appendChild(el('h3', { class: 'format-picker-titre' }, '📋 Ordre du tableau de 16'));
+            box.appendChild(el('p', { class: 'format-picker-config' },
+                'Positions 1 à 8 : entrée en 16es de finale. Positions 9 à 12 : entrée '
+              + 'en 8es. Positions 13 à 16 : entrée en quarts (paires exemptées).'));
+            box.appendChild(el('p', { class: 'format-picker-vide' },
+                'Proposition : les meilleures paires aux positions 13-16, exemptées des '
+              + 'premiers tours. À ajuster selon ton tirage.'));
+
+            var liste = el('div', { class: 'ordre16-liste' });
+            var selects = [];
+            var entreeDe = function (i) { return i < 8 ? '16e' : (i < 12 ? '8e' : 'quart'); };
+            var avert = el('p', { class: 'ordre16-avert' }, '');
+            var valider;
+
+            function majDoublons() {
+                var compte = {};
+                selects.forEach(function (s) { if (s.value) compte[s.value] = (compte[s.value] || 0) + 1; });
+                var complet = true, doublon = false;
+                selects.forEach(function (s) {
+                    var mauvais = !!(s.value && compte[s.value] > 1);
+                    s.classList.toggle('ordre16-select--double', mauvais);
+                    if (mauvais) doublon = true;
+                    if (!s.value) complet = false;
+                });
+                valider.disabled = !complet || doublon;
+                avert.textContent = doublon
+                    ? '⚠️ Une même équipe occupe plusieurs positions.'
+                    : (complet ? '' : 'Toutes les positions doivent être remplies.');
+            }
+
+            for (var i = 0; i < 16; i++) {
+                (function (idx) {
+                    var ligne = el('div', { class: 'ordre16-ligne' });
+                    ligne.appendChild(el('span', { class: 'ordre16-pos' },
+                        'T' + (idx + 1) + ' · ' + entreeDe(idx)));
+                    var sel = el('select', {
+                        class: 'ordre16-select',
+                        onchange: function () { majDoublons(); }
+                    });
+                    sel.appendChild(el('option', { value: '' }, '— choisir —'));
+                    tries.forEach(function (e) {
+                        sel.appendChild(el('option', { value: e.id }, equipeAffichage(e)));
+                    });
+                    sel.value = choix[idx] || '';
+                    selects.push(sel);
+                    ligne.appendChild(sel);
+                    liste.appendChild(ligne);
+                })(i);
+            }
+            box.appendChild(liste);
+            box.appendChild(avert);
+
+            var actions = el('div', { class: 'format-picker-actions' });
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--outline',
+                onclick: function () { fermer(); resolve(null); }
+            }, 'Annuler'));
+            valider = el('button', {
+                class: 'btn-live btn-live--primary',
+                onclick: function () {
+                    var ordre = selects.map(function (s) { return s.value; });
+                    fermer();
+                    resolve(ordre);
+                }
+            }, 'Créer le tableau');
+            actions.appendChild(valider);
+            box.appendChild(actions);
+
+            function fermer() {
+                document.removeEventListener('keydown', onKey);
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }
+            function onKey(e) { if (e.key === 'Escape') { fermer(); resolve(null); } }
+            document.addEventListener('keydown', onKey);
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) { fermer(); resolve(null); }
+            });
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            majDoublons();
         });
     }
 
@@ -2212,6 +2340,110 @@
     //                             tableau) à la position 7 (bas). Si absent,
     //                             on retombe sur l'ordre de force, ce qui donne
     //                             un tableau valide mais non tiré au sort.
+    // Tableau de 16 à entrées échelonnées : crée les 28 matchs d'un coup, avec
+    // leur créneau et leur terrain. Le planning et les convocations sont donc
+    // imprimables avant le premier service.
+    //
+    // Deux passes, parce qu'un match ne peut référencer un autre qu'une fois
+    // celui-ci inséré et doté d'un id : on écrit d'abord les 28 lignes, puis on
+    // pose les liens gagnant/perdant.
+    //
+    // @param {Array} ordre16  ids d'équipe, de la position 1 à la position 16.
+    //                         Positions 1-8 = entrée en 16es, 9-12 = en 8es,
+    //                         13-16 = en quarts (les meilleures paires).
+    async function genererTableau16(ordre16) {
+        if (!root.TournoiTableau16) {
+            showToast('js/tournoi-tableau16.js n\'est pas chargé.', 'error');
+            return false;
+        }
+        if (equipes.length !== 16) {
+            showToast('Ce format demande exactement 16 équipes (' + equipes.length + ' inscrites).', 'error');
+            return false;
+        }
+
+        var plan;
+        try {
+            plan = root.TournoiTableau16.construire(ordre16, {
+                nbTerrains: currentTournoi.nb_terrains || 3,
+                reposCreneaux: 1
+            });
+        } catch (err) {
+            showToast('Tableau impossible : ' + err.message, 'error');
+            console.error('[tableau16]', err);
+            return false;
+        }
+
+        // Passe 1 : les 28 lignes, avec les équipes déjà connues (celles qui
+        // entrent par une position) et les créneaux.
+        var lignes = plan.map(function (m) {
+            return {
+                tournoi_id: currentTournoi.id,
+                phase: 'finale',
+                bracket: m.bracket,
+                status: 'en_attente',
+                ordre: m.ordre,
+                terrain: m.terrain,
+                creneau: m.creneau,
+                place_vainqueur: m.place,
+                equipe_a_id: m.equipe_a_id,
+                equipe_b_id: m.equipe_b_id
+            };
+        });
+
+        var res = await supa.from('matchs').insert(lignes).select();
+        if (res.error) {
+            showToast('Erreur création du tableau : ' + res.error.message, 'error');
+            console.error(res.error);
+            return false;
+        }
+
+        // Passe 2 : les dépendances. On retrouve chaque match inséré par son
+        // `ordre`, qui est l'indice dans MATCHS — stable et unique.
+        var idParOrdre = {};
+        res.data.forEach(function (r) { idParOrdre[r.ordre] = r.id; });
+        var refVersOrdre = {};
+        plan.forEach(function (m) { refVersOrdre[m.ref] = m.ordre; });
+
+        var liens = [];
+        plan.forEach(function (m) {
+            var patch = {};
+            if (m.srcA) {
+                patch.equipe_a_source_match_id = idParOrdre[refVersOrdre[m.srcA.ref]];
+                patch.equipe_a_source_type = m.srcA.type;
+            }
+            if (m.srcB) {
+                patch.equipe_b_source_match_id = idParOrdre[refVersOrdre[m.srcB.ref]];
+                patch.equipe_b_source_type = m.srcB.type;
+            }
+            if (Object.keys(patch).length) {
+                liens.push({ id: idParOrdre[m.ordre], patch: patch });
+            }
+        });
+
+        var echecs = 0;
+        for (var i = 0; i < liens.length; i++) {
+            var r2 = await supa.from('matchs').update(liens[i].patch).eq('id', liens[i].id).select().single();
+            if (r2.error) { console.error('[tableau16] lien', r2.error); echecs++; continue; }
+            var k = res.data.findIndex(function (x) { return x.id === liens[i].id; });
+            if (k >= 0) res.data[k] = r2.data;
+        }
+
+        matchs = matchs.concat(res.data);
+
+        if (echecs) {
+            // Sans les liens, le tableau existe mais ne se remplira jamais tout
+            // seul : il faut le dire, pas laisser découvrir le problème en cours
+            // de tournoi.
+            showToast(echecs + ' lien(s) entre matchs non posé(s) — le tableau ne se '
+                    + 'remplira pas automatiquement. Vérifie que la migration '
+                    + '20261026_tableau_source_match.sql est passée.', 'error');
+        } else {
+            showToast('Tableau de 16 créé : 28 matchs programmés.', 'ok');
+        }
+        render();
+        return echecs === 0;
+    }
+
     async function genererTableau8(ordreTirage) {
         if (equipes.length !== 8) {
             showToast('Ce format demande exactement 8 équipes.', 'error');
@@ -3743,6 +3975,11 @@
     // Tableau direct de 8 équipes, sans poules : quarts, demies, finale, plus
     // un tableau de consolation qui classe les perdants de quart. Les équipes
     // ne sont rattachées à aucune poule ; c'est le tirage du tableau qui les place.
+    // Tableau de 16 à entrées échelonnées, sans poules.
+    function isConfigTableau16() {
+        return poules.length === 0 && equipes.length === 16;
+    }
+
     function isConfigTableau8() {
         return poules.length === 0 && equipes.length === 8;
     }
@@ -4502,6 +4739,65 @@
     }
 
     // Pour chaque match dépendant de la poule, met à jour equipe_a_id / equipe_b_id si la source est résolue.
+    // Résout les dépendances entre matchs de phase finale : « le vainqueur du
+    // match X », « le perdant du match Y ».
+    //
+    // Distinct de propagateDependencies, qui ne regarde que les matchs d'une
+    // même poule (m.poule_id === pouleId && m.phase === 'poule'). Un tableau à
+    // élimination directe a besoin de l'autre sens : une référence directe au
+    // match source, sans poule. C'est ce que permettent les colonnes
+    // equipe_*_source_match_id (migration 20261026_tableau_source_match.sql).
+    //
+    // En cascade : résoudre un match peut en débloquer un autre (le vainqueur
+    // d'un 16e remplit un 8e, qui une fois joué remplira un quart). On boucle
+    // donc jusqu'à ce que plus rien ne bouge — avec une borne, pour qu'une
+    // dépendance circulaire échoue au lieu de tourner sans fin.
+    async function propagateFinale() {
+        var perdantDe = function (m) {
+            if (!m.equipe_a_id || !m.equipe_b_id || !m.vainqueur_id) return null;
+            return m.vainqueur_id === m.equipe_a_id ? m.equipe_b_id : m.equipe_a_id;
+        };
+
+        for (var tour = 0; tour < 10; tour++) {
+            var updates = [];
+
+            matchs.forEach(function (m) {
+                if (m.phase !== 'finale') return;
+                var patch = {};
+
+                [['a', m.equipe_a_source_match_id, m.equipe_a_source_type],
+                 ['b', m.equipe_b_source_match_id, m.equipe_b_source_type]]
+                .forEach(function (cote) {
+                    var side = cote[0], srcId = cote[1], type = cote[2];
+                    if (m['equipe_' + side + '_id']) return;          // déjà résolu
+                    if (!srcId || (type !== 'gagnant' && type !== 'perdant')) return;
+
+                    var src = matchs.find(function (x) { return x.id === srcId; });
+                    if (!src || src.status !== 'termine' || !src.vainqueur_id) return;
+
+                    var resolu = type === 'gagnant' ? src.vainqueur_id : perdantDe(src);
+                    if (resolu) patch['equipe_' + side + '_id'] = resolu;
+                });
+
+                if (Object.keys(patch).length) updates.push({ id: m.id, patch: patch });
+            });
+
+            if (!updates.length) return;   // plus rien à résoudre
+
+            for (var i = 0; i < updates.length; i++) {
+                var u = updates[i];
+                var res = await supa.from('matchs').update(u.patch).eq('id', u.id).select().single();
+                if (res.error) {
+                    console.error('[propagateFinale]', res.error);
+                    continue;
+                }
+                var k = matchs.findIndex(function (m) { return m.id === u.id; });
+                if (k >= 0) matchs[k] = res.data;
+            }
+        }
+        console.error('[propagateFinale] 10 passes sans stabiliser : dépendance circulaire ?');
+    }
+
     async function propagateDependencies(pouleId) {
         var updates = [];
         matchs.forEach(function (m) {
@@ -4684,6 +4980,11 @@
         // Propager aussi vers le squelette de phase finale si présent
         if (data.phase === 'poule') {
             await propagateRangPoule();
+        }
+        // Tableau créé d'avance : remplir les matchs qui attendaient ce résultat
+        // (« vainqueur du 16e-1 », « perdant du quart 2 »), en cascade.
+        if (data.phase === 'finale' && data.vainqueur_id) {
+            await propagateFinale();
         }
         // Auto-générer le tour suivant en phase finale si le round courant est complet
         if (data.phase === 'finale' && data.bracket) {
@@ -6976,6 +7277,9 @@
         if (b === 'rang_4') return '🎾 Places 10-12';
         // Mode maison
         if (b === 'consolation_5_8') return '🎾 Consolation · places 5-8';
+        if (b === 'consolation_9_12') return '🎾 Classement · places 9-12';
+        if (b === 'consolation_13_16') return '🎾 Classement · places 13-16';
+        if (b === 'places_15_16') return 'Match places 15-16';
         if (b === 'places_1_2') return '🏆 Finale · places 1-2';
         if (b === 'places_3_4') return '🥉 Match 3ᵉ place';
         if (b === 'places_4_5') return '🎾 Match places 4-5';
@@ -7114,6 +7418,10 @@
             var bracketOrder = function (b) {
                 if (b === 'principal') return 0;
                 if (b === 'consolation_5_8') return 5;
+                if (b === 'consolation_9_12') return 9;
+                if (b === 'consolation_13_16') return 13;
+                if (b === 'places_13_14') return 13;
+                if (b === 'places_15_16') return 15;
                 if (b === 'classement_or') return 1;
                 if (b === 'classement_argent') return 4;
                 if (b === 'classement_bronze') return 7;
