@@ -20,6 +20,7 @@ var srcPrint = fs.readFileSync('../js/tournoi-print.js', 'utf8');
 var sql = fs.readFileSync('../supabase/migrations/20261026_tableau_source_match.sql', 'utf8');
 var VUE = require('../js/tournoi-bracket-vue.js');
 var srcVue = fs.readFileSync('../js/tournoi-bracket-vue.js', 'utf8');
+var srcTv = fs.readFileSync('../js/tournoi-tv.js', 'utf8');
 
 console.log('=== 28 matchs, et chaque équipe entre une seule fois ===');
 check('28 matchs définis', T16.MATCHS.length === 28);
@@ -246,6 +247,31 @@ check('le vainqueur et le perdant sont distingues',
       /bracket-equipe--gagnant/.test(srcVue) && /bracket-equipe--perdant/.test(srcVue));
 check('la provenance s\'affiche quand l\'equipe est inconnue',
       /libelleVide/.test(srcVue) && /libelleVide/.test(src));
+
+console.log('\n=== Heures theoriques ===');
+check('le module calcule l\'heure d\'un creneau', typeof T16.heureCreneau === 'function');
+check('creneau 0 a 17:00 = 17:00', T16.heureCreneau(0, '17:00', 45) === '17:00');
+check('creneau 1 a 17:00 = 17:45', T16.heureCreneau(1, '17:00', 45) === '17:45');
+// Un tournoi du soir deborde apres minuit : « 25h15 » ne veut rien dire.
+check('le passage de minuit est gere', T16.heureCreneau(10, '17:00', 45) === '00:30');
+check('une autre duree est respectee', T16.heureCreneau(3, '09:30', 60) === '12:30');
+check('le format HH:MM:SS est accepte', T16.heureCreneau(1, '17:00:00', 45) === '17:45');
+// Sans heure de debut, on n'invente pas : un joueur reglerait sa venue dessus.
+check('sans heure de debut, rien n\'est affiche', T16.heureCreneau(2, null, 45) === null);
+check('un creneau absent ne produit rien', T16.heureCreneau(null, '17:00', 45) === null);
+check('l\'admin n\'affiche l\'heure que si le tournoi en a une',
+      /if \(!currentTournoi\.heure_debut \|\| !window\.TournoiTableau16\) return null;/.test(src));
+check('l\'heure n\'encombre plus un match deja joue',
+      /m\.status === 'en_attente'\) \? heureTheorique\(m\)/.test(src));
+check('l\'heure de debut et la duree sont reglables',
+      /async function updateHoraires/.test(src) && /duree_match_minutes/.test(src));
+check('la vue tableau affiche l\'heure', /opts\.heureDe/.test(srcVue) && /heureDe: heureTheorique/.test(src));
+
+console.log('\n=== L\'ecran TV reste inchange ===');
+// Demande explicite : les heures theoriques ne vont pas sur la TV.
+check('la TV n\'utilise pas les heures theoriques',
+      !/heureCreneau|heureTheorique/.test(srcTv));
+check('la TV ne lit pas le creneau', !/\bcreneau\b/.test(srcTv));
 
 console.log(ko === 0 ? '\nTous les tests passent.' : '\n' + ko + ' test(s) en échec.');
 process.exit(ko === 0 ? 0 : 1);

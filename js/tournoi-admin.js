@@ -6331,6 +6331,32 @@
         return r === 0 ? h + 'h' : h + 'h' + (r < 10 ? '0' + r : r);
     }
 
+    // Heure théorique d'un match programmé sur un créneau. Vide tant que le
+    // tournoi n'a pas d'heure de début : mieux vaut ne rien afficher qu'une
+    // heure inventée, sur laquelle un joueur réglerait sa venue.
+    function heureTheorique(m) {
+        if (!m || m.creneau == null || !currentTournoi) return null;
+        if (!currentTournoi.heure_debut || !window.TournoiTableau16) return null;
+        return window.TournoiTableau16.heureCreneau(
+            m.creneau,
+            currentTournoi.heure_debut,
+            currentTournoi.duree_match_minutes || 45
+        );
+    }
+
+    async function updateHoraires(heureDebut, dureeMin) {
+        if (guardReadOnly()) return;
+        var patch = { updated_at: new Date().toISOString() };
+        patch.heure_debut = heureDebut || null;
+        var d = parseInt(dureeMin, 10);
+        if (!isNaN(d) && d >= 10 && d <= 180) patch.duree_match_minutes = d;
+        var res = await supa.from('tournois').update(patch).eq('id', currentTournoi.id).select().single();
+        if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); return; }
+        currentTournoi = res.data;
+        render();
+        showToast(heureDebut ? 'Horaires : début ' + heureDebut : 'Heures théoriques masquées', 'ok');
+    }
+
     async function updateNbTerrains(nouv) {
         if (guardReadOnly()) return;
         var n = parseInt(nouv, 10);
@@ -7331,11 +7357,54 @@
         if (ex) banner.appendChild(el('span', { class: 'format-banner-example' }, ex));
         card.appendChild(banner);
 
+        // Horaires théoriques : un tableau programmé sur des créneaux n'a pas
+        // d'heure tant qu'on ne dit pas quand le tournoi commence.
+        if (matchs.some(function (m) { return m.creneau != null; })) {
+            var barre = el('div', { class: 'horaires-barre' });
+            barre.appendChild(el('span', { class: 'horaires-label' }, '🕐 Heures théoriques'));
+
+            var inH = el('input', {
+                type: 'time', class: 'tournoi-input horaires-input',
+                value: (currentTournoi.heure_debut || '').slice(0, 5)
+            });
+            barre.appendChild(el('span', { class: 'horaires-sous' }, 'début'));
+            barre.appendChild(inH);
+
+            var inD = el('input', {
+                type: 'number', min: '10', max: '180', step: '5',
+                class: 'tournoi-input horaires-input',
+                value: String(currentTournoi.duree_match_minutes || 45)
+            });
+            barre.appendChild(el('span', { class: 'horaires-sous' }, 'durée (min)'));
+            barre.appendChild(inD);
+
+            barre.appendChild(el('button', {
+                class: 'btn-live btn-live--outline btn-live--small',
+                onclick: function () { updateHoraires(inH.value, inD.value); }
+            }, 'Appliquer'));
+
+            if (currentTournoi.heure_debut) {
+                var dernier = Math.max.apply(null, matchs
+                    .filter(function (m) { return m.creneau != null; })
+                    .map(function (m) { return m.creneau; }));
+                var fin = window.TournoiTableau16
+                    ? window.TournoiTableau16.heureCreneau(dernier + 1,
+                        currentTournoi.heure_debut, currentTournoi.duree_match_minutes || 45)
+                    : null;
+                if (fin) barre.appendChild(el('span', { class: 'horaires-fin' }, 'fin prévue ' + fin));
+            } else {
+                barre.appendChild(el('span', { class: 'horaires-sous' },
+                    '— renseigne l\'heure de début pour les afficher'));
+            }
+            card.appendChild(barre);
+        }
+
         // Vue tableau : les tours en colonnes, comme un tableau affiché au mur.
         // La liste ci-dessous dit quand on joue ; le tableau dit où l'on va.
         if (window.TournoiBracketVue && isConfigTableau16()) {
             var vue = window.TournoiBracketVue.rendre({
                 matchs: matchs,
+                heureDe: heureTheorique,
                 nomEquipe: function (id) {
                     var e = equipes.find(function (x) { return x.id === id; });
                     return e ? equipeAffichage(e) : '?';
@@ -7937,7 +8006,11 @@
         // le public, et il remplace alors le numéro.
         var tour = (isFinale && isConfigTableau16() && window.TournoiTableau16)
             ? window.TournoiTableau16.libelleTour(m.ordre) : null;
+        // Heure théorique du créneau, quand le tournoi en a une. Un match déjà
+        // joué n'en a plus besoin : c'est son vrai horaire qui compte.
+        var heure = (m.status === 'en_attente') ? heureTheorique(m) : null;
         var metaText = (poule ? poule.nom + ' · ' : '')
+            + (heure ? '🕐 ' + heure + ' · ' : '')
             + (isFinale && !tour ? bracketLabel(m.bracket) + ' · ' : '')
             + (tour || 'Match ' + (m.ordre + 1))
             + retourTag + ' · ' + statusLabel(m.status)

@@ -218,6 +218,28 @@
         return out;
     }
 
+    // Heure théorique d'un créneau. « Théorique » parce qu'elle suppose que
+    // tout démarre à l'heure et que les matchs tiennent dans leur durée — ce
+    // qui n'arrive jamais tout à fait. Elle sert à convoquer et à se repérer,
+    // pas à promettre une heure exacte.
+    //
+    // Les tournois du soir débordent après minuit : on ramène donc l'horloge
+    // sur 24 h plutôt que d'afficher « 25h15 ».
+    //
+    // @param {number} creneau      0 pour le premier
+    // @param {string} heureDebut   'HH:MM' ou 'HH:MM:SS'
+    // @param {number} dureeMinutes durée d'un créneau
+    // @returns {string|null} 'HH:MM', ou null si l'heure de début manque
+    function heureCreneau(creneau, heureDebut, dureeMinutes) {
+        if (creneau == null || !heureDebut) return null;
+        var m = /^(\d{1,2}):(\d{2})/.exec(String(heureDebut));
+        if (!m) return null;
+        var total = (+m[1]) * 60 + (+m[2]) + creneau * (dureeMinutes || 45);
+        var t = ((total % 1440) + 1440) % 1440;
+        var hh = Math.floor(t / 60), mm = t % 60;
+        return (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+    }
+
     // Nom du tour d'un match, à partir de son `ordre` en base (l'indice dans
     // MATCHS, qui ne bouge pas). « Tableau principal · Match 5 » ne dit pas si
     // on regarde un 16e ou une demie : c'est le tour qui parle au public.
@@ -244,7 +266,8 @@
         convocations: convocations,
         dependances: dependances,
         libelleProvenance: libelleProvenance,
-        libelleTour: libelleTour
+        libelleTour: libelleTour,
+        heureCreneau: heureCreneau
     };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

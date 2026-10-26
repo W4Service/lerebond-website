@@ -2677,3 +2677,33 @@ select.tournoi-input option {
     font-size: 0.9rem;
     line-height: 1;
 }
+
+/* ===== Horaires théoriques ===== */
+.horaires-barre {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: #fafafa;
+    border: 1px solid #ececec;
+    border-radius: 8px;
+    font-size: 0.82rem;
+}
+
+.horaires-label { font-weight: 600; color: #680920; }
+.horaires-sous { color: #888; font-size: 0.76rem; }
+
+.horaires-input {
+    width: 6rem;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.82rem;
+}
+
+.horaires-fin {
+    margin-left: auto;
+    color: #888;
+    font-size: 0.76rem;
+    font-style: italic;
+}
