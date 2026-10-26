@@ -18,6 +18,8 @@ function check(n, c) { console.log((c ? '  ok   ' : '  FAIL ') + n); if (!c) ko+
 var src = fs.readFileSync('../js/tournoi-admin.js', 'utf8');
 var srcPrint = fs.readFileSync('../js/tournoi-print.js', 'utf8');
 var sql = fs.readFileSync('../supabase/migrations/20261026_tableau_source_match.sql', 'utf8');
+var VUE = require('../js/tournoi-bracket-vue.js');
+var srcVue = fs.readFileSync('../js/tournoi-bracket-vue.js', 'utf8');
 
 console.log('=== 28 matchs, et chaque équipe entre une seule fois ===');
 check('28 matchs définis', T16.MATCHS.length === 28);
@@ -211,6 +213,39 @@ var nonDom = usagesRoot.filter(function (u) {
     return !/^root\.(innerHTML|appendChild|querySelector|querySelectorAll|classList|style|textContent|removeChild|insertBefore|children|firstChild)/.test(u);
 });
 check('root ne sert qu\'a manipuler le DOM', nonDom.length === 0);
+
+console.log('\n=== Noms de tours plutot que « Match N » ===');
+// « Tableau principal · Match 5 » ne dit pas si on regarde un 16e ou une demie.
+check('le module expose le nom du tour', typeof T16.libelleTour === 'function');
+check('ordre 0 = 16e de finale 1', T16.libelleTour(0) === '16e de finale 1');
+check('ordre 8 = Quart 1', T16.libelleTour(8) === 'Quart 1');
+check('ordre 12 = Demi-finale 1', T16.libelleTour(12) === 'Demi-finale 1');
+check('ordre 14 = Finale', T16.libelleTour(14) === 'Finale');
+check('un ordre inconnu ne casse pas', T16.libelleTour(999) === null);
+check('l\'admin utilise le nom du tour dans l\'en-tete',
+      /libelleTour\(m\.ordre\)/.test(src));
+
+console.log('\n=== Vue tableau : les tours en colonnes ===');
+var tousOrdres = VUE.COLONNES_16.concat(VUE.COLONNES_CLASSEMENT_16)
+    .map(function (c) { return (c.ordres || []).concat(c.suite || []); })
+    .reduce(function (a, b) { return a.concat(b); }, [])
+    .sort(function (a, b) { return a - b; });
+var attendus = []; for (var z = 0; z < 28; z++) attendus.push(z);
+check('les 28 matchs sont places dans une colonne',
+      tousOrdres.join(',') === attendus.join(','));
+check('aucun match en double', new Set(tousOrdres).size === 28);
+// Les colonnes doivent correspondre aux vrais tours du module.
+check('la colonne 16es contient bien les 16es',
+      VUE.COLONNES_16[0].ordres.every(function (o) { return /^16e/.test(T16.libelleTour(o)); }));
+check('la colonne Quarts contient bien les quarts',
+      VUE.COLONNES_16[2].ordres.every(function (o) { return /^Quart/.test(T16.libelleTour(o)); }));
+check('la finale est seule dans sa colonne', VUE.COLONNES_16[4].ordres.length === 1);
+check('un tableau incomplet ne rend rien plutot qu\'un affichage faux',
+      /if \(!complet\) return null;/.test(srcVue));
+check('le vainqueur et le perdant sont distingues',
+      /bracket-equipe--gagnant/.test(srcVue) && /bracket-equipe--perdant/.test(srcVue));
+check('la provenance s\'affiche quand l\'equipe est inconnue',
+      /libelleVide/.test(srcVue) && /libelleVide/.test(src));
 
 console.log(ko === 0 ? '\nTous les tests passent.' : '\n' + ko + ' test(s) en échec.');
 process.exit(ko === 0 ? 0 : 1);

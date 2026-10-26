@@ -2546,3 +2546,134 @@ select.tournoi-input option {
     font-size: 0.8rem;
     color: #a03030;
 }
+
+/* ===== Vue tableau (arborescence de compétition) ===== */
+.bracket-details {
+    margin: 0.75rem 0 1.25rem;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.bracket-summary {
+    padding: 0.6rem 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #680920;
+    user-select: none;
+}
+
+.bracket-vue {
+    padding: 0 0.9rem 0.9rem;
+}
+
+.bracket-bloc + .bracket-bloc {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #ddd;
+}
+
+.bracket-bloc-titre {
+    margin: 0 0 0.6rem;
+    font-size: 0.85rem;
+    color: #680920;
+}
+
+/* Défilement horizontal : un tableau de 16 fait cinq colonnes, qui ne tiennent
+   pas sur un téléphone. On préfère faire défiler que compresser au point de
+   rendre les noms illisibles. */
+.bracket-grille {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.bracket-colonne {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 0 0 11.5rem;
+    min-width: 11.5rem;
+}
+
+.bracket-colonne-titre {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #999;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.bracket-match {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.bracket-match--clic { cursor: pointer; }
+.bracket-match--clic:hover { border-color: #680920; }
+
+.bracket-match--en_cours {
+    border-color: #efa707;
+    box-shadow: 0 0 0 2px rgba(239, 167, 7, 0.18);
+}
+
+.bracket-match--vide {
+    padding: 0.6rem;
+    text-align: center;
+    color: #bbb;
+    background: transparent;
+    border-style: dashed;
+}
+
+.bracket-equipe {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.76rem;
+    line-height: 1.25;
+}
+
+.bracket-equipe + .bracket-equipe { border-top: 1px solid #f0f0f0; }
+
+.bracket-nom {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Le vainqueur ressort, le perdant s'efface : on doit pouvoir suivre un
+   parcours d'un coup d'œil sans lire les scores. */
+.bracket-equipe--gagnant { font-weight: 700; color: #1a1a1a; }
+.bracket-equipe--perdant { color: #aaa; }
+.bracket-equipe--attente { color: #999; font-style: italic; }
+
+.bracket-score {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #680920;
+}
+
+.bracket-pied {
+    padding: 0.2rem 0.5rem 0.3rem;
+    font-size: 0.66rem;
+    color: #999;
+    background: #fbfbfb;
+    border-top: 1px solid #f0f0f0;
+}
+
+.bracket-fleche {
+    text-align: center;
+    color: #ccc;
+    font-size: 0.9rem;
+    line-height: 1;
+}

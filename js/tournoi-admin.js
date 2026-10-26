@@ -7331,6 +7331,36 @@
         if (ex) banner.appendChild(el('span', { class: 'format-banner-example' }, ex));
         card.appendChild(banner);
 
+        // Vue tableau : les tours en colonnes, comme un tableau affiché au mur.
+        // La liste ci-dessous dit quand on joue ; le tableau dit où l'on va.
+        if (window.TournoiBracketVue && isConfigTableau16()) {
+            var vue = window.TournoiBracketVue.rendre({
+                matchs: matchs,
+                nomEquipe: function (id) {
+                    var e = equipes.find(function (x) { return x.id === id; });
+                    return e ? equipeAffichage(e) : '?';
+                },
+                libelleVide: function (m, side) {
+                    // Provenance plutôt que « ? » : le joueur éliminé veut savoir
+                    // quel match décide de son prochain adversaire.
+                    var srcId = side === 'a' ? m.equipe_a_source_match_id : m.equipe_b_source_match_id;
+                    var type = side === 'a' ? m.equipe_a_source_type : m.equipe_b_source_type;
+                    if (!srcId || !window.TournoiTableau16) return 'à venir';
+                    var src = matchs.find(function (x) { return x.id === srcId; });
+                    if (!src) return 'à venir';
+                    var lib = window.TournoiTableau16.libelleTour(src.ordre);
+                    if (!lib) return 'à venir';
+                    return (type === 'gagnant' ? 'Vainqueur ' : 'Perdant ') + lib;
+                }
+            });
+            if (vue) {
+                var boite = el('details', { class: 'bracket-details', open: 'open' });
+                boite.appendChild(el('summary', { class: 'bracket-summary' }, '🗂 Vue tableau'));
+                boite.appendChild(vue);
+                card.appendChild(boite);
+            }
+        }
+
         if (matchs.length === 0) {
             card.appendChild(el('p', { class: 'tournoi-empty' }, 'Aucun match. Génère les matchs depuis la section "Poules".'));
             return card;
@@ -7902,7 +7932,16 @@
         var retourTag = m.is_retour ? ' · 🔄 retour' : '';
         var dragHandle = m.phase === 'poule' && m.status !== 'termine'
             ? '<span class="match-drag-handle" title="Glisser pour réordonner">⋮⋮</span> ' : '';
-        var metaText = (poule ? poule.nom + ' · ' : '') + (isFinale ? bracketLabel(m.bracket) + ' · ' : '') + 'Match ' + (m.ordre + 1) + retourTag + ' · ' + statusLabel(m.status) + (ready ? '' : ' · ⏸ en attente d\'un match parent');
+        // Sur un tableau de 16, « Match 5 » ne dit pas s'il s'agit d'un 16e ou
+        // d'une demie. Le nom du tour est plus parlant, pour le JA comme pour
+        // le public, et il remplace alors le numéro.
+        var tour = (isFinale && isConfigTableau16() && window.TournoiTableau16)
+            ? window.TournoiTableau16.libelleTour(m.ordre) : null;
+        var metaText = (poule ? poule.nom + ' · ' : '')
+            + (isFinale && !tour ? bracketLabel(m.bracket) + ' · ' : '')
+            + (tour || 'Match ' + (m.ordre + 1))
+            + retourTag + ' · ' + statusLabel(m.status)
+            + (ready ? '' : ' · ⏸ en attente d\'un match parent');
         var metaSpan = el('span', { class: 'match-meta', html: dragHandle + escapeHtml(metaText) });
         header.appendChild(metaSpan);
 
