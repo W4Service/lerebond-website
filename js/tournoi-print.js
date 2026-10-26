@@ -75,6 +75,9 @@
         if (b === 'classement_bronze') return '🥉 Poule Bronze · places 7-9';
         if (b === 'principal') return '🏆 Tableau principal';
         if (b === 'consolation_5_8') return 'Consolation · places 5-8';
+        if (b === 'consolation_9_12') return 'Classement · places 9-12';
+        if (b === 'consolation_13_16') return 'Classement · places 13-16';
+        if (b === 'places_15_16') return 'Match places 15-16';
         if (b === 'places_1_2') return 'Finale · places 1-2';
         if (b === 'places_5_6') return 'Match places 5-6';
         if (b === 'places_7_8') return 'Match places 7-8';
@@ -140,6 +143,22 @@
         if (byBracket['places_7_8']) addSinglePair('places_7_8', 7, 8);
         if (byBracket['places_9_10']) addSinglePair('places_9_10', 9, 10);
         if (byBracket['places_11_12']) addSinglePair('places_11_12', 11, 12);
+
+        // Matchs portant leur place en base (place_vainqueur) : le vainqueur
+        // prend cette place, le perdant la suivante. Évite d'ajouter une ligne
+        // codée en dur par paire de places — un tableau de 16 en demande huit.
+        // Les places déjà calculées ci-dessus ne sont pas réécrites.
+        var dejaVues = {};
+        places.forEach(function (p) { dejaVues[p.place] = true; });
+        matchs.filter(function (m) {
+            return m.phase === 'finale' && m.place_vainqueur != null;
+        }).forEach(function (m) {
+            if (dejaVues[m.place_vainqueur]) return;
+            places.push({ place: m.place_vainqueur, nom: nomFor(winnerOf(m)) });
+            places.push({ place: m.place_vainqueur + 1, nom: nomFor(loserOf(m)) });
+            dejaVues[m.place_vainqueur] = true;
+        });
+
         places.sort(function (a, b) { return a.place - b.place; });
         return places;
     }
@@ -268,6 +287,10 @@
                 if (b === 'classement_argent') return 4;
                 if (b === 'classement_bronze') return 7;
                 if (b === 'consolation_5_8') return 5;
+                if (b === 'consolation_9_12') return 9;
+                if (b === 'consolation_13_16') return 13;
+                if (b === 'places_13_14') return 13;
+                if (b === 'places_15_16') return 15;
                 if (b === 'places_1_2') return 1;
                 if (b === 'places_3_4') return 3;
                 if (b === 'places_5_6') return 5;
