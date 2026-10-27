@@ -7220,6 +7220,28 @@
         var places = [];
         var offset = 1;
 
+        // Matchs qui portent leur place en base (place_vainqueur).
+        //
+        // Prioritaire sur tout le reste : c'est une donnée, pas une déduction.
+        // Les règles ci-dessous devinent les places à partir du nom du bracket
+        // et du nombre d'entrants — ça marche pour les formats à poules, mais
+        // pas pour un tableau de 16 dont le bracket « principal » contient les
+        // 16es, 8es, quarts et demies : aucune place ne s'en déduit, et le
+        // classement sortait vide.
+        var avecPlace = matchs.filter(function (m) {
+            return m.phase === 'finale' && m.place_vainqueur != null;
+        });
+        if (avecPlace.length) {
+            avecPlace.sort(function (a, b) { return a.place_vainqueur - b.place_vainqueur; });
+            avecPlace.forEach(function (m) {
+                var w = winnerOf(m), l = loserOf(m);
+                places.push({ place: m.place_vainqueur, equipe_id: w, nom: nomFor(w) });
+                places.push({ place: m.place_vainqueur + 1, equipe_id: l, nom: nomFor(l) });
+            });
+            places.sort(function (a, b) { return a.place - b.place; });
+            return places;
+        }
+
         // Tableau principal
         var principal = byBracket['principal'] || [];
         if (principal.length > 0) {

@@ -273,5 +273,63 @@ check('la TV n\'utilise pas les heures theoriques',
       !/heureCreneau|heureTheorique/.test(srcTv));
 check('la TV ne lit pas le creneau', !/\bcreneau\b/.test(srcTv));
 
+console.log('\n=== Classement final cote administration ===');
+// L'admin a sa propre computeClassementFinal, qui DEDUISAIT les places du nom
+// du bracket et du nombre d'entrants. Sur un tableau de 16, le bracket
+// « principal » contient les 16es, 8es, quarts et demies : aucune place ne
+// s'en deduit, et le classement sortait VIDE.
+function extraireFnAdmin(nom) {
+    var i = src.indexOf('function ' + nom + '(');
+    var j = src.indexOf('{', i), d = 0, k = j;
+    do { if (src[k] === '{') d++; else if (src[k] === '}') d--; k++; } while (d > 0);
+    return src.slice(i, k);
+}
+check('place_vainqueur est lu en priorite',
+      /var avecPlace = matchs\.filter/.test(src)
+      && /m\.place_vainqueur != null/.test(src));
+check('le perdant prend la place suivante',
+      /place: m\.place_vainqueur \+ 1/.test(src));
+
+// Rejoue la fonction reelle sur un tournoi complet simule.
+var ctx = 'var matchs=arguments[0],equipes=arguments[1];'
+    + 'function classementGlobal(){return [];}function trierParStats(x){return x;}'
+    + 'function computeClassement(){return [];}var poules=[];var BRACKETS_3P3=[];'
+    + 'function isConfig3p3(){return false;}function isConfig2p4(){return false;}';
+var calc = new Function(ctx + extraireFnAdmin('computeClassementFinal')
+    + ';return computeClassementFinal();');
+
+// Les 28 matchs joues (le mieux place gagne), convertis au format base.
+var msBase = [], eqBase = [];
+for (var n = 1; n <= 16; n++) eqBase.push({ id: 'E' + n, nom: 'E' + n });
+plan.forEach(function (m) {
+    var r = resultat[m.ref];
+    msBase.push({
+        phase: 'finale', bracket: m.bracket, ordre: m.ordre, status: 'termine',
+        place_vainqueur: m.place || null,
+        equipe_a_id: r.a, equipe_b_id: r.b, vainqueur_id: r.w
+    });
+});
+var clAdmin = calc(msBase, eqBase);
+check('16 lignes de classement', clAdmin.length === 16);
+var placesAdmin = clAdmin.map(function (x) { return x.place; });
+check('places 1 a 16 dans l\'ordre, sans trou',
+      placesAdmin.join(',') === attendu.join(','));
+check('16 equipes distinctes, aucun doublon',
+      new Set(clAdmin.map(function (x) { return x.equipe_id; })).size === 16);
+check('aucune ligne vide', clAdmin.every(function (x) { return !!x.nom; }));
+// Le mieux place gagne toujours : le vainqueur du tableau doit etre 1er.
+check('le vainqueur de la finale est 1er', clAdmin[0].equipe_id === resultat.F.w);
+check('le perdant de la finale est 2e', clAdmin[1].equipe_id === resultat.F.l);
+check('le vainqueur du match 15e place est 15e',
+      clAdmin[14].equipe_id === resultat.P15.w);
+
+// Non-regression : sans place_vainqueur, l'ancien chemin reste emprunte.
+var sansPlace = msBase.map(function (m) {
+    var c = {}; for (var k in m) c[k] = m[k]; c.place_vainqueur = null; return c;
+});
+var clAncien = calc(sansPlace, eqBase);
+check('sans place_vainqueur, l\'ancien calcul est utilise',
+      clAncien.length !== 16 || clAncien.join() !== clAdmin.join());
+
 console.log(ko === 0 ? '\nTous les tests passent.' : '\n' + ko + ' test(s) en échec.');
 process.exit(ko === 0 ? 0 : 1);
