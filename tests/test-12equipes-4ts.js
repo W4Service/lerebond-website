@@ -20,7 +20,7 @@ var BAS = extraireTable('BAS_4TS_2P4');
 
 console.log('=== Structure du tableau ===');
 check('4 quarts de finale', QUARTS.length === 4);
-check('2 demies de bas de tableau', BAS.length === 2);
+check('2 matchs de classement en bas de tableau', BAS.length === 2);
 
 // 4 TS + 2 poules de 4 = 12 équipes
 check('12 équipes (4 TS + 2 poules de 4)', 4 + 4 + 4 === 12);
@@ -28,11 +28,11 @@ check('12 équipes (4 TS + 2 poules de 4)', 4 + 4 + 4 === 12);
 // Matchs : 2 poules de 4 en round-robin = 2 x 6 = 12
 // Phase finale : 4 quarts + 2 demies + finale + petite finale = 8
 //                + 2 demies conso + 5-6 + 7-8 = 4
-//                + 2 demies bas + 9-10 + 11-12 = 4
-var poule = 2 * 6, finale = 8 + 4 + 4;
+//                + 9-10 + 11-12 = 2
+var poule = 2 * 6, finale = 8 + 4 + 2;
 console.log('  ' + poule + ' matchs de poule + ' + finale + ' de phase finale = ' + (poule + finale));
-check('16 matchs de phase finale', finale === 16);
-check('28 matchs au total', poule + finale === 28);
+check('14 matchs de phase finale', finale === 14);
+check('26 matchs au total', poule + finale === 26);
 
 console.log('\n=== Les 4 têtes de série sont placées une fois chacune ===');
 var tsVues = QUARTS.map(function (q) { return q.ts; }).sort();
@@ -59,23 +59,28 @@ var demie2 = [QUARTS[2], QUARTS[3]].map(function (q) { return q.poule; });
 check('demie 1 : deux poules différentes', demie1[0] !== demie1[1]);
 check('demie 2 : deux poules différentes', demie2[0] !== demie2[1]);
 
-console.log('\n=== Bas de tableau (places 9-12) : 3es et 4es croisés ===');
-var basSlots = [];
-BAS.forEach(function (d) {
-    basSlots.push(d.a.poule + d.a.rang);
-    basSlots.push(d.b.poule + d.b.rang);
-});
-check('A3, A4, B3, B4 chacun une fois', basSlots.sort().join(',') === 'A3,A4,B3,B4');
-BAS.forEach(function (d, i) {
-    check('demie ' + (i + 1) + ' croise les deux poules', d.a.poule !== d.b.poule);
-    check('demie ' + (i + 1) + ' oppose un 3e à un 4e', d.a.rang !== d.b.rang);
-});
+console.log('\n=== Bas de tableau : chaque rang contre son homologue ===');
+check('places 9-10 : les 3es', BAS[0].bracket === 'places_9_10' && BAS[0].rang === 3);
+check('places 11-12 : les 4es', BAS[1].bracket === 'places_11_12' && BAS[1].rang === 4);
+check('un seul match par rang', BAS.length === 2);
+check('pas de bracket interm\u00e9diaire \u00e0 cha\u00eener',
+    src.indexOf("bracket: 'bas_9_12'") < 0);
 
-console.log('\n=== Chaque équipe éliminée joue un match de classement ===');
-// 4 perdants de quart -> consolation (2 demies + 2 matchs de place) : 2 matchs chacun
-// 4 équipes du bas (3es/4es) -> 2 demies + 2 matchs de place : 2 matchs chacun
-check('les 4 perdants de quart rejouent', 4 === 4);
-check('les 4 derniers de poule jouent 2 matchs', BAS.length * 2 === 4);
+console.log('\n=== Chaque équipe éliminée a un match de classement ===');
+// Les 4 perdants de quart vont en consolation (2 demies puis 5-6 et 7-8).
+// Les 3es et 4es de poule ont chacun un match (9-10 ou 11-12).
+check('les 4 derniers de poule sont plac\u00e9s', BAS.length * 2 === 4);
+
+console.log('\n=== Les quarts engendrent demies ET consolation ===');
+// Sans cette branche, les demies et la consolation ne sont jamais cr\u00e9\u00e9es.
+check('branche isConfig4ts2p4 dans genererTourSuivant',
+    src.indexOf('lastRound.length === 4 && isConfig4ts2p4()') > 0);
+var iBranche = src.indexOf('lastRound.length === 4 && isConfig4ts2p4()');
+var extrait = src.slice(iBranche, iBranche + 2000);
+check('la branche cr\u00e9e 2 demies dans le bracket courant',
+    (extrait.match(/bracket: bracket,/g) || []).length === 2);
+check('la branche cr\u00e9e 2 matchs de consolation',
+    (extrait.match(/bracket: 'consolation_5_8'/g) || []).length === 2);
 
 console.log('\n=== Le format est déclaré dans le catalogue ===');
 check('entrée maison_4ts_2p4', src.indexOf("id: 'maison_4ts_2p4'") > 0);
@@ -85,11 +90,9 @@ check('finale câblée', src.indexOf('finale: genererPhaseFinale4ts2p4') > 0);
 check('compo 2 poules de 4 + 4 hors poule',
     src.indexOf('compo: { poules: [4, 4], horsPoule: 4 }') > 0);
 
-console.log('\n=== Le bracket bas_9_12 est câblé partout ===');
-check('chaînage vers places_9_10 / places_11_12',
-    src.indexOf("bracket === 'bas_9_12'") > 0);
-check('libellé d\'affichage', src.indexOf("b === 'bas_9_12'") > 0);
-check('ordre d\'affichage', src.match(/if \(b === 'bas_9_12'\) return 9;/) !== null);
+console.log('\n=== Les places 9-10 et 11-12 sont posées directement ===');
+check('bracket places_9_10 produit', src.indexOf("bracket: 'places_9_10'") > 0);
+check('bracket places_11_12 produit', src.indexOf("bracket: 'places_11_12'") > 0);
 
 console.log('');
 if (ko) { console.log(ko + ' test(s) en échec.'); process.exit(1); }

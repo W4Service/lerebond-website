@@ -81,6 +81,26 @@ table.matchs tr.en_cours td { background: #fff8e8; }
 .classement-final td { padding: 0.3rem 0.5rem; border-bottom: 1px dashed #eee; }
 .classement-final .rank { font-weight: 700; color: #680920; width: 80px; }
 
+/* Matchs à lancer : en tête de page, c'est ce qu'on cherche feuille en main. */
+.a-lancer {
+    border: 2px solid #680920;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    page-break-inside: avoid;
+}
+.a-lancer h2 { margin-top: 0; }
+.a-lancer h3 { color: #680920; margin-top: 0.8rem; }
+.a-lancer table.matchs td.origine { color: #666; font-size: 0.9rem; }
+/* Case de score vierge : on la remplit au stylo. */
+.a-lancer table.matchs td.score:empty { min-width: 70px; }
+.a-lancer table.matchs td.score:empty::after {
+    content: '';
+    display: block;
+    border-bottom: 1px solid #bbb;
+    margin: 0.45rem 0.2rem 0.1rem;
+}
+
 .empty { color: #999; font-style: italic; padding: 2rem; text-align: center; }
 
 @media print {
@@ -89,7 +109,7 @@ table.matchs tr.en_cours td { background: #fff8e8; }
     h1 { font-size: 18pt; }
     h2 { font-size: 14pt; }
     h3 { font-size: 12pt; }
-    .poule, .matchs-section, .classement-final { break-inside: avoid; }
+    .poule, .matchs-section, .classement-final, .a-lancer { break-inside: avoid; }
 }
 </style>
 </head>
@@ -105,11 +125,11 @@ table.matchs tr.en_cours td { background: #fff8e8; }
 <p class="empty">Chargement…</p>
 </div>
 
-<script src="js/vendor/supabase.min.js?v=4783b735"></script>
-<script src="js/vendor/qrcode.min.js?v=4783b735"></script>
-<script src="js/resa-config.min.js?v=4783b735"></script>
-<script src="js/supabase-client.js?v=4783b735"></script>
-<script src="js/tournoi-print.js?v=4783b735"></script>
+<script src="js/vendor/supabase.min.js?v=7022530d"></script>
+<script src="js/vendor/qrcode.min.js?v=7022530d"></script>
+<script src="js/resa-config.min.js?v=7022530d"></script>
+<script src="js/supabase-client.js?v=7022530d"></script>
+<script src="js/tournoi-print.js?v=7022530d"></script>
 
 </body>
 </html>
