@@ -5419,6 +5419,13 @@
             title: 'Ouvre une page imprimable (poules + matchs)'
         }, '🖨️ Imprimer / PDF');
         bar.appendChild(printBtn);
+        var diagBtn = el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: function () { window.open('live/tournoi/diag/?t=' + currentTournoi.id, '_blank'); },
+            title: 'Pourquoi un match n\'apparaît pas : config détectée, brackets en base, '
+                 + 'et ce qui bloque le tour suivant. Lecture seule.'
+        }, '🔎 Diagnostic');
+        bar.appendChild(diagBtn);
         return bar;
     }
 
