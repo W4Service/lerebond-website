@@ -7679,17 +7679,35 @@
         if (matchsPoule.length > 0) {
             var pouleSection = el('div', { class: 'phase-section' });
             pouleSection.appendChild(el('h4', { class: 'phase-section-title' }, '🎾 Phase de poule'));
-            var byTerrain = {};
+            // Regroupement par poule, et non par terrain : changer le terrain
+            // d'un match ne doit pas le déplacer d'une section à l'autre. Le
+            // terrain reste lisible et modifiable sur chaque carte de match.
+            var parPoule = {};
             matchsPoule.forEach(function (m) {
-                var t = m.terrain || 'aucun';
-                if (!byTerrain[t]) byTerrain[t] = [];
-                byTerrain[t].push(m);
+                var cle = m.poule_id || 'sans';
+                if (!parPoule[cle]) parPoule[cle] = [];
+                parPoule[cle].push(m);
             });
-            Object.keys(byTerrain).sort().forEach(function (t) {
+
+            // Les poules dans leur ordre, puis les matchs sans poule.
+            var clesOrdonnees = poules.slice()
+                .sort(function (a, b) { return a.ordre - b.ordre; })
+                .map(function (p) { return p.id; })
+                .filter(function (id) { return parPoule[id]; });
+            if (parPoule['sans']) clesOrdonnees.push('sans');
+
+            clesOrdonnees.forEach(function (cle) {
+                var p = poules.find(function (x) { return x.id === cle; });
+                var titre = p
+                    ? '🎾 ' + p.nom + (p.terrain ? ' · terrain ' + p.terrain : '')
+                    : '🎾 Hors poule';
                 var section = el('div', { class: 'terrain-section' });
-                section.appendChild(el('h5', { class: 'terrain-title' }, '🏟️ Terrain ' + t));
+                section.appendChild(el('h5', { class: 'terrain-title' }, titre));
                 var list = el('div', { class: 'matchs-list' });
-                byTerrain[t].forEach(function (m) { list.appendChild(renderMatchAdmin(m)); });
+                parPoule[cle]
+                    .slice()
+                    .sort(function (a, b) { return a.ordre - b.ordre; })
+                    .forEach(function (m) { list.appendChild(renderMatchAdmin(m)); });
                 section.appendChild(list);
                 pouleSection.appendChild(section);
             });
