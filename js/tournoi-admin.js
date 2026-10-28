@@ -1019,6 +1019,22 @@
                     finale: genererPhaseFinale4ts2p3
                 },
                 {
+                    id: 'maison_4ts_2p4',
+                    nom: '4 têtes de série + 2 poules de 4',
+                    detail: 'Les 4 TS entrent en quarts contre les 2 premiers de chaque poule '
+                          + '(poules croisées : TS1 contre le 2e B, TS4 contre le 1er A, etc.). '
+                          + 'Demies, finale et petite finale (places 1-4), consolation des '
+                          + 'perdants de quart (5-8). Les 3es et 4es jouent un tableau croisé '
+                          + 'pour les places 9-12. Classement complet de 1 à 12, '
+                          + '16 matchs de phase finale, 2 au minimum par équipe éliminée.',
+                    homologable: false,
+                    requis: '2 poules de 4 + 4 équipes hors poule (12 équipes)',
+                    compo: { poules: [4, 4], horsPoule: 4 },
+                    applicable: isConfig4ts2p4,
+                    squelette: genererSquelette4ts2p4,
+                    finale: genererPhaseFinale4ts2p4
+                },
+                {
                     id: 'maison_2ts_3p4',
                     nom: '2 têtes de série + 3 poules de 4',
                     detail: 'Les 2 TS entrent en quarts avec les 2 premiers de chaque poule, '
@@ -2727,6 +2743,138 @@
         showToast('Quarts (4 TS + 2 poules de 3) générés : ' + res.data.length + ' matchs', 'ok');
     }
 
+    // ===== Format "4 TS + 2 poules de 4" (12 équipes) =====
+    //
+    // 4 têtes de série exemptées de poule, 8 équipes en 2 poules de 4.
+    // Les 2 premiers de chaque poule rejoignent les 4 TS en quarts.
+    //
+    // Tableau des quarts. TS1 et TS2 sont placées aux deux extrémités pour
+    // qu'elles ne puissent se rencontrer qu'en finale ; TS3 et TS4 occupent
+    // les deux quarts du milieu. Chaque TS affronte un qualifié, et on croise
+    // les poules pour qu'un 1er et un 2e de la même poule ne se recroisent pas
+    // dès les quarts :
+    //
+    //   Q1  TS1  vs  2e B   \  demi 1
+    //   Q2  TS4  vs  1er A  /
+    //   Q3  TS3  vs  1er B  \  demi 2
+    //   Q4  TS2  vs  2e A   /
+    //
+    // Places 1-4  : demies, finale, petite finale.
+    // Places 5-8  : consolation des 4 perdants de quart (bracket consolation_5_8).
+    // Places 9-12 : les 3es et 4es de poule, en tableau croisé (demies puis
+    //               9-10 et 11-12), pour que chaque équipe joue deux matchs.
+    var QUARTS_4TS_2P4 = [
+        { ts: 1, poule: 'B', rang: 2 },
+        { ts: 4, poule: 'A', rang: 1 },
+        { ts: 3, poule: 'B', rang: 1 },
+        { ts: 2, poule: 'A', rang: 2 }
+    ];
+
+    // Demies du bas de tableau (places 9-12) : les 3es et 4es croisés.
+    //   D1  3e A  vs  4e B
+    //   D2  3e B  vs  4e A
+    // Les 2 gagnants jouent les places 9-10, les 2 perdants les places 11-12.
+    var BAS_4TS_2P4 = [
+        { a: { poule: 'A', rang: 3 }, b: { poule: 'B', rang: 4 } },
+        { a: { poule: 'B', rang: 3 }, b: { poule: 'A', rang: 4 } }
+    ];
+
+    // Construit les 4 quarts. Les TS sont connues dès le départ ; les qualifiés
+    // sont des placeholders rang_poule tant que les poules ne sont pas finies.
+    function buildQuarts4ts2p4(ts, poulesOrdonnees, avecPlaceholders, pickT) {
+        return QUARTS_4TS_2P4.map(function (q, i) {
+            var poule = poulesOrdonnees[q.poule === 'A' ? 0 : 1];
+            var m = {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'principal',
+                status: 'en_attente', ordre: i, terrain: pickT(i),
+                equipe_a_id: ts[q.ts - 1] ? ts[q.ts - 1].id : null,
+                equipe_b_id: null
+            };
+            if (avecPlaceholders) {
+                m.equipe_b_source_poule_id = poule.id;
+                m.equipe_b_source_ordre = q.rang;
+                m.equipe_b_source_type = 'rang_poule';
+            } else {
+                var c = computeClassement(poule.id);
+                m.equipe_b_id = c[q.rang - 1] ? c[q.rang - 1].id : null;
+            }
+            return m;
+        });
+    }
+
+    // Demies du bracket des places 9-12.
+    function buildBas4ts2p4(poulesOrdonnees, avecPlaceholders, ordreStart, pickT) {
+        return BAS_4TS_2P4.map(function (d, i) {
+            var ordre = ordreStart + i;
+            var m = {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: 'bas_9_12',
+                status: 'en_attente', ordre: i, terrain: pickT(ordre),
+                equipe_a_id: null, equipe_b_id: null
+            };
+            ['a', 'b'].forEach(function (side) {
+                var spec = d[side];
+                var poule = poulesOrdonnees[spec.poule === 'A' ? 0 : 1];
+                if (avecPlaceholders) {
+                    m['equipe_' + side + '_source_poule_id'] = poule.id;
+                    m['equipe_' + side + '_source_ordre'] = spec.rang;
+                    m['equipe_' + side + '_source_type'] = 'rang_poule';
+                } else {
+                    var c = computeClassement(poule.id);
+                    m['equipe_' + side + '_id'] = c[spec.rang - 1] ? c[spec.rang - 1].id : null;
+                }
+            });
+            return m;
+        });
+    }
+
+    // Pose le format complet. avecPlaceholders = true avant la fin des poules.
+    async function poser4ts2p4(avecPlaceholders) {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var ts = tsHorsPoule();
+        if (poulesOrdonnees.length !== 2 || ts.length !== 4) {
+            showToast('Format 4 TS + 2 poules de 4 : il faut 4 équipes hors poule et 2 poules de 4.', 'error');
+            return false;
+        }
+
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+
+        var newMatchs = buildQuarts4ts2p4(ts, poulesOrdonnees, avecPlaceholders, pickT);
+        newMatchs = newMatchs.concat(
+            buildBas4ts2p4(poulesOrdonnees, avecPlaceholders, newMatchs.length, pickT)
+        );
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) {
+            showToast('Erreur : ' + res.error.message, 'error');
+            console.error('[4ts2p4]', res.error);
+            return false;
+        }
+        matchs = matchs.concat(res.data);
+        return true;
+    }
+
+    // Squelette : posé avant ou pendant les poules, les qualifiés étant des
+    // placeholders que propagateRangPoule résout au fil des résultats.
+    async function genererSquelette4ts2p4() {
+        if (!await poser4ts2p4(true)) return;
+        await propagateRangPoule();
+    }
+
+    // Phase finale avec les équipes réelles : les poules sont terminées.
+    async function genererPhaseFinale4ts2p4() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var classements = poulesOrdonnees.map(function (p) { return computeClassement(p.id); });
+        if (!classements.every(function (c) { return c.length === 4; })) {
+            showToast('Classements de poule incomplets.', 'error');
+            return;
+        }
+        if (!await poser4ts2p4(false)) return;
+        await updateTournoi({ phase: 'finale' });
+        render();
+        showToast('Phase finale (4 TS + 2 poules de 4) générée : 6 matchs', 'ok');
+    }
+
     // Format 14 équipes : 2 TS exemptées + 3 poules de 4.
     //
     // Tableau des quarts. TS1 et TS2 sont placées aux deux extrémités, pour qu'elles
@@ -4020,6 +4168,18 @@
         return equipes.filter(function (e) { return !e.poule_id; }).length === 4;
     }
 
+    // Config "4 TS + 2 poules de 4" (12 équipes) : 4 têtes de série exemptées de
+    // poule (poule_id null), et 8 équipes réparties en 2 poules de 4.
+    // Les 2 premiers de chaque poule rejoignent les 4 TS en quarts de finale.
+    function isConfig4ts2p4() {
+        if (poules.length !== 2) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        if (!tailles.every(function (n) { return n === 4; })) return false;
+        return equipes.filter(function (e) { return !e.poule_id; }).length === 4;
+    }
+
     // Les 4 têtes de série d'un tournoi "4 TS + 2 poules de 3" : les équipes hors
     // poule, de la plus forte à la plus faible. TS1 = la mieux classée.
     function tsHorsPoule() {
@@ -4311,6 +4471,39 @@
             matchs = matchs.concat(resC.data);
             render();
             showToast(resC.data.length + ' match(s) suivants générés', 'ok');
+            return;
+        }
+
+        // Bas de tableau du format "4 TS + 2 poules de 4" : les 3es et 4es de poule
+        // ont joué deux demies croisées ; les gagnants se disputent les places 9-10,
+        // les perdants les places 11-12.
+        if (bracket === 'bas_9_12') {
+            if (bracketMatchs.length !== 2) {
+                showToast('Tableau des places 9-12 déjà complet.', 'error');
+                return;
+            }
+            var perdantBas = function (m) {
+                return m.vainqueur_id === m.equipe_a_id ? m.equipe_b_id : m.equipe_a_id;
+            };
+            nextMatchs.push({
+                phase: 'finale', bracket: 'places_9_10',
+                tournoi_id: currentTournoi.id, status: 'en_attente',
+                ordre: 0, terrain: terrains[0],
+                equipe_a_id: bracketMatchs[0].vainqueur_id,
+                equipe_b_id: bracketMatchs[1].vainqueur_id
+            });
+            nextMatchs.push({
+                phase: 'finale', bracket: 'places_11_12',
+                tournoi_id: currentTournoi.id, status: 'en_attente',
+                ordre: 0, terrain: terrains[1 % terrains.length],
+                equipe_a_id: perdantBas(bracketMatchs[0]),
+                equipe_b_id: perdantBas(bracketMatchs[1])
+            });
+            var resBas = await supa.from('matchs').insert(nextMatchs).select();
+            if (resBas.error) { showToast('Erreur : ' + resBas.error.message, 'error'); console.error(resBas.error); return; }
+            matchs = matchs.concat(resBas.data);
+            render();
+            showToast(resBas.data.length + ' match(s) suivants générés', 'ok');
             return;
         }
 
@@ -4637,6 +4830,15 @@
             // Fini seulement une fois les matchs 5-6 / 7-8 créés.
             return matchs.some(function (m) {
                 return m.phase === 'finale' && (m.bracket === 'places_5_6' || m.bracket === 'places_7_8');
+            });
+        }
+
+        // Bas de tableau 9-12 : 2 demies croisées, puis les matchs 9-10 et 11-12
+        // (brackets séparés). Le bracket s'arrête après ses 2 demies.
+        if (bracket === 'bas_9_12') {
+            if (!b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; })) return false;
+            return matchs.some(function (m) {
+                return m.phase === 'finale' && (m.bracket === 'places_9_10' || m.bracket === 'places_11_12');
             });
         }
 
@@ -7194,7 +7396,8 @@
             }
 
             // === Cas 8 matchs : 4 quarts + 2 demis + finale + petite finale ===
-            // (format 4 TS + 2 poules de 3). Les places 5-8 ne viennent PAS d'ici :
+            // (formats 4 TS + 2 poules de 3, et 4 TS + 2 poules de 4).
+            // Les places 5-8 ne viennent PAS d'ici :
             // elles sortent du tableau de consolation, qui a ses propres brackets.
             if (nbMatchs === 8) {
                 var finale8 = ms[6], petite8 = ms[7];
@@ -7342,6 +7545,7 @@
         // Mode maison
         if (b === 'consolation_5_8') return '🎾 Consolation · places 5-8';
         if (b === 'consolation_9_12') return '🎾 Classement · places 9-12';
+        if (b === 'bas_9_12') return '🎾 Tableau · places 9-12';
         if (b === 'consolation_13_16') return '🎾 Classement · places 13-16';
         if (b === 'places_15_16') return 'Match places 15-16';
         if (b === 'places_1_2') return '🏆 Finale · places 1-2';
@@ -7556,6 +7760,7 @@
                 if (b === 'principal') return 0;
                 if (b === 'consolation_5_8') return 5;
                 if (b === 'consolation_9_12') return 9;
+                if (b === 'bas_9_12') return 9;
                 if (b === 'consolation_13_16') return 13;
                 if (b === 'places_13_14') return 13;
                 if (b === 'places_15_16') return 15;
