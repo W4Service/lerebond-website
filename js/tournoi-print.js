@@ -79,6 +79,7 @@
         if (b === 'consolation_13_16') return 'Classement · places 13-16';
         if (b === 'places_15_16') return 'Match places 15-16';
         if (b === 'places_1_2') return 'Finale · places 1-2';
+        if (b === 'places_3_4') return 'Match 3ᵉ place';
         if (b === 'places_5_6') return 'Match places 5-6';
         if (b === 'places_7_8') return 'Match places 7-8';
         if (b === 'places_9_10') return 'Match places 9-10';
@@ -224,6 +225,41 @@
 
         c.appendChild(headerRow);
 
+        // === Matchs à lancer ===
+        // En tête de page, parce que c'est ce qu'on cherche la feuille en main :
+        // ce qui reste à faire tout de suite. Les matchs en attente d'un résultat
+        // précédent sont exclus, leurs équipes n'étant pas encore connues.
+        var aLancer = matchs.filter(function (m) {
+            if (m.status !== 'en_attente') return false;
+            return !!(m.equipe_a_id && m.equipe_b_id);
+        }).sort(function (a, b) {
+            // Les poules d'abord, puis la phase finale ; à l'intérieur, par terrain
+            // puis par ordre, pour suivre le déroulé réel sur les courts.
+            if (a.phase !== b.phase) return a.phase === 'poule' ? -1 : 1;
+            if ((a.terrain || 99) !== (b.terrain || 99)) return (a.terrain || 99) - (b.terrain || 99);
+            return a.ordre - b.ordre;
+        });
+
+        var enCours = matchs.filter(function (m) { return m.status === 'en_cours'; })
+            .sort(function (a, b) { return (a.terrain || 99) - (b.terrain || 99); });
+
+        if (enCours.length > 0 || aLancer.length > 0) {
+            var boxLancer = el('div', { class: 'a-lancer' });
+            boxLancer.appendChild(el('h2', null, '▶ Matchs à lancer'));
+
+            if (enCours.length > 0) {
+                boxLancer.appendChild(el('h3', null, '● En cours (' + enCours.length + ')'));
+                boxLancer.appendChild(buildMatchTable(enCours, equipes, poules, true));
+            }
+            if (aLancer.length > 0) {
+                boxLancer.appendChild(el('h3', null, '○ À jouer (' + aLancer.length + ')'));
+                boxLancer.appendChild(buildMatchTable(aLancer, equipes, poules, true));
+            } else if (enCours.length === 0) {
+                boxLancer.appendChild(el('p', { class: 'meta' }, 'Aucun match prêt à être lancé.'));
+            }
+            c.appendChild(boxLancer);
+        }
+
         // === Poules ===
         if (poules.length > 0) {
             c.appendChild(el('h2', null, 'Poules & équipes'));
@@ -325,20 +361,32 @@
         }
     }
 
-    function buildMatchTable(ms, equipes, poules) {
+    // avecOrigine : ajoute une colonne « Phase » et laisse la case de score
+    // vierge. Utilisé par la section « matchs à lancer », qui mélange poules et
+    // phase finale et sert de feuille à remplir au stylo.
+    function buildMatchTable(ms, equipes, poules, avecOrigine) {
         var t = el('table', { class: 'matchs' });
         var head = el('tr');
-        ['#', 'Équipe A', 'Score', 'Équipe B', 'Terrain', 'Statut'].forEach(function (h) {
-            head.appendChild(el('th', null, h));
-        });
+        var colonnes = avecOrigine
+            ? ['#', 'Phase', 'Équipe A', 'Score', 'Équipe B', 'Terrain', 'Statut']
+            : ['#', 'Équipe A', 'Score', 'Équipe B', 'Terrain', 'Statut'];
+        colonnes.forEach(function (h) { head.appendChild(el('th', null, h)); });
         t.appendChild(head);
         ms.forEach(function (m) {
             var row = el('tr', { class: m.status });
             row.appendChild(el('td', null, String(m.ordre + 1)));
+            if (avecOrigine) {
+                var p = poules.find(function (x) { return x.id === m.poule_id; });
+                row.appendChild(el('td', { class: 'origine' },
+                    p ? p.nom : bracketLabel(m.bracket)));
+            }
             row.appendChild(el('td', null, eqLabel(m, 'a', equipes, poules)));
             var scoreText = '—';
             if (m.score_a || m.score_b) {
                 scoreText = (m.score_a || '?') + ' / ' + (m.score_b || '?');
+            } else if (avecOrigine) {
+                // Case à remplir au stylo sur la feuille imprimée.
+                scoreText = '';
             }
             row.appendChild(el('td', { class: 'score' }, scoreText));
             row.appendChild(el('td', null, eqLabel(m, 'b', equipes, poules)));
