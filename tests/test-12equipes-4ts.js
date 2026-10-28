@@ -90,6 +90,23 @@ check('finale câblée', src.indexOf('finale: genererPhaseFinale4ts2p4') > 0);
 check('compo 2 poules de 4 + 4 hors poule',
     src.indexOf('compo: { poules: [4, 4], horsPoule: 4 }') > 0);
 
+console.log('\n=== Les 4 points de câblage du format ===');
+// Un format à têtes de série exemptées doit être déclaré à quatre endroits.
+// En oublier un casse le tournoi en silence, à un stade différent à chaque fois.
+check('tetesDeSerie : badges TS1-TS4 sur les équipes hors poule',
+    src.indexOf('isConfig4ts2p3() || isConfig4ts2p4()') > 0);
+check('sixEstDemies : 6 matchs = 4 quarts + 2 demies',
+    src.indexOf('isConfig4ts2p4() ||') > 0);
+check('genererTourSuivant : les quarts engendrent demies et consolation',
+    src.indexOf('lastRound.length === 4 && isConfig4ts2p4()') > 0);
+check('bracketEstFini : le principal compte 8 matchs',
+    src.indexOf("bracket === 'principal' && isConfig4ts2p4()") > 0);
+
+console.log('\n=== Un round non reconnu échoue bruyamment ===');
+// slice(-null) renverrait tout le bracket et créerait des matchs absurdes.
+check('garde-fou sur nbMatchsRoundCourant null',
+    src.indexOf('if (nbMatchsRoundCourant === null)') > 0);
+
 console.log('\n=== Les places 9-10 et 11-12 sont posées directement ===');
 check('bracket places_9_10 produit', src.indexOf("bracket: 'places_9_10'") > 0);
 check('bracket places_11_12 produit', src.indexOf("bracket: 'places_11_12'") > 0);

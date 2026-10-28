@@ -257,8 +257,11 @@ check('le tableau de 8 est traite avant le repli par poules',
       && /b\.length >= 8 && b\.every/.test(
             src.slice(src.indexOf("bracket === 'principal' && isConfigTableau8()"),
                       src.indexOf("bracket === 'principal' && isConfigTableau8()") + 300)));
+// La condition est portee par sixEstDemies, partagee avec les autres formats
+// dont le bracket principal demarre aux quarts.
 check('6 matchs = les 2 demies sont le dernier round',
-      /bracketMatchs\.length === 6 && isConfigTableau8\(\) \? 2 : null/.test(src));
+      /bracketMatchs\.length === 6 && sixEstDemies \? 2 : null/.test(src)
+      && /var sixEstDemies = isConfigTableau8\(\)/.test(src));
 
 // Rejoue la progression telle que le code la decide, a chaque etape.
 function roundCourant(total, t8) {

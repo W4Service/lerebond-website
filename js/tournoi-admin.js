@@ -495,9 +495,10 @@
     // On limite l'affichage aux N meilleures, N = nombre de poules (une TS par poule),
     // et au minimum aux 4 meilleures quand il y a moins de poules.
     function tetesDeSerie() {
-        // Format "4 TS + 2 poules de 3" : les têtes de série sont exactement les
-        // équipes exemptées de poule, quel que soit leur poids saisi.
-        if (isConfig4ts2p3()) {
+        // Formats à têtes de série exemptées ("4 TS + 2 poules de 3" et
+        // "4 TS + 2 poules de 4") : les têtes de série sont exactement les
+        // équipes hors poule, quel que soit leur poids saisi.
+        if (isConfig4ts2p3() || isConfig4ts2p4()) {
             var out4 = {};
             tsHorsPoule().forEach(function (eq, i) {
                 out4[eq.id] = { rang: i + 1, poids: equipePoids(eq) };
@@ -4506,11 +4507,24 @@
             // (4 quarts + 2 demies) — un total que la détection ci-dessous ne
             // reconnaît pas, d'où la finale jamais créée. Le dernier round est
             // alors les 2 demies.
+            // 6 matchs = 4 quarts + 2 demies : le dernier round est les 2 demies.
+            // Vrai pour le tableau direct de 8 comme pour les formats à têtes de
+            // série exemptées, dont le bracket principal démarre aux quarts.
+            var sixEstDemies = isConfigTableau8() || isConfig4ts2p4() || isConfig4ts2p3() || isConfig2ts3p4();
             var nbMatchsRoundCourant = bracketMatchs.length === 2 ? 2
                 : (bracketMatchs.length === 4 ? 4
-                : (bracketMatchs.length === 6 && isConfigTableau8() ? 2 : null));
+                : (bracketMatchs.length === 6 && sixEstDemies ? 2 : null));
             // Round courant = dernier round joué
             // On crée le round suivant : N/2 matchs (gagnants) + un match perdants si on est en demi
+            if (nbMatchsRoundCourant === null) {
+                // slice(-null) renverrait tout le bracket et produirait des matchs
+                // absurdes : mieux vaut le dire que deviner.
+                showToast('Structure de tableau non reconnue (' + bracketMatchs.length +
+                    ' matchs) : le tour suivant ne peut pas être déduit.', 'error');
+                console.error('[genererTourSuivant] bracket', bracket,
+                    'de', bracketMatchs.length, 'matchs : round courant indéterminé');
+                return;
+            }
             var lastRound = bracketMatchs.slice(-nbMatchsRoundCourant);
             if (lastRound.length === 2) {
                 // Finale + petite finale
@@ -4866,6 +4880,14 @@
         // Format 4 TS + 2 poules de 3 : principal = 8 matchs
         // (4 quarts + 2 demis + finale + petite finale).
         if (bracket === 'principal' && isConfig4ts2p3()) {
+            return b.length >= 8 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
+        }
+
+        // Format 4 TS + 2 poules de 4 : principal = 8 matchs
+        // (4 quarts + 2 demies + finale + petite finale). Comme les 4 TS sont
+        // hors poule, le repli général ne les compte pas comme entrants et
+        // déclarerait le bracket fini dès les quarts.
+        if (bracket === 'principal' && isConfig4ts2p4()) {
             return b.length >= 8 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
         }
 
