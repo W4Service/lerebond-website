@@ -68,7 +68,10 @@ const liens = s => s
 // Le pied (à partir du tiret long) est affiché en petit, sous la carte.
 const [texte, pied = ''] = echapper(n.corps).split('\n—\n');
 // **texte** des modèles → gras.
-const gras = s => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+// Les messageries (iPhone, Outlook, Gmail) transforment dates et montants en liens : un
+// caractère invisible (&zwnj;) entre les mots les empêche de les reconnaître.
+const sansLien = s => s.replace(/ /g, '&zwnj; &zwnj;');
+const gras = s => s.replace(/\*\*(.+?)\*\*/g, (_, t) => '<strong>' + sansLien(t) + '</strong>');
 const paragraphes = texte.trim().split(/\n{2,}/)
     .map(p => '<p style="margin:0 0 14px;line-height:1.5">' + gras(liens(p)).replace(/\n/g, '<br>') + '</p>').join('');
 
@@ -113,7 +116,7 @@ if (paliers.length) {
 } else if (d.cadeau) {
     echelle = '<div style="margin:6px 0 18px;padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
         + '<div style="font-size:16px;font-weight:700">Ton cadeau : ' + echapper(d.cadeau) + '</div>'
-        + '<div style="font-size:13px;color:#5c5249;margin-top:2px">Valable jusqu\'au <strong>' + echapper(d.date_limite) + '</strong> inclus.</div></div>';
+        + '<div style="font-size:13px;color:#5c5249;margin-top:2px">Valable jusqu\'au <strong>' + sansLien(echapper(d.date_limite)) + '</strong> inclus.</div></div>';
 }
 
 // QR code de la fiche client, en image jointe (les images « data: » sont bloquées par Gmail).
@@ -132,7 +135,10 @@ if (d.qr_url) {
         + '<div style="font-size:13px;color:#5c5249">' + (d.origine === 'campagne' ? 'À montrer à l\'accueil' : 'À montrer au bar') + '</div></div>';
 }
 
-const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>'
+const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<meta name="format-detection" content="telephone=no,date=no,address=no,email=no">'
+    + '<style>a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important;font-size:inherit!important;'
+    + 'font-family:inherit!important;font-weight:inherit!important;line-height:inherit!important}</style></head>'
     + '<body style="margin:0;background:#f4f0e6;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">'
     + '<div style="max-width:560px;margin:0 auto;padding:16px 10px">'
     + '<div style="background:#680920;padding:16px 22px;border-radius:12px 12px 0 0;text-align:center">'
