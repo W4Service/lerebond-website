@@ -140,8 +140,8 @@ BEGIN
     PERFORM t.check('1. le cadeau utilisé le reste', (SELECT statut FROM fidelite.cadeaux WHERE id = g1) = 'utilise');
     PERFORM t.check('1. nouveau cadeau : boisson',
         (SELECT libelle FROM fidelite.cadeaux WHERE personne = '1001' AND statut = 'actif') LIKE 'Boisson%');
-    PERFORM t.check('1. plafond : la 2e annonce attend 7 jours après la 1re (le 10/11, pas le 6/11)',
-        (SELECT max((cree_le AT TIME ZONE 'Europe/Paris')::date) FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce') = '2026-11-10');
+    PERFORM t.check('1. hors plafond : la 2e annonce part le lendemain de la partie (le 6/11)',
+        (SELECT max((cree_le AT TIME ZONE 'Europe/Paris')::date) FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce') = '2026-11-06');
     PERFORM t.check('1. échelle de la 2e annonce : palier 1 validé, palier 2 en cours',
         (SELECT donnees->'paliers'->0->>'etat' = 'valide' AND donnees->'paliers'->1->>'etat' = 'actuel' AND (donnees->>'palier')::int = 2
          FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce' ORDER BY cree_le DESC LIMIT 1));
@@ -237,11 +237,11 @@ DO $$ BEGIN
     PERFORM t.jour('2026-11-29');      -- crée les fiches
     UPDATE fidelite.clients SET newsletter_ok = true WHERE id_client = '1006';
     PERFORM t.simuler('2026-11-30', '2026-12-09');
-    PERFORM t.check('6. inscrit à la newsletter du 1er/12 : pas d''annonce dans la semaine', t.nb_msg('1006') = 0);
+    PERFORM t.check('6. inscrit à la newsletter du 1er/12 : l''annonce part quand même le 1er/12', t.msg_jour('1006', 'annonce') = '2026-12-01');
     PERFORM t.check('6. non inscrit : annonce le 1er/12', t.msg_jour('1016', 'annonce') = '2026-12-01');
     PERFORM t.check('6. idempotence : rejouer un jour ne crée rien',
         (SELECT count(*) FROM fidelite.messages) = (SELECT count(*) FROM fidelite.messages WHERE fidelite.calculer(t.a('2026-12-03')) IS NOT NULL)
-        AND (SELECT count(*) FROM fidelite.messages) = 2);
+        AND (SELECT count(*) FROM fidelite.messages) = 3);
 END $$;
 
 -- ===================================================================== 7. groupe témoin
@@ -348,7 +348,8 @@ DO $$ BEGIN
     PERFORM t.check('10. five uniquement : hors tunnel, aucun message',
         NOT EXISTS (SELECT 1 FROM fidelite.tunnel WHERE personne = '1010') AND t.nb_msg('1010') = 0);
     PERFORM t.check('10. une partie de five ne fait pas avancer le padel', (SELECT palier FROM fidelite.tunnel WHERE personne = '1011') = 1);
-    PERFORM t.check('10. déjà venu au five avant le lancement : pas nouveau', NOT EXISTS (SELECT 1 FROM fidelite.tunnel WHERE personne = '1012'));
+    PERFORM t.check('10. déjà venu avant le lancement : entre à sa 1re partie de padel depuis',
+        (SELECT premiere_partie = '2026-11-03' AND palier = 1 FROM fidelite.tunnel WHERE personne = '1012'));
 END $$;
 
 -- ===================================================================== 12. dry-run puis réel ; 13. désinscription
