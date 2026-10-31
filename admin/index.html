@@ -70,6 +70,7 @@
 <button type="button" id="tab-tournoi" onclick="window.switchTab('tournoi')">🏆 Tournoi</button>
 <button type="button" id="tab-planning" onclick="window.switchTab('planning')">📅 Calendrier</button>
 <button type="button" id="tab-videos" onclick="window.switchTab('videos')">🎥 Vidéos</button>
+<button type="button" id="tab-fidelite" onclick="window.switchTab('fidelite')">🎁 Fidélité</button>
 <a href="live/americano/" class="am-admin-link" style="display:inline-flex;align-items:center;padding:0.5rem 0.9rem;text-decoration:none;color:inherit;font-size:0.85rem;font-weight:600;opacity:0.75">🎾 Americano</a>
 </div>
 <span class="user-pill">👤 <span id="user-email">…</span></span>
@@ -159,6 +160,8 @@ Reset
 </main>
 <!-- VUE VIDÉOS -->
 <main class="tournoi-admin-wrap" id="videos-section" style="display:none"></main>
+<!-- VUE FIDÉLITÉ -->
+<main class="tournoi-admin-wrap" id="fidelite-section" style="display:none"></main>
 
 </div>
 
@@ -178,6 +181,7 @@ Reset
 <script src="js/tournoi-bracket-vue.js"></script>
 <script src="js/videos-source.js"></script>
 <script src="js/videos-admin.js"></script>
+<script src="js/fidelite-admin.js"></script>
 <script>
 // Switcher tabs
 window.switchTab = function(tab) {
@@ -185,7 +189,8 @@ window.switchTab = function(tab) {
         chrono:   { section: 'chrono-section',   onglet: 'tab-chrono',   titre: 'Pilote du Chrono' },
         tournoi:  { section: 'tournoi-section',  onglet: 'tab-tournoi',  titre: 'Gestion du Tournoi' },
         planning: { section: 'planning-section', onglet: 'tab-planning', titre: 'Calendrier des tournois' },
-        videos:   { section: 'videos-section',   onglet: 'tab-videos',   titre: 'Vidéos diffusées sur le site' }
+        videos:   { section: 'videos-section',   onglet: 'tab-videos',   titre: 'Vidéos diffusées sur le site' },
+        fidelite: { section: 'fidelite-section', onglet: 'tab-fidelite', titre: 'Fidélité — clients et cadeaux' }
     };
     if (!vues[tab]) tab = 'chrono';
     Object.keys(vues).forEach(function (k) {
@@ -197,17 +202,26 @@ window.switchTab = function(tab) {
     if (tab === 'tournoi' && window.TournoiAdmin && window.TournoiAdmin.init) window.TournoiAdmin.init();
     if (tab === 'planning' && window.TournoiPlanning) window.TournoiPlanning.init();
     if (tab === 'videos' && window.VideosAdmin) window.VideosAdmin.init();
+    if (tab === 'fidelite' && window.FideliteAdmin) window.FideliteAdmin.init();
     sessionStorage.setItem('admin-tab', tab);
 };
 
 // Restore tab on load (after auth check)
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
-        var saved = sessionStorage.getItem('admin-tab');
-        if (saved === 'tournoi' || saved === 'planning' || saved === 'videos') {
+        // QR code d'un e-mail fidélité (/admin/?client=<jeton>) : fiche du client.
+        var saved = window.FideliteAdmin && window.FideliteAdmin.jetonUrl() ? 'fidelite'
+            : new URLSearchParams(location.search).get('onglet') || sessionStorage.getItem('admin-tab');
+        if (saved === 'tournoi' || saved === 'planning' || saved === 'videos' || saved === 'fidelite') {
             window.switchTab(saved);
         }
     }, 500);
+    // Connexion faite après l'ouverture (ex. QR scanné sans être connecté) : on recharge l'onglet.
+    if (window.LeRebondSupa) window.LeRebondSupa.auth.onAuthStateChange(function (evenement) {
+        if (evenement === 'SIGNED_IN' && sessionStorage.getItem('admin-tab') === 'fidelite' && window.FideliteAdmin) {
+            setTimeout(window.FideliteAdmin.init, 300);
+        }
+    });
 });
 </script>
 </body>

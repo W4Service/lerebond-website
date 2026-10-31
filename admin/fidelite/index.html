@@ -1,164 +1,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<base href="https://le-rebond.fr/">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suivi fidélité — Le Rebond</title>
 <meta name="robots" content="noindex, nofollow">
-<meta content="#680920" name="theme-color">
-<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
-<style>
-@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
-@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
-:root { --bordeaux: #680920; --creme: #f4f0e6; --or: #efa707; --gris: #8a7f75; --ok: #2e7d32; --alerte: #b3261e; }
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', Arial, sans-serif; }
-body { background: var(--creme); color: #1a1a1a; }
-header { background: var(--bordeaux); color: var(--creme); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-header h1 { font-size: 20px; font-weight: 600; }
-header button { background: none; border: 1px solid var(--creme); color: var(--creme); border-radius: 6px; padding: 4px 10px; font-size: 13px; }
-main { max-width: 980px; margin: 0 auto; padding: 16px; }
-h2 { font-size: 17px; margin: 22px 0 8px; color: var(--bordeaux); }
-.puces { display: flex; flex-wrap: wrap; gap: 8px; }
-.puce { background: #fff; border-radius: 999px; padding: 4px 12px; font-size: 14px; }
-.puce.test { background: #fff3d6; }
-.puce.reel { background: #e3f1e4; }
-.table { overflow-x: auto; background: #fff; border-radius: 12px; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #eee6d8; white-space: nowrap; }
-th:first-child, td:first-child { text-align: left; }
-th { color: var(--gris); font-weight: 600; font-size: 13px; }
-.barre { background: #eee6d8; border-radius: 4px; height: 10px; width: 120px; display: inline-block; vertical-align: middle; }
-.barre span { display: block; height: 100%; background: var(--or); border-radius: 4px; }
-.aide { font-size: 13px; color: var(--gris); margin-top: 6px; }
-.filtres { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-.filtres button { border: 1px solid #d8d0c2; background: #fff; border-radius: 999px; padding: 4px 12px; font-size: 13px; }
-.filtres button.actif { background: var(--bordeaux); color: var(--creme); border-color: var(--bordeaux); }
-.message { background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
-.message summary { cursor: pointer; font-size: 14px; list-style: none; }
-.message summary::-webkit-details-marker { display: none; }
-.message .etat { font-size: 12px; border-radius: 999px; padding: 1px 8px; background: #eee6d8; margin-right: 6px; }
-.message .etat.bloque, .message .etat.echec { background: #fbe4e2; color: var(--alerte); }
-.message .etat.envoye { background: #e3f1e4; color: var(--ok); }
-.message pre { white-space: pre-wrap; font-size: 13px; margin-top: 8px; color: #333; }
-.carte { background: #fff; border-radius: 12px; padding: 14px; display: grid; gap: 10px; max-width: 420px; margin: 24px auto; }
-input { width: 100%; font-size: 16px; padding: 10px 12px; border: 2px solid #d8d0c2; border-radius: 10px; }
-.btn { border: 0; border-radius: 10px; padding: 12px; font-size: 16px; font-weight: 600; background: var(--bordeaux); color: var(--creme); }
-.erreur { color: var(--alerte); font-size: 14px; }
-</style>
-</head>
-<body>
-<header><h1>Suivi fidélité</h1><button id="sortir" hidden>Déconnexion</button></header>
-<main>
-    <form class="carte" id="form-connexion" hidden>
-        <div>Connexion staff</div>
-        <input type="email" id="email" placeholder="E-mail" autocomplete="username" required>
-        <input type="password" id="mdp" placeholder="Mot de passe" autocomplete="current-password" required>
-        <button class="btn" type="submit">Se connecter</button>
-        <div class="erreur" id="erreur"></div>
-    </form>
-    <div id="contenu" hidden></div>
-</main>
-
-<script src="js/vendor/supabase.min.js"></script>
-<script src="js/resa-config.min.js"></script>
-<script src="js/supabase-client.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fidélité — Le Rebond</title>
 <script>
+// Les pages fidélité sont dans l'admin (onglet « Fidélité »). Le QR code des e-mails
+// pointe ici avec ?j=<jeton> : on ouvre la fiche du client dans l'admin.
 (function () {
-    var supa = window.LeRebondSupa;
-    var $ = function (id) { return document.getElementById(id); };
-    var donnees = null, filtre = 'tous';
-
-    function e(s) {
-        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-        });
-    }
-    function pct(n) { return n == null ? '—' : String(n).replace('.', ',') + ' %'; }
-    function table(entetes, lignes) {
-        return '<div class="table"><table><thead><tr>' + entetes.map(function (h) { return '<th>' + h + '</th>'; }).join('')
-            + '</tr></thead><tbody>' + (lignes.length ? lignes.join('') : '<tr><td colspan="' + entetes.length + '">Rien pour l\'instant.</td></tr>')
-            + '</tbody></table></div>';
-    }
-    var GROUPES = { cible: 'Reçoivent les messages', temoin: 'Groupe témoin (aucun message)' };
-    var ORIGINES = { palier: 'Palier', retour: 'Retour tardif', rattrapage: 'Rattrapage', grand_retour: 'Grand retour' };
-    var TYPES = { annonce: 'Annonce J+1', retour: 'Retour tardif', rappel: 'Rappel J+5', rattrapage: 'Rattrapage J+14', grand_retour: 'Grand retour' };
-
-    function rendre() {
-        var d = donnees, c = d.config, h = '';
-        h += '<div class="puces">'
-            + (c.dry_run === true ? '<span class="puce test">Mode test (dry-run) : rien n\'est envoyé</span>' : '<span class="puce reel">Envoi réel actif</span>')
-            + '<span class="puce">Lancement : ' + e(c.date_lancement || 'non fixé') + '</span>'
-            + '<span class="puce">Témoin : ' + e(c.pourcentage_temoin) + ' %</span>'
-            + '<span class="puce">Canaux : ' + e((c.canaux_actifs || []).join(', ')) + '</span>'
-            + '<span class="puce">Inscrits newsletter : ' + e(d.inscrits_newsletter) + '</span></div>';
-
-        h += '<h2>Progression dans le tunnel</h2>' + table(
-            ['Groupe', 'Entrés', '2e partie', '3e', '4e', 'Réguliers', 'Décrochés', 'En cours', '% revenus', 'Parties à 30 j'],
-            d.paliers.map(function (p) {
-                return '<tr><td>' + e(GROUPES[p.groupe] || p.groupe) + '</td><td>' + p.entres + '</td><td>' + p.palier_2 + '</td><td>' + p.palier_3
-                    + '</td><td>' + p.palier_4 + '</td><td>' + p.reguliers + '</td><td>' + p.decroches + '</td><td>' + p.actifs
-                    + '</td><td>' + pct(p.pct_2e_partie) + '</td><td>' + e(p.parties_30j_moy) + '</td></tr>';
-            }));
-        h += '<div class="aide">« Parties à 30 j » : parties de padel jouées dans les 30 jours après la première. L\'écart avec le groupe témoin mesure l\'effet réel du tunnel.</div>';
-
-        h += '<h2>Cadeaux</h2>' + table(['Cadeau', 'Créés', 'Utilisés', 'En cours', 'Expirés', 'Perdus (heures pleines)', 'Remplacés', '% utilisés'],
-            d.cadeaux.map(function (k) {
-                return '<tr><td>' + e(ORIGINES[k.origine]) + (k.palier ? ' ' + k.palier : '') + ' — ' + e(k.libelle) + '</td><td>' + k.crees
-                    + '</td><td>' + k.utilises + '</td><td>' + k.actifs + '</td><td>' + k.expires + '</td><td>' + k.perdus_hp
-                    + '</td><td>' + k.remplaces + '</td><td>' + pct(k.pct_utilises) + '</td></tr>';
-            }));
-
-        h += '<h2>Remplissage des heures creuses (padel)</h2>' + table(['Semaine du', 'Heures creuses réservées', 'Disponibles', 'Remplissage', 'Heures pleines réservées'],
-            d.heures_creuses.map(function (s) {
-                var p = Math.min(100, s.pct_hc || 0);
-                return '<tr><td>' + new Date(s.semaine + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-                    + '</td><td>' + s.heures_hc_reservees + ' h</td><td>' + s.heures_hc_dispo + ' h</td><td><span class="barre"><span style="width:' + p
-                    + '%"></span></span> ' + pct(s.pct_hc) + '</td><td>' + s.heures_hp_reservees + ' h</td></tr>';
-            }));
-
-        var statuts = ['tous', 'simule', 'a_envoyer', 'envoye', 'bloque', 'echec'];
-        h += '<h2>Messages (300 derniers)</h2><div class="filtres">' + statuts.map(function (s) {
-            return '<button data-filtre="' + s + '" class="' + (s === filtre ? 'actif' : '') + '">' + s.replace('_', ' ') + '</button>';
-        }).join('') + '</div>';
-        var msgs = d.messages.filter(function (m) { return filtre === 'tous' || m.statut === filtre; });
-        h += msgs.length ? msgs.map(function (m) {
-            return '<details class="message"><summary><span class="etat ' + e(m.statut) + '">' + e(m.statut) + '</span>'
-                + new Date(m.cree_le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · ' + e(TYPES[m.type] || m.type)
-                + ' · ' + e((m.prenom || '') + ' ' + (m.nom || '')) + (m.motif ? ' · ' + e(m.motif) : '') + '</summary>'
-                + (m.corps ? '<pre><b>' + e(m.sujet || '') + '</b>\n→ ' + e(m.destinataire) + '\n\n' + e(m.corps) + '</pre>' : '') + '</details>';
-        }).join('') : '<div class="aide">Aucun message.</div>';
-        $('contenu').innerHTML = h;
-    }
-
-    async function charger() {
-        var r = await supa.rpc('fidelite_tableau');
-        if (r.error) { $('contenu').innerHTML = '<div class="erreur">' + e(r.error.message) + '</div>'; return; }
-        donnees = r.data;
-        rendre();
-    }
-    async function demarrer() {
-        var s = await supa.auth.getSession();
-        var connecte = !!(s.data && s.data.session);
-        $('form-connexion').hidden = connecte;
-        $('contenu').hidden = !connecte;
-        $('sortir').hidden = !connecte;
-        if (connecte) charger();
-    }
-
-    $('form-connexion').addEventListener('submit', async function (ev) {
-        ev.preventDefault();
-        var r = await supa.auth.signInWithPassword({ email: $('email').value.trim(), password: $('mdp').value });
-        if (r.error) { $('erreur').textContent = 'Identifiants incorrects.'; return; }
-        demarrer();
-    });
-    $('sortir').addEventListener('click', async function () { await supa.auth.signOut(); demarrer(); });
-    $('contenu').addEventListener('click', function (ev) {
-        var b = ev.target.closest('[data-filtre]');
-        if (b) { filtre = b.getAttribute('data-filtre'); rendre(); }
-    });
-    demarrer();
+    var j = new URLSearchParams(location.search).get('j');
+    location.replace('https://le-rebond.fr/admin/?' + (j ? 'client=' + encodeURIComponent(j) : 'onglet=fidelite'));
 })();
 </script>
-</body>
+<meta http-equiv="refresh" content="1; url=https://le-rebond.fr/admin/?onglet=fidelite">
+</head>
+<body style="font-family:sans-serif;text-align:center;padding:40px;color:#680920">Ouverture de l'admin…</body>
 </html>
