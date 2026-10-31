@@ -1,179 +1,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<base href="https://le-rebond.fr/">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cadeaux — Le Rebond</title>
 <meta name="robots" content="noindex, nofollow">
-<meta content="#680920" name="theme-color">
-<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
-<style>
-@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
-@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
-:root { --bordeaux: #680920; --creme: #f4f0e6; --or: #efa707; --gris: #8a7f75; --ok: #2e7d32; --alerte: #b3261e; }
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', Arial, sans-serif; }
-body { background: var(--creme); color: #1a1a1a; min-height: 100vh; }
-header { background: var(--bordeaux); color: var(--creme); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
-header h1 { font-size: 20px; font-weight: 600; }
-header button { background: none; border: 1px solid var(--creme); color: var(--creme); border-radius: 6px; padding: 4px 10px; font-size: 13px; }
-main { max-width: 560px; margin: 0 auto; padding: 16px; }
-.bandeau { border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
-.bandeau.test { background: #fff3d6; color: #6b4e00; }
-input[type=search], input[type=email], input[type=password] { width: 100%; font-size: 18px; padding: 12px 14px; border: 2px solid #d8d0c2; border-radius: 10px; background: #fff; }
-input:focus { outline: none; border-color: var(--bordeaux); }
-.carte { background: #fff; border-radius: 12px; padding: 14px; margin-top: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.carte .nom { font-size: 18px; font-weight: 600; }
-.carte .meta { color: var(--gris); font-size: 14px; margin-top: 2px; }
-.cadeau { margin-top: 10px; border-left: 4px solid var(--or); padding: 8px 10px; background: #fffaf0; border-radius: 6px; }
-.cadeau .libelle { font-size: 17px; font-weight: 600; }
-.cadeau .code { font-family: monospace; font-size: 16px; letter-spacing: 1px; }
-.cadeau .cond { font-size: 13px; color: var(--gris); margin-top: 4px; }
-.aucun { margin-top: 10px; color: var(--gris); font-size: 14px; }
-.actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.btn { flex: 1; min-width: 120px; border: 0; border-radius: 10px; padding: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
-.btn.principal { background: var(--bordeaux); color: var(--creme); }
-.btn.second { background: var(--or); color: #1a1a1a; }
-.btn:disabled { opacity: .5; }
-.msg { margin-top: 8px; font-size: 14px; }
-.msg.erreur { color: var(--alerte); }
-.msg.ok { color: var(--ok); }
-.aide { font-size: 13px; color: var(--gris); margin-top: 8px; }
-#connexion .carte { display: grid; gap: 10px; }
-</style>
-</head>
-<body>
-<header><h1>Cadeaux fidélité</h1><button id="sortir" hidden>Déconnexion</button></header>
-<main>
-    <section id="connexion" hidden>
-        <form class="carte" id="form-connexion">
-            <div class="nom">Connexion staff</div>
-            <input type="email" id="email" placeholder="E-mail" autocomplete="username" required>
-            <input type="password" id="mdp" placeholder="Mot de passe" autocomplete="current-password" required>
-            <button class="btn principal" type="submit">Se connecter</button>
-            <div class="msg erreur" id="erreur-connexion"></div>
-        </form>
-    </section>
-
-    <section id="bar" hidden>
-        <div id="bandeaux"></div>
-        <input type="search" id="q" placeholder="Nom, prénom, téléphone ou code RB-…" autocomplete="off" autofocus>
-        <div class="aide">Le cadeau est nominatif : vérifie le prénom du réservant. Un seul usage.</div>
-        <div id="resultats"></div>
-    </section>
-</main>
-
-<script src="js/vendor/supabase.min.js?v=fd16dfca"></script>
-<script src="js/resa-config.min.js?v=fd16dfca"></script>
-<script src="js/supabase-client.js?v=fd16dfca"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fidélité — Le Rebond</title>
 <script>
+// Les pages fidélité sont dans l'admin (onglet « Fidélité »). Le QR code des e-mails
+// pointe ici avec ?j=<jeton> : on ouvre la fiche du client dans l'admin.
 (function () {
-    var supa = window.LeRebondSupa;
-    var $ = function (id) { return document.getElementById(id); };
-    var contexte = null, minuteur = null;
-
-    function echapper(s) {
-        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-        });
-    }
-    function dateFr(iso) {
-        return new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    var ORIGINES = { palier: 'tunnel de bienvenue', retour: 'tunnel de bienvenue', rattrapage: 'rattrapage', grand_retour: 'grand retour' };
-
-    async function demarrer() {
-        var s = await supa.auth.getSession();
-        var connecte = !!(s.data && s.data.session);
-        $('connexion').hidden = connecte;
-        $('bar').hidden = !connecte;
-        $('sortir').hidden = !connecte;
-        if (connecte) { await chargerContexte(); $('q').focus(); }
-    }
-
-    async function chargerContexte() {
-        var r = await supa.rpc('fidelite_bar_contexte');
-        if (r.error) { $('bandeaux').innerHTML = '<div class="bandeau hp">' + echapper(r.error.message) + '</div>'; return; }
-        contexte = r.data;
-        var html = '';
-        if (contexte.dry_run === true) {
-            html += '<div class="bandeau test">Mode test : les clients n\'ont pas encore reçu ces offres.</div>';
-        }
-        $('bandeaux').innerHTML = html;
-    }
-
-    async function rechercher() {
-        var q = $('q').value.trim();
-        if (q.length < 2) { $('resultats').innerHTML = ''; return; }
-        var r = await supa.rpc('fidelite_bar_recherche', { p_q: q });
-        if (r.error) { $('resultats').innerHTML = '<div class="msg erreur">' + echapper(r.error.message) + '</div>'; return; }
-        if (!r.data.length) { $('resultats').innerHTML = '<div class="aucun">Aucun client trouvé.</div>'; return; }
-        $('resultats').innerHTML = r.data.map(carte).join('');
-    }
-
-    function carte(c) {
-        var html = '<div class="carte"><div class="nom">' + echapper((c.prenom || '') + ' ' + (c.nom || '')) + '</div>'
-            + '<div class="meta">' + echapper(c.telephone || 'pas de téléphone')
-            + (c.tunnel ? ' · ' + c.tunnel.palier + ' partie' + (c.tunnel.palier > 1 ? 's' : '') + ' dans le tunnel' : '') + '</div>';
-        var k = c.cadeau;
-        if (k) {
-            html += '<div class="cadeau"><div class="libelle">' + echapper(k.libelle) + '</div>'
-                + '<div class="code">' + echapper(k.code) + '</div>'
-                + '<div class="cond">' + echapper(ORIGINES[k.origine] || '') + ' · valable jusqu\'au ' + dateFr(k.expire_le) + '</div>';
-            if (k.pas_encore_valable) {
-                html += '<div class="msg erreur">Valable à partir du ' + dateFr(k.valable_du) + ' (pour la partie suivante).</div>';
-            } else if (k.choix_requis) {
-                html += '<div class="actions"><button class="btn principal" data-cadeau="' + k.id + '" data-choix="pizza">Pizza</button>'
-                    + '<button class="btn second" data-cadeau="' + k.id + '" data-choix="planche">Planche</button></div>';
-            } else {
-                html += '<div class="actions"><button class="btn principal" data-cadeau="' + k.id + '">Marquer utilisé</button></div>';
-            }
-            html += '<div class="msg" id="msg-' + k.id + '"></div></div>';
-        } else {
-            html += '<div class="aucun">Aucun cadeau actif.</div>';
-        }
-        html += '<div class="aide"><a href="admin/client/?j=' + encodeURIComponent(c.jeton) + '">Fiche complète (réservations, cadeaux, caisse) →</a></div>';
-        if (c.dernier_utilise) {
-            var d = c.dernier_utilise;
-            html += '<div class="aide">Dernier cadeau utilisé : ' + echapper(d.libelle) + (d.choix ? ' (' + echapper(d.choix) + ')' : '')
-                + ', le ' + new Date(d.le).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</div>';
-        }
-        return html + '</div>';
-    }
-
-    async function utiliser(bouton) {
-        var id = bouton.getAttribute('data-cadeau');
-        var choix = bouton.getAttribute('data-choix');
-        document.querySelectorAll('[data-cadeau="' + id + '"]').forEach(function (b) { b.disabled = true; });
-        var r = await supa.rpc('fidelite_bar_utiliser', { p_cadeau: id, p_choix: choix || null });
-        var msg = $('msg-' + id);
-        if (r.error) {
-            msg.className = 'msg erreur';
-            msg.textContent = r.error.message;
-            document.querySelectorAll('[data-cadeau="' + id + '"]').forEach(function (b) { b.disabled = false; });
-            return;
-        }
-        msg.className = 'msg ok';
-        msg.textContent = 'C\'est noté : ' + r.data.libelle + (choix ? ' (' + choix + ')' : '') + '.';
-        setTimeout(rechercher, 1500);
-    }
-
-    $('form-connexion').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        $('erreur-connexion').textContent = '';
-        var r = await supa.auth.signInWithPassword({ email: $('email').value.trim(), password: $('mdp').value });
-        if (r.error) { $('erreur-connexion').textContent = 'Identifiants incorrects.'; return; }
-        demarrer();
-    });
-    $('sortir').addEventListener('click', async function () { await supa.auth.signOut(); demarrer(); });
-    $('q').addEventListener('input', function () { clearTimeout(minuteur); minuteur = setTimeout(rechercher, 300); });
-    $('resultats').addEventListener('click', function (e) {
-        var b = e.target.closest('[data-cadeau]');
-        if (b) utiliser(b);
-    });
-    setInterval(function () { if (!$('bar').hidden) chargerContexte(); }, 5 * 60 * 1000);
-    demarrer();
+    var j = new URLSearchParams(location.search).get('j');
+    location.replace('https://le-rebond.fr/admin/?' + (j ? 'client=' + encodeURIComponent(j) : 'onglet=fidelite'));
 })();
 </script>
-</body>
+<meta http-equiv="refresh" content="1; url=https://le-rebond.fr/admin/?onglet=fidelite">
+</head>
+<body style="font-family:sans-serif;text-align:center;padding:40px;color:#680920">Ouverture de l'admin…</body>
 </html>
