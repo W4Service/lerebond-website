@@ -116,7 +116,7 @@ if (paliers.length) {
 } else if (d.cadeau) {
     echelle = '<div style="margin:6px 0 18px;padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
         + '<div style="font-size:16px;font-weight:700">Ton cadeau : ' + echapper(d.cadeau) + '</div>'
-        + '<div style="font-size:13px;color:#5c5249;margin-top:2px">Valable jusqu\'au <strong>' + sansLien(echapper(d.date_limite)) + '</strong> inclus.</div></div>';
+        + '<div style="font-size:13px;color:#5c5249;margin-top:2px">Valable jusqu\'au ' + sansLien(echapper(d.date_limite)) + ' inclus.</div></div>';
 }
 
 // QR code de la fiche client, en image jointe (les images « data: » sont bloquées par Gmail).
