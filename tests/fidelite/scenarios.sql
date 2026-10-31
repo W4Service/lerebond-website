@@ -516,7 +516,7 @@ DO $$ DECLARE r jsonb; n integer; g text; dest text[]; k uuid; BEGIN
         AND fidelite.cfg('dry_run') = 'true'::jsonb);
     PERFORM t.check('campagne : période choisie, texte 5 € par joueur, accueil, empreinte bancaire',
         (SELECT bool_and(k.valable_du = '2027-03-02' AND k.expire_le = '2027-03-09') FROM fidelite.cadeaux k WHERE origine = 'campagne')
-        AND (SELECT bool_and(corps LIKE '%Du mardi 2 mars au mardi 9 mars inclus%' AND corps LIKE '%5 € par joueur%'
+        AND (SELECT bool_and(corps LIKE '%Du **mardi 2 mars** au **mardi 9 mars** inclus%' AND corps LIKE '%**5 € par joueur et par heure**%'
                              AND corps LIKE '%accueil%' AND corps LIKE '%empreinte bancaire%' AND corps NOT LIKE '%au bar%')
              FROM fidelite.messages WHERE type = 'campagne' AND cadeau_id IS NOT NULL));
     PERFORM t.check('campagne : l''offre du tunnel en cours est gardée',
