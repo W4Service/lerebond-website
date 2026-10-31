@@ -5,7 +5,8 @@
    - Clients : recherche par code cadeau (RB-…), nom ou téléphone → fiche complète
      (ce à quoi il a droit + bouton « utilisé », paliers, cadeaux, réservations,
      passages en caisse, messages reçus).
-   - Suivi : progression ciblés / témoins, cadeaux, remplissage, messages générés.
+   - Suivi : progression ciblés / témoins, cadeaux, conversions, ouvertures et clics, messages.
+   - Campagne : e-mail « 5 € par joueur » à tous les clients (test, puis envoi).
    Le QR code des e-mails ouvre /admin/client/?j=<jeton>, qui redirige ici
    (/admin/?client=<jeton>). Toutes les données passent par des fonctions réservées
    au staff (public.fidelite_*) : sans compte staff, rien ne s'affiche.
@@ -20,10 +21,10 @@
     var jetonOuvert = null;
     var suivi = null, filtreMessages = 'tous';
 
-    var ORIGINES = { palier: 'Tunnel', retour: 'Tunnel (retour)', rattrapage: 'Rattrapage', grand_retour: 'Grand retour' };
+    var ORIGINES = { palier: 'Tunnel', retour: 'Tunnel (retour)', rattrapage: 'Rattrapage', grand_retour: 'Grand retour', campagne: 'Campagne' };
     var STATUTS = { actif: 'en cours', utilise: 'utilisé', expire: 'expiré', perdu_hp: 'perdu', remplace: 'remplacé' };
     var TUNNEL = { actif: 'dans le tunnel', regulier: 'joueur régulier', decroche: 'sorti du tunnel' };
-    var TYPES = { annonce: 'Annonce J+1', retour: 'Retour', rappel: 'Rappel J+5', rattrapage: 'Rattrapage J+14', grand_retour: 'Grand retour' };
+    var TYPES = { annonce: 'Annonce J+1', retour: 'Retour', rappel: 'Rappel J+5', rattrapage: 'Rattrapage J+14', grand_retour: 'Grand retour', campagne: 'Campagne 5 €' };
     var GROUPES = { cible: 'Reçoivent les messages', temoin: 'Groupe témoin' };
 
     var CSS = ''
@@ -94,7 +95,8 @@
         document.head.appendChild(st);
         section().innerHTML = '<div class="fid-wrap"><div class="fid-onglets">'
             + '<button type="button" data-vue="clients">Clients &amp; cadeaux</button>'
-            + '<button type="button" data-vue="suivi">Suivi</button></div><div id="fid-zone"></div></div>';
+            + '<button type="button" data-vue="suivi">Suivi</button>'
+            + '<button type="button" data-vue="campagne">Campagne</button></div><div id="fid-zone"></div></div>';
         section().addEventListener('click', clic);
         section().addEventListener('input', function (ev) {
             if (ev.target.id !== 'fid-q') return;
@@ -107,6 +109,7 @@
         vue = v;
         section().querySelectorAll('[data-vue]').forEach(function (b) { b.classList.toggle('actif', b.getAttribute('data-vue') === v); });
         if (v === 'suivi') { chargerSuivi(); return; }
+        if (v === 'campagne') { chargerCampagne(); return; }
         if (jetonOuvert) { chargerFiche(jetonOuvert); return; }
         zone().innerHTML = '<div class="fid-carte"><input type="search" class="fid-recherche" id="fid-q" autocomplete="off"'
             + ' placeholder="Code RB-…, nom, prénom ou téléphone">'
@@ -124,6 +127,8 @@
         if (ev.target.closest('[data-retour]')) { jetonOuvert = null; nettoyerUrl(); afficherVue('clients'); return; }
         var f = ev.target.closest('[data-filtre]');
         if (f) { filtreMessages = f.getAttribute('data-filtre'); rendreSuivi(); return; }
+        var a = ev.target.closest('[data-campagne]');
+        if (a) { campagne(a); return; }
         var b = ev.target.closest('[data-cadeau]');
         if (b) utiliser(b);
     }
@@ -141,7 +146,8 @@
         out.innerHTML = '<div style="margin-top:.6rem">' + r.data.map(function (c) {
             return '<div class="fid-res" data-jeton="' + e(c.jeton) + '"><span><b>' + e((c.prenom || '') + ' ' + (c.nom || '')) + '</b>'
                 + '<br><span class="fid-petit">' + e(c.telephone || '') + (c.tunnel ? ' · palier ' + c.tunnel.palier : '') + '</span></span>'
-                + (c.cadeau ? '<span class="fid-etiq fid-etiq--actif">' + e(c.cadeau.libelle) + '</span>' : '<span class="fid-petit">pas de cadeau</span>')
+                + (c.cadeau ? '<span class="fid-etiq fid-etiq--actif">' + e(c.cadeau.libelle) + (c.nb_cadeaux > 1 ? ' +' + (c.nb_cadeaux - 1) : '') + '</span>'
+                    : '<span class="fid-petit">pas de cadeau</span>')
                 + '</div>';
         }).join('') + '</div>';
     }
@@ -180,8 +186,8 @@
             + '</b><span>dernière venue</span></div></div>'
             + (s.premiere ? '<div class="fid-aide">Client depuis le ' + jour(s.premiere) + '</div>' : '') + '</div>';
 
-        var k = f.cadeau;
-        if (k) {
+        var actifs = f.cadeaux_actifs || (f.cadeau ? [f.cadeau] : []);
+        actifs.forEach(function (k) {
             h += '<div class="fid-carte fid-offre"><h3>À quoi il a droit</h3><div class="fid-libelle">' + e(k.libelle) + '</div>'
                 + '<div class="fid-code">' + e(k.code) + '</div>'
                 + '<div class="fid-meta">' + e(ORIGINES[k.origine] || '') + ' · valable jusqu\'au ' + jour(k.expire_le) + '</div>';
@@ -193,10 +199,10 @@
             } else {
                 h += '<div class="fid-actions"><button class="fid-btn fid-btn--or" data-cadeau="' + k.id + '">Marquer utilisé</button></div>';
             }
-            h += '<div id="fid-msg-cadeau"></div></div>';
-        } else {
-            h += '<div class="fid-carte"><h3>À quoi il a droit</h3><div class="fid-petit">Aucun cadeau en cours.</div></div>';
-        }
+            h += '</div>';
+        });
+        if (actifs.length) h += '<div id="fid-msg-cadeau"></div>';
+        else h += '<div class="fid-carte"><h3>À quoi il a droit</h3><div class="fid-petit">Aucun cadeau en cours.</div></div>';
 
         if (f.paliers && f.paliers.length) {
             // Escalier, comme dans les e-mails : atteints en couleur, suivants grisés.
@@ -348,6 +354,48 @@
                 + (m.corps ? '<pre><b>' + e(m.sujet || '') + '</b>\n→ ' + e(m.destinataire) + '\n\n' + e(m.corps) + '</pre>' : '') + '</details>';
         }).join('') : '<div class="fid-petit">Aucun.</div>') + '</div>';
         zone().innerHTML = h;
+    }
+
+    // ===== Campagne « 5 € par joueur » =====
+
+    var etatCampagne = null;
+
+    async function chargerCampagne() {
+        zone().innerHTML = '<div class="fid-carte">Chargement…</div>';
+        var r = await supa.rpc('fidelite_campagne_etat');
+        if (r.error) { zone().innerHTML = '<div class="fid-carte fid-err">' + e(r.error.message) + '</div>'; return; }
+        etatCampagne = r.data;
+        var d = r.data, o = d.offre || {};
+        var h = '<div class="fid-carte fid-offre"><h3>Campagne : ' + e(o.libelle) + '</h3>'
+            + '<p style="line-height:1.5;margin:.3rem 0 .6rem">Un e-mail à <b>' + d.destinataires + ' clients</b> (tous ceux qui ont un e-mail et ne se sont pas désinscrits) : '
+            + e(o.formule) + ', pendant ' + e(o.validite_jours) + ' jours, sur présentation du QR code ou du code à l\'accueil. '
+            + 'Ils réservent en ligne avec leur empreinte bancaire ; la réduction est faite sur place (bouton « Marquer utilisé » de leur fiche).</p>'
+            + '<div class="fid-actions"><button class="fid-btn fid-btn--creme" data-campagne="test">M\'envoyer un test (' + e(d.test_a || '?') + ')</button>'
+            + '<button class="fid-btn fid-btn--or" data-campagne="envoyer">Envoyer à ' + d.destinataires + ' clients</button></div>'
+            + '<div id="fid-msg-campagne"></div>'
+            + '<div class="fid-aide">Envoi entre 10 h et 19 h, environ 700 e-mails par heure. Une campagne au plus par 24 h.</div></div>';
+        h += '<div class="fid-carte"><h3>Campagnes lancées</h3>' + table(['Lancée le', 'Par', 'Valable jusqu\'au', 'Destinataires', 'Envoyés', 'En attente', 'Échecs', 'Utilisées'],
+            d.campagnes.map(function (c) {
+                return '<tr><td>' + jour(c.lancee_le) + ' ' + heure(c.lancee_le) + '</td><td>' + e(c.lancee_par || '') + '</td><td>' + jour(c.expire_le)
+                    + '</td><td>' + c.destinataires + '</td><td>' + c.envoyes + '</td><td>' + c.en_attente + '</td><td>' + c.echecs
+                    + '</td><td>' + c.utilises + '</td></tr>';
+            })) + '<div class="fid-aide">Ouvertures, clics et clients venus jouer : onglet Suivi, ligne « Campagne 5 € ».</div></div>';
+        zone().innerHTML = h;
+    }
+
+    async function campagne(bouton) {
+        var msg = document.getElementById('fid-msg-campagne');
+        var action = bouton.getAttribute('data-campagne');
+        if (action === 'envoyer' && !confirm('Envoyer la campagne à ' + etatCampagne.destinataires + ' clients ? Ce n\'est pas annulable.')) return;
+        section().querySelectorAll('[data-campagne]').forEach(function (x) { x.disabled = true; });
+        var r = action === 'test' ? await supa.rpc('fidelite_campagne_test')
+            : await supa.rpc('fidelite_campagne_envoyer', { p_nombre: etatCampagne.destinataires });
+        section().querySelectorAll('[data-campagne]').forEach(function (x) { x.disabled = false; });
+        if (r.error) { msg.className = 'fid-err'; msg.textContent = r.error.message; return; }
+        msg.className = 'fid-ok';
+        msg.textContent = action === 'test' ? 'Test envoyé à ' + r.data + ' (arrive dans les 5 minutes).'
+            : 'Campagne lancée : ' + r.data.destinataires + ' e-mails en file d\'envoi.';
+        if (action === 'envoyer') setTimeout(chargerCampagne, 2000);
     }
 
     // ===== Entrée =====

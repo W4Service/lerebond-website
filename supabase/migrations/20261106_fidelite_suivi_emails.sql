@@ -58,7 +58,8 @@ WITH m AS (
            EXISTS (SELECT 1 FROM fidelite.evenements e WHERE e.message_id = m.id AND e.type = 'clic' AND e.lien = 'reserver') AS clic,
            coalesce((SELECT c.parties > 0 FROM fidelite.v_conversions c WHERE c.message_id = m.id), false) AS converti
     FROM fidelite.messages m
-    WHERE m.canal = 'email' AND (m.statut = 'envoye' OR m.apercu_envoye_le IS NOT NULL))
+    WHERE m.canal = 'email' AND (m.statut = 'envoye' OR m.apercu_envoye_le IS NOT NULL)
+      AND coalesce(m.donnees->>'test', '') <> 'true')   -- e-mails de test des campagnes
 SELECT type,
        count(*)                                  AS envoyes,
        count(*) FILTER (WHERE ouvert)            AS ouverts,
