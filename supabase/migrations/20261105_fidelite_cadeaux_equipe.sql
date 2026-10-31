@@ -27,6 +27,10 @@ FROM (VALUES
      E'Jamais 2 sans 3, {prenom} !\n\nReviens avant le {date_limite} : une pizza ou un saucisson t''est offert lors de ta prochaine partie.\n\nRéserve ici : {lien}'),
     ('annonce_4', 'email', 'Tournée offerte + pizza ou saucisson à ta prochaine partie',
      E'4 parties, t''es des nôtres {prenom} !\n\nLors de ta prochaine partie, avant le {date_limite} : la tournée est offerte, plus une pizza ou un saucisson.\n\nRéserve ici : {lien}'),
+    -- « profiter de {cadeau} » donnait « profiter de les raquettes… ».
+    ('rappel', 'email', 'Plus que {jours_restants} pour ton cadeau',
+     E'{prenom}, plus que {jours_restants} pour profiter de ton cadeau : {cadeau}.\n\nIl reste des créneaux : {lien}'),
+    ('rappel', 'sms', NULL, '{prenom}, plus que {jours_restants} pour profiter de ton cadeau : {cadeau}. Il reste des créneaux : {lien}'),
     ('annonce_1', 'sms', NULL, 'Salut {prenom}, merci d''être venu au Rebond ! Reviens jouer d''ici le {date_limite} : raquettes offertes pour toi et tes coéquipiers. Réserve ici : {lien}'),
     ('annonce_2', 'sms', NULL, '2 parties en une semaine, bravo {prenom} ! Prochaine partie avant le {date_limite} : la boisson est offerte pour toi et tes coéquipiers. {lien}'),
     ('annonce_3', 'sms', NULL, 'Jamais 2 sans 3 ! Reviens avant le {date_limite} : une pizza ou un saucisson offert lors de ta prochaine partie. {lien}'),
