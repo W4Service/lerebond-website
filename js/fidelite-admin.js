@@ -276,12 +276,34 @@
                     + '</td><td>' + k.utilises + '</td><td>' + k.actifs + '</td><td>' + (k.expires + k.perdus_hp) + '</td><td>' + k.remplaces
                     + '</td><td>' + pct(k.pct_utilises) + '</td></tr>';
             })) + '</div>';
-        h += '<div class="fid-carte"><h3>Remplissage des heures creuses (padel)</h3>' + table(['Semaine du', 'Réservées', 'Disponibles', 'Remplissage', 'Heures pleines'],
-            d.heures_creuses.map(function (s) {
-                return '<tr><td>' + new Date(s.semaine + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-                    + '</td><td>' + s.heures_hc_reservees + ' h</td><td>' + s.heures_hc_dispo + ' h</td><td>' + pct(s.pct_hc)
-                    + '</td><td>' + s.heures_hp_reservees + ' h</td></tr>';
-            })) + '</div>';
+        // Conversions : client venu jouer entre le message et la fin de validité de l'offre.
+        var t = d.conversions_total || {}, ef = d.effet || {};
+        h += '<div class="fid-carte"><h3>Conversions générées</h3>'
+            + '<div class="fid-chiffres" style="margin:0 0 .8rem">'
+            + '<div class="fid-chiffre"><b>' + (t.conversions || 0) + '</b><span>clients revenus jouer sur ' + (t.offres || 0) + ' offres</span></div>'
+            + '<div class="fid-chiffre"><b>' + pct(t.pct_conversion) + '</b><span>taux de conversion</span></div>'
+            + '<div class="fid-chiffre"><b>' + (t.parties || 0) + '</b><span>parties jouées</span></div>'
+            + '<div class="fid-chiffre"><b>' + eur(t.ca || 0) + '</b><span>CA des réservations</span></div>'
+            + '<div class="fid-chiffre"><b>' + (t.cadeaux_utilises || 0) + '</b><span>cadeaux utilisés au bar</span></div></div>'
+            + table(['Message', 'Envoyés', 'Conversions', 'Taux', 'Parties', 'CA', 'Cadeaux utilisés'],
+                d.conversions.map(function (k) {
+                    return '<tr><td>' + e(TYPES[k.type] || k.type) + '</td><td>' + k.messages + '</td><td>' + k.conversions
+                        + '</td><td>' + pct(k.pct_conversion) + '</td><td>' + k.parties + '</td><td>' + eur(k.ca)
+                        + '</td><td>' + k.cadeaux_utilises + '</td></tr>';
+                }))
+            + '<div class="fid-aide">Conversion : le client a joué au padel entre le message et la fin de validité de son offre. '
+            + 'CA = prix LiveXperience des réservations jouées dans cette fenêtre. L\'annonce et son rappel portent sur la même offre : '
+            + 'le total les compte une seule fois.'
+            + (c.dry_run === true ? ' <b>Mode test : les clients n\'ont rien reçu, ces chiffres montrent ce qu\'ils font sans message.</b>' : '')
+            + '</div>';
+        if (ef.cibles) {
+            h += '<h3 style="margin-top:1rem">Effet réel (contre le groupe témoin)</h3><div class="fid-chiffres" style="margin:0">'
+                + '<div class="fid-chiffre"><b>' + pct(ef.pct_cibles) + '</b><span>reviennent avec les messages (' + ef.cibles + ' clients)</span></div>'
+                + '<div class="fid-chiffre"><b>' + pct(ef.pct_temoins) + '</b><span>reviennent sans message (' + (ef.temoins || 0) + ' témoins)</span></div>'
+                + '<div class="fid-chiffre"><b>' + (ef.retours_en_plus > 0 ? '+' : '') + (ef.retours_en_plus || 0) + '</b><span>clients revenus grâce au tunnel</span></div></div>'
+                + ((ef.temoins || 0) < 20 ? '<div class="fid-aide">Moins de 20 témoins : l\'écart n\'est pas encore fiable.</div>' : '');
+        }
+        h += '</div>';
         var statuts = ['tous', 'simule', 'a_envoyer', 'envoye', 'bloque', 'echec'];
         var msgs = d.messages.filter(function (m) { return filtreMessages === 'tous' || m.statut === filtreMessages; });
         h += '<div class="fid-carte"><h3>Messages générés</h3><div class="fid-puces">' + statuts.map(function (s) {

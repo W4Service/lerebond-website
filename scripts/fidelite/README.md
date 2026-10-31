@@ -28,7 +28,7 @@ LiveXperience ──(script Python, wepepc, 3 h : veille → J+30)──▶ Supa
 | Workflow n8n | `scripts/fidelite/construire_workflow.py` → `workflow.json` |
 | Page bar (mobile) | `admin/cadeaux/` → https://le-rebond.fr/admin/cadeaux/ |
 | Fiche client (ouverte par le QR code des e-mails) | `admin/client/?j=<jeton>` : réservations, paliers, cadeaux, passages en caisse, offre en cours |
-| Tableau de suivi + relecture des messages | `admin/fidelite/` → https://le-rebond.fr/admin/fidelite/ |
+| Admin (recherche, fiche client, suivi : conversions générées, effet contre le témoin, messages) | onglet **🎁 Fidélité** de https://le-rebond.fr/admin/ (`js/fidelite-admin.js`) ; `admin/cadeaux/`, `admin/fidelite/`, `admin/client/` ne font que rediriger |
 | Désinscription / préférences | `desinscription/?t=<jeton>` (lien en pied de chaque e-mail) |
 
 Aucun secret dans ce code. Les accès passent par l'existant : la base Supabase (`DATABASE_URL`
@@ -46,7 +46,10 @@ avec un compte **staff** (table `staff`, voir la migration `20261020_staff.sql`)
 - **Nouveau** = 1re partie de padel à partir de `date_lancement`, et aucune réservation
   (padel ou five) avant.
 - Les cadeaux sont valables **à toute heure** (la condition « heures creuses » a été
-  retirée le 31/10/2026 ; les plages HC ne servent plus qu'au tableau de remplissage).
+  retirée le 31/10/2026).
+- **Conversion** = client venu jouer au padel entre un message et la fin de validité de
+  son offre (`fidelite.v_conversions`) ; CA = prix LiveXperience de ces réservations ;
+  effet réel = écart de taux de retour entre ciblés et témoins × nombre de ciblés.
 - Retour dans la fenêtre → palier suivant. Retour après la fenêtre → même palier, nouvelle
   fenêtre. Pas de retour → rattrapage à J+14 (une seule fois par client), puis « décroché ».
 - **E-mails** : chaque message porte l'échelle des paliers (validé, en cours, suivants en
