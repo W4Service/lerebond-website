@@ -148,6 +148,6 @@ BEGIN
         'messages_du_jour', (SELECT count(*) FROM messages WHERE cree_le = p_maintenant));
 END $$;
 
--- Passage en réel : efface le tunnel simulé (les campagnes restent), lancement aujourd'hui,
+-- Passage en réel : efface le tunnel simulé (les campagnes restent), lancement le 02/11 (les parties du 01/11 ne comptent pas),
 -- dry_run = false, plus d'aperçus à `email_test`. Premier calcul demain 9h, envois dès 10h.
-SELECT fidelite.reinitialiser('2026-11-01', true);
+SELECT fidelite.reinitialiser('2026-11-02', true);
