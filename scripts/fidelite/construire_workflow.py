@@ -58,39 +58,33 @@ const [texte, pied = ''] = echapper(n.corps).split('\n—\n');
 const paragraphes = texte.trim().split(/\n{2,}/)
     .map(p => '<p style="margin:0 0 14px;line-height:1.5">' + liens(p).replace(/\n/g, '<br>') + '</p>').join('');
 
-// Échelle des paliers, en escalier : une marche par palier, de plus en plus haute.
-// Atteints = couleurs du Rebond (pêche → brun → bleu nuit) ; celui qui vient d'être validé
-// est entouré d'or ; les suivants sont grisés avec ce qu'il reste à jouer.
-// [fond atteint, étiquette, texte, fond pastel si pas encore atteint, texte pastel]
-const COULEURS = [['#f2c4a0', '#8a3b17', '#2b1a10', '#fbeee4', '#b7896b'], ['#e8955f', '#6e2a0c', '#2b1a10', '#fadfcb', '#b9774b'],
-                  ['#d4652f', '#fff3d6', '#ffffff', '#f6cfb6', '#b0623a'], ['#a8401c', '#ffd9a8', '#ffffff', '#f1c0a8', '#9e4a2c']];
-const ordinal = k => k === 1 ? '1re' : k + 'e';
+// Échelle des paliers, en escalier : une marche par palier à cadeau (la fin du tunnel,
+// « régulier », n'est pas affichée). Atteints = couleurs du Rebond, de l'or au bordeaux ;
+// celui qui vient d'être validé est entouré d'or ; à venir = teinte claire, en pointillés.
+// [fond atteint, texte atteint, fond à venir, texte à venir]
+const COULEURS = [['#f7c948', '#3b2400', '#fdf4d8', '#9a7a2a'], ['#efa707', '#2b1a00', '#fbe7bd', '#94671a'],
+                  ['#b8322a', '#ffffff', '#f6d9d6', '#9b4a43'], ['#680920', '#ffffff', '#ecd2d8', '#7d3a4a']];
+const parties = k => k + ' partie' + (k > 1 ? 's' : '');
 let echelle = '';
-// La fin du tunnel (« régulier ») n'est pas affichée : seulement les paliers à cadeau.
 const paliers = Array.isArray(d.paliers) ? d.paliers.filter(p => !p.fin) : [];
 if (paliers.length) {
     const actuel = paliers.find(p => p.etat === 'actuel');
     const largeur = Math.floor(100 / paliers.length) + '%';
     const marches = paliers.map((p, i) => {
-        const [fond, label, texte, pastel, textePastel] = COULEURS[Math.min(i, COULEURS.length - 1)];
-        const hauteur = 165 + i * 30;     // hauteur minimale : le texte ne déborde jamais
-        const etiquette = p.fin ? 'Fin du tunnel' : 'Après la ' + ordinal(p.rang) + ' partie';
-        const contenu = (atteint, couleurLabel, couleurTexte, badge) =>
-            '<div style="font-size:9px;font-weight:700;color:' + couleurLabel + ';line-height:1.2">' + etiquette + '</div>'
-            + '<div style="font-size:12px;font-weight:700;color:' + couleurTexte + ';margin-top:4px;line-height:1.15">' + echapper(p.titre || p.libelle) + '</div>'
-            + '<div style="font-size:10px;color:' + couleurTexte + ';opacity:.85;margin-top:3px;line-height:1.3">' + echapper(p.detail || '') + '</div>'
-            + '<div style="font-size:9px;font-weight:700;color:' + couleurLabel + ';margin-top:6px">' + badge + '</div>';
-        let style, html;
-        if (p.etat === 'a_debloquer') {
-            style = 'background:' + pastel + ';border:2px dashed ' + fond + ';';
-            html = contenu(false, textePastel, textePastel, '🔒 Encore ' + p.manque + ' résa');
-        } else {
-            style = 'background:' + fond + ';' + (p.etat === 'actuel' ? 'border:3px solid #efa707;' : '');
-            html = contenu(true, label, texte, p.etat === 'actuel' ? '✔ Ton cadeau' : '✔ Validé');
-        }
-        return '<td valign="bottom" width="' + largeur + '" style="padding:0 1px">'
-            + '<div style="' + style + 'min-height:' + hauteur + 'px;border-radius:8px 8px 0 0;padding:6px 4px;box-sizing:border-box;-webkit-hyphens:auto;hyphens:auto" lang="fr">'
-            + html + '</div></td>';
+        const [fond, texte, fondClair, texteClair] = COULEURS[Math.min(i, COULEURS.length - 1)];
+        const atteint = p.etat !== 'a_debloquer';
+        const couleur = atteint ? texte : texteClair;
+        const badge = p.etat === 'actuel' ? '🎁 À utiliser' : (atteint ? '✔ Gagné' : '🔒 Encore ' + parties(p.manque));
+        const style = atteint
+            ? 'background:' + fond + ';' + (p.etat === 'actuel' ? 'border:3px solid #680920;' : '')
+            : 'background:' + fondClair + ';border:2px dashed ' + fond + ';';
+        return '<td valign="bottom" width="' + largeur + '" style="padding:0 2px">'
+            + '<div style="' + style + 'min-height:' + (135 + i * 30) + 'px;border-radius:8px 8px 0 0;padding:7px 5px;box-sizing:border-box;-webkit-hyphens:auto;hyphens:auto" lang="fr">'
+            + '<div style="font-size:9px;font-weight:700;letter-spacing:.6px;color:' + couleur + ';opacity:.8">PALIER ' + p.rang + '</div>'
+            + '<div style="font-size:12px;font-weight:700;color:' + couleur + ';margin-top:4px;line-height:1.15">' + echapper(p.titre || p.libelle) + '</div>'
+            + '<div style="font-size:10px;color:' + couleur + ';margin-top:2px;line-height:1.3">' + echapper(p.detail || '') + '</div>'
+            + '<div style="font-size:10px;font-weight:700;color:' + couleur + ';margin-top:7px">' + badge + '</div>'
+            + '</div></td>';
     });
     echelle = '<div style="margin:6px 0 18px">'
         + (actuel ? '<div style="padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px;margin-bottom:14px">'
@@ -100,7 +94,8 @@ if (paliers.length) {
         + '<div style="font-weight:700;color:#680920;margin-bottom:8px">🎾 Ta progression</div>'
         + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed"><tr>'
         + marches.join('') + '</tr></table>'
-        + '<div style="height:6px;background:#680920;border-radius:0 0 4px 4px"></div></div>';
+        + '<div style="height:6px;background:#680920;border-radius:0 0 4px 4px"></div>'
+        + '<div style="font-size:12px;color:#5c5249;margin-top:8px">Chaque partie jouée dans les 7 jours qui suivent la précédente te fait monter d\'une marche.</div></div>';
 } else if (d.cadeau) {
     echelle = '<div style="margin:6px 0 18px;padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
         + '<div style="font-size:16px;font-weight:700">Ton cadeau : ' + echapper(d.cadeau) + '</div>'

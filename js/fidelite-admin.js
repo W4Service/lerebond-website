@@ -64,9 +64,9 @@
         + '.fid-marche{flex:1;border-radius:8px 8px 0 0;padding:.45rem .4rem;font-size:.75rem;min-width:0;hyphens:auto}'
         + '.fid-marche-etiq{font-size:.62rem;font-weight:700;opacity:.8}.fid-marche-titre{font-size:.82rem;font-weight:700;margin:.2rem 0}'
         + '.fid-marche-detail{font-size:.68rem;opacity:.85;margin-bottom:.3rem}'
-        + '.fid-marche--1{background:#f2c4a0;color:#2b1a10}.fid-marche--2{background:#e8955f;color:#2b1a10}'
-        + '.fid-marche--3{background:#d4652f;color:#fff}.fid-marche--4{background:#a8401c;color:#fff}'
-        + '.fid-marche--actuel{outline:3px solid #efa707;outline-offset:-3px}'
+        + '.fid-marche--1{background:#f7c948;color:#3b2400}.fid-marche--2{background:#efa707;color:#2b1a00}'
+        + '.fid-marche--3{background:#b8322a;color:#fff}.fid-marche--4{background:#680920;color:#fff;box-shadow:inset 0 0 0 1px rgba(244,240,230,.3)}'
+        + '.fid-marche--actuel{outline:3px solid #f4f0e6;outline-offset:-3px}'
         + '.fid-marche.fid-marche--a_debloquer{opacity:.45;border:2px dashed #f4f0e6}'
         + '.fid-retour{background:none;border:0;color:#efa707;font-weight:600;cursor:pointer;margin-bottom:.6rem;padding:0}';
 
@@ -201,10 +201,9 @@
         if (f.paliers && f.paliers.length) {
             // Escalier, comme dans les e-mails : atteints en couleur, suivants grisés.
             h += '<div class="fid-carte"><h3>Paliers</h3><div class="fid-escalier">' + f.paliers.filter(function (p) { return !p.fin; }).map(function (p, i) {
-                var etiquette = p.fin ? 'Fin du tunnel' : 'Après la ' + (p.rang === 1 ? '1re' : p.rang + 'e') + ' partie';
-                var badge = p.etat === 'a_debloquer' ? '🔒 Encore ' + p.manque + ' résa' : (p.etat === 'actuel' ? '✔ Cadeau en cours' : '✔ Validé');
-                return '<div class="fid-marche fid-marche--' + p.etat + ' fid-marche--' + Math.min(i + 1, 5) + '" style="min-height:' + (120 + i * 26) + 'px">'
-                    + '<div class="fid-marche-etiq">' + etiquette + '</div><div class="fid-marche-titre">' + e(p.titre || p.libelle) + '</div>'
+                var badge = p.etat === 'a_debloquer' ? '🔒 Encore ' + p.manque + ' partie' + (p.manque > 1 ? 's' : '') : (p.etat === 'actuel' ? '🎁 À utiliser' : '✔ Gagné');
+                return '<div class="fid-marche fid-marche--' + p.etat + ' fid-marche--' + Math.min(i + 1, 4) + '" style="min-height:' + (110 + i * 26) + 'px">'
+                    + '<div class="fid-marche-etiq">PALIER ' + p.rang + '</div><div class="fid-marche-titre">' + e(p.titre || p.libelle) + '</div>'
                     + '<div class="fid-marche-detail">' + e(p.detail || '') + '</div><div class="fid-marche-etiq">' + badge + '</div></div>';
             }).join('') + '</div></div>';
         }
