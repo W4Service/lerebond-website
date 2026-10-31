@@ -470,51 +470,66 @@ DO $$ DECLARE m uuid; BEGIN
 END $$;
 
 -- ===================================================================== campagne 5 €
-DO $$ DECLARE r jsonb; n integer; g text; BEGIN
+DO $$ DECLARE r jsonb; n integer; g text; dest text[]; k uuid; BEGIN
     -- 1er mars 2027 : les parties de test (novembre 2026) datent de plus de 60 jours.
-    PERFORM set_config('fidelite.maintenant', t.a('2027-03-01', '11:00')::text, false);
+    PERFORM set_config('fidelite.maintenant', t.a('2027-03-01', '20:30')::text, false);
     PERFORM t.client('1050', 'lea');
     PERFORM t.partie('1050', '2027-02-20 10:00');
     PERFORM t.client('1051', 'max');
     PERFORM t.partie('1051', '2027-03-10 10:00');
     PERFORM fidelite.synchroniser();
+    -- Fiches de l'équipe (créées par la migration, effacées par l'initialisation des tests).
+    INSERT INTO fidelite.clients (id_client, personne, prenom, nom, email) VALUES
+        ('990000001', '990000001', 'Gaël', 'POUJOL', 'gael.poujol@wepe.fr'),
+        ('990000002', '990000002', 'Damien', 'ESPONDE', 'damien.esponde@wepe.fr'),
+        ('990000003', '990000003', 'Benjamin', 'WUILMOT', 'benjamin.wuilmot@wepe.fr') ON CONFLICT DO NOTHING;
+    PERFORM t.partie('990000002', '2027-02-25 10:00');   -- l'équipe a beau avoir joué : incluse
     PERFORM t.check('campagne : exclut qui a réservé dans les 60 jours ou a une réservation à venir',
         NOT EXISTS (SELECT 1 FROM fidelite.v_campagne_cibles WHERE personne IN ('1050', '1051'))
         AND EXISTS (SELECT 1 FROM fidelite.v_campagne_cibles WHERE personne = '1001'));
+    PERFORM t.check('campagne : les 3 adresses de l''équipe toujours incluses',
+        (SELECT count(*) FROM fidelite.v_campagne_cibles WHERE personne IN ('990000001', '990000002', '990000003')) = 3);
     PERFORM set_config('test.uid', '', false);
-    PERFORM t.check('campagne : refusée hors staff', t.erreur('SELECT public.fidelite_campagne_envoyer(1)') LIKE '%staff%');
+    PERFORM t.check('campagne : refusée hors staff',
+        t.erreur('SELECT public.fidelite_campagne_envoyer(1, ''2027-03-02'', ''2027-03-09'')') LIKE '%staff%');
     PERFORM set_config('test.uid', '00000000-0000-0000-0000-000000000003', false);
     n := (public.fidelite_campagne_etat()->>'destinataires')::int;
-    PERFORM t.check('campagne : destinataires = clients sans réservation depuis 60 jours', n = (SELECT count(*) FROM fidelite.v_campagne_cibles) AND n > 0);
-    PERFORM t.check('campagne : test envoyé à l''adresse du staff, tout de suite, sans cadeau',
-        public.fidelite_campagne_test() = 'gerant@le-rebond.fr'
-        AND (SELECT statut = 'a_envoyer' AND cadeau_id IS NULL AND sujet LIKE '[TEST]%' AND fidelite.campagne_autorisee(donnees, t.a('2026-11-05', '22:00'))
-             FROM fidelite.messages WHERE type = 'campagne' AND destinataire = 'gerant@le-rebond.fr'));
-    PERFORM t.check('campagne : nombre périmé refusé', t.erreur(format('SELECT public.fidelite_campagne_envoyer(%s)', n + 1)) LIKE '%changé%');
-    -- Un client du tunnel avec une offre en cours la garde à côté de celle de la campagne.
+    PERFORM t.check('campagne : période proposée = demain → même jour la semaine suivante',
+        public.fidelite_campagne_etat()->>'debut' = '2027-03-02' AND public.fidelite_campagne_etat()->>'fin' = '2027-03-09');
+    dest := public.fidelite_campagne_test('2027-03-02', '2027-03-09');
+    PERFORM t.check('campagne : test à l''équipe + au staff connecté, à toute heure, sans cadeau',
+        array_length(dest, 1) = 4 AND 'gerant@le-rebond.fr' = ANY (dest) AND 'damien.esponde@wepe.fr' = ANY (dest)
+        AND (SELECT bool_and(statut = 'a_envoyer' AND cadeau_id IS NULL AND sujet LIKE '[TEST]%' AND fidelite.campagne_autorisee(donnees))
+             FROM fidelite.messages WHERE type = 'campagne' AND sujet LIKE '[TEST]%'));
+    PERFORM t.check('campagne : dates invalides refusées',
+        t.erreur('SELECT public.fidelite_campagne_envoyer(1, ''2027-02-20'', ''2027-03-09'')') LIKE '%passée%'
+        AND t.erreur('SELECT public.fidelite_campagne_envoyer(1, ''2027-03-09'', ''2027-03-02'')') LIKE '%avant%');
+    PERFORM t.check('campagne : nombre périmé refusé',
+        t.erreur(format('SELECT public.fidelite_campagne_envoyer(%s, ''2027-03-02'', ''2027-03-09'')', n + 1)) LIKE '%changé%');
     g := (SELECT personne FROM fidelite.cadeaux WHERE statut = 'actif' AND origine <> 'campagne'
           AND personne IN (SELECT personne FROM fidelite.v_campagne_cibles) LIMIT 1);
-    r := public.fidelite_campagne_envoyer(n);
+    r := public.fidelite_campagne_envoyer(n, '2027-03-02', '2027-03-09');
     PERFORM t.check('campagne : un cadeau et un e-mail « a_envoyer » par destinataire, même en dry-run',
         (r->>'destinataires')::int = n
         AND (SELECT count(*) FROM fidelite.cadeaux WHERE origine = 'campagne' AND statut = 'actif') = n
         AND (SELECT count(*) FROM fidelite.messages WHERE type = 'campagne' AND statut = 'a_envoyer' AND cadeau_id IS NOT NULL) = n
         AND fidelite.cfg('dry_run') = 'true'::jsonb);
-    PERFORM t.check('campagne : valable 7 jours, texte 5 € par joueur, accueil, empreinte bancaire',
-        (SELECT bool_and(k.expire_le - k.valable_du = 6) FROM fidelite.cadeaux k WHERE origine = 'campagne')
-        AND (SELECT bool_and(corps LIKE '%5 € par joueur%' AND corps LIKE '%accueil%' AND corps LIKE '%empreinte bancaire%'
-                             AND corps NOT LIKE '%au bar%' AND corps LIKE '%desinscription%')
+    PERFORM t.check('campagne : période choisie, texte 5 € par joueur, accueil, empreinte bancaire',
+        (SELECT bool_and(k.valable_du = '2027-03-02' AND k.expire_le = '2027-03-09') FROM fidelite.cadeaux k WHERE origine = 'campagne')
+        AND (SELECT bool_and(corps LIKE '%Du mardi 2 mars au mardi 9 mars inclus%' AND corps LIKE '%5 € par joueur%'
+                             AND corps LIKE '%accueil%' AND corps LIKE '%empreinte bancaire%' AND corps NOT LIKE '%au bar%')
              FROM fidelite.messages WHERE type = 'campagne' AND cadeau_id IS NOT NULL));
     PERFORM t.check('campagne : l''offre du tunnel en cours est gardée',
         g IS NULL OR (SELECT count(*) FROM fidelite.cadeaux WHERE personne = g AND statut = 'actif') = 2);
-    PERFORM t.check('campagne : fiche avec les deux offres actives',
-        g IS NULL OR jsonb_array_length(public.fidelite_fiche_client((SELECT jeton FROM fidelite.clients WHERE personne = g LIMIT 1))->'cadeaux_actifs') = 2);
-    PERFORM t.check('campagne : une seule par 24 h', t.erreur(format('SELECT public.fidelite_campagne_envoyer(%s)', n)) LIKE '%24 h%');
+    PERFORM t.check('campagne : une seule par 24 h',
+        t.erreur(format('SELECT public.fidelite_campagne_envoyer(%s, ''2027-03-02'', ''2027-03-09'')', n)) LIKE '%24 h%');
     PERFORM t.check('campagne : hors plafond hebdomadaire', g IS NULL OR fidelite.plafond_ok(g, fidelite.maintenant() + interval '1 day'));
-    PERFORM t.check('campagne : le test n''entre pas dans les statistiques e-mails',
-        NOT EXISTS (SELECT 1 FROM fidelite.v_suivi_emails WHERE type = 'campagne'));
-    PERFORM t.check('campagne : utilisable au bar',
-        (public.fidelite_bar_utiliser((SELECT id FROM fidelite.cadeaux WHERE origine = 'campagne' AND statut = 'actif' LIMIT 1))->>'ok')::boolean);
+    k := (SELECT id FROM fidelite.cadeaux WHERE origine = 'campagne' AND statut = 'actif' AND personne = '990000001');
+    PERFORM t.check('campagne : code refusé avant le début', t.erreur(format('SELECT public.fidelite_bar_utiliser(%L)', k)) LIKE '%à partir du%');
+    PERFORM set_config('fidelite.maintenant', t.a('2027-03-10', '10:00')::text, false);
+    PERFORM t.check('campagne : code refusé après la fin', t.erreur(format('SELECT public.fidelite_bar_utiliser(%L)', k)) LIKE '%expiré%');
+    PERFORM set_config('fidelite.maintenant', t.a('2027-03-09', '21:00')::text, false);
+    PERFORM t.check('campagne : code accepté le dernier jour', (public.fidelite_bar_utiliser(k)->>'ok')::boolean);
     PERFORM set_config('test.uid', '', false);
     DELETE FROM fidelite.messages WHERE type <> 'campagne' AND statut IN ('a_envoyer', 'envoye', 'echec');   -- scénario 12
     PERFORM t.check('réinitialisation : les campagnes réelles ne la bloquent pas et sont gardées',

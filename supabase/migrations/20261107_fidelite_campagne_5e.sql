@@ -4,17 +4,19 @@
 -- - Rattrapage (J+14) et grand retour (J+60) désactivés pour l'instant (`rattrapage_actif`,
 --   `grand_retour_actif`) : le client sort du tunnel à la fin de sa fenêtre.
 -- - Campagne lancée depuis l'admin, envoyée aux clients joignables par e-mail (non désinscrits)
---   sans aucune réservation (padel ou five, passée ou à venir) depuis 60 jours : 5 € la partie par joueur, pour le client et son équipe, 7 jours, sur
---   présentation du QR code ou du code à l'accueil. Réservation en ligne avec l'empreinte
---   bancaire ; la réduction est faite sur place. Elle part même en mode test (c'est le
---   bouton qui décide) et ne compte pas dans le plafond d'un message par semaine.
+--   sans aucune réservation (padel ou five, passée ou à venir) depuis 60 jours, plus les
+--   adresses de l'équipe (`toujours`) : 5 € la partie par joueur, pour le client et son
+--   équipe, sur la période choisie, sur présentation du QR code ou du code à l'accueil.
+--   Réservation en ligne avec l'empreinte bancaire ; la réduction est faite sur place. Hors
+--   période, le code ne marche plus. Elle part dès le clic, à toute heure et même en mode
+--   test, et ne compte pas dans le plafond d'un message par semaine.
 -- - L'offre de campagne vit à côté de celle du tunnel : jamais remplacée par lui.
 
 INSERT INTO fidelite.config (cle, valeur, description) VALUES
     ('rattrapage_actif', 'false', 'relance J+14 (rattrapage) : false = désactivée, le client sort du tunnel'),
     ('grand_retour_actif', 'false', 'grand retour J+60 : false = désactivé'),
-    ('campagne_5e', '{"libelle": "Partie à 5 € par joueur", "formule": "la partie de padel à 5 € par joueur, pour toi et ton équipe", "validite_jours": 7, "inactivite_jours": 60}',
-        'campagne lancée depuis l''admin : cadeau, validité (jour d''envoi compris), clients sans réservation depuis N jours')
+    ('campagne_5e', '{"libelle": "Partie à 5 € par joueur", "formule": "la partie de padel à 5 € par joueur, pour toi et ton équipe", "inactivite_jours": 60, "toujours": ["gael.poujol@wepe.fr", "damien.esponde@wepe.fr", "benjamin.wuilmot@wepe.fr"]}',
+        'campagne lancée depuis l''admin : cadeau, clients sans réservation depuis N jours, adresses toujours incluses (équipe)')
 ON CONFLICT (cle) DO UPDATE SET valeur = EXCLUDED.valeur, description = EXCLUDED.description;
 
 -- Rattrapages et grands retours pas encore partis : retenus, et leurs offres closes.
@@ -102,15 +104,10 @@ BEGIN
     RETURN CASE WHEN p_reel THEN 'envoi réel' ELSE 'dry-run' END || ', lancement le ' || p_lancement;
 END $$;
 
--- Workflow d'envoi : un e-mail de campagne part aux heures d'envoi, même en dry-run ; un
--- test part tout de suite.
+-- Workflow d'envoi : une campagne (ou son test) part dès qu'elle est lancée, à toute heure
+-- et même en dry-run : c'est le clic dans l'admin qui décide.
 CREATE OR REPLACE FUNCTION fidelite.campagne_autorisee(p_donnees jsonb, p_maintenant timestamptz DEFAULT now()) RETURNS boolean
-LANGUAGE sql STABLE SET search_path = fidelite AS $$
-    WITH l AS (SELECT p_maintenant AT TIME ZONE 'Europe/Paris' AS t)
-    SELECT coalesce(p_donnees->>'test', '') = 'true'
-        OR (extract(hour FROM l.t) >= cfg_int('envoi_heure_debut') AND extract(hour FROM l.t) < cfg_int('envoi_heure_fin'))
-    FROM l
-$$;
+LANGUAGE sql STABLE AS $$ SELECT true $$;
 
 -- Moteur : identique (20261101), sauf rattrapage / grand retour désactivables et offre de
 -- campagne jamais remplacée par le tunnel.
@@ -384,23 +381,34 @@ BEGIN
 END $$;
 
 INSERT INTO fidelite.templates (code, canal, sujet, corps) VALUES
-    ('campagne_5e', 'email', '{prenom}, ta partie de padel à 5 € par joueur cette semaine',
-     E'Salut {prenom},\n\nCette semaine au Rebond, la partie de padel est à 5 € par joueur, pour toi et ton équipe, jusqu''au {date_limite}.\n\nComment en profiter :\n1. Réserve ton terrain en ligne comme d''habitude, avec ton empreinte bancaire.\n2. À ton arrivée, présente ce QR code (ou ton code {code}) à l''accueil : la réduction est faite sur place.\n\nRéserve ici : {lien}')
+    ('campagne_5e', 'email', '{prenom}, le padel à 5 € par joueur jusqu''au {date_limite}',
+     E'Salut {prenom},\n\nDu {date_debut} au {date_limite} inclus, la partie de padel au Rebond est à 5 € par joueur, pour toi et ton équipe.\n\nComment en profiter :\n1. Réserve ton terrain en ligne comme d''habitude, avec ton empreinte bancaire.\n2. À ton arrivée, présente ce QR code (ou ton code {code}) à l''accueil : la réduction est faite sur place.\n\nPassé le {date_limite}, le code ne fonctionne plus.\n\nRéserve ici : {lien}')
 ON CONFLICT (code, canal) DO UPDATE SET sujet = EXCLUDED.sujet, corps = EXCLUDED.corps;
 
+-- Adresses de l'équipe (config `toujours`) : fiches clients hors LiveXperience (refs 99000000x,
+-- jamais touchées par la synchronisation), pour recevoir chaque campagne et ses tests.
+INSERT INTO fidelite.clients (id_client, personne, prenom, nom, email) VALUES
+    ('990000001', '990000001', 'Gaël', 'POUJOL', 'gael.poujol@wepe.fr'),
+    ('990000002', '990000002', 'Damien', 'ESPONDE', 'damien.esponde@wepe.fr'),
+    ('990000003', '990000003', 'Benjamin', 'WUILMOT', 'benjamin.wuilmot@wepe.fr')
+ON CONFLICT (id_client) DO NOTHING;
+
 -- Destinataires : clients avec un e-mail, non désinscrits des offres, sans aucune réservation
--- (padel ou five) depuis `inactivite_jours` jours ni à venir.
+-- (padel ou five) depuis `inactivite_jours` jours ni à venir ; plus, toujours, les adresses
+-- de `toujours` (l'équipe), même si elles ont réservé.
 CREATE OR REPLACE VIEW fidelite.v_campagne_cibles AS
 SELECT vp.personne, vp.prenom, vp.email, vp.jeton FROM fidelite.v_personnes vp
-WHERE vp.relances_ok AND vp.email LIKE '%_@_%'
-  AND NOT EXISTS (SELECT 1 FROM fidelite.parties p
-                  WHERE p.personne = vp.personne
-                    AND p.jour > (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date
-                                 - coalesce((fidelite.cfg('campagne_5e')->>'inactivite_jours')::int, 60));
+WHERE vp.email LIKE '%_@_%'
+  AND (vp.email IN (SELECT jsonb_array_elements_text(fidelite.cfg('campagne_5e') -> 'toujours'))
+       OR (vp.relances_ok
+           AND NOT EXISTS (SELECT 1 FROM fidelite.parties p
+                           WHERE p.personne = vp.personne
+                             AND p.jour > (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date
+                                          - coalesce((fidelite.cfg('campagne_5e')->>'inactivite_jours')::int, 60))));
 
 -- Rédige un e-mail de campagne (le pied commun sans sa phrase « au bar », déjà dans le texte).
-CREATE OR REPLACE FUNCTION fidelite.campagne_message(p_personne text, p_prenom text, p_jeton uuid, p_code text,
-                                                     p_expire date, p_maintenant timestamptz,
+DROP FUNCTION IF EXISTS fidelite.campagne_message(text, text, uuid, text, date, timestamptz);
+CREATE OR REPLACE FUNCTION fidelite.campagne_message(p_prenom text, p_jeton uuid, p_code text, p_debut date, p_fin date,
                                                      OUT sujet text, OUT corps text, OUT donnees jsonb)
 LANGUAGE plpgsql STABLE SET search_path = fidelite, public AS $$
 DECLARE t record; v_pied text; v_vars jsonb; g jsonb := cfg('campagne_5e');
@@ -409,28 +417,62 @@ BEGIN
     SELECT templates.corps INTO v_pied FROM templates WHERE code = 'pied' AND canal = 'email';
     v_pied := CASE WHEN strpos(v_pied, '—') > 0 THEN substr(v_pied, strpos(v_pied, '—')) ELSE v_pied END;
     v_vars := jsonb_build_object(
-        'prenom', coalesce(p_prenom, ''), 'date_limite', date_fr(p_expire), 'cadeau', g->>'formule', 'code', p_code,
-        'lien', cfg_txt('lien_reservation'),
+        'prenom', coalesce(p_prenom, ''), 'date_debut', date_fr(p_debut), 'date_limite', date_fr(p_fin),
+        'cadeau', g->>'formule', 'code', p_code, 'lien', cfg_txt('lien_reservation'),
         'lien_desinscription', site_url() || '/desinscription/?t=' || p_jeton);
     sujet := rendre(t.sujet, v_vars);
     corps := rendre(t.corps || E'\n\n' || v_pied, v_vars);
     donnees := jsonb_build_object('qr_url', site_url() || '/admin/client/?j=' || p_jeton, 'code', p_code,
                                   'cadeau', g->>'libelle', 'origine', 'campagne',
-                                  'expire_le', p_expire, 'date_limite', date_fr(p_expire));
+                                  'expire_le', p_fin, 'date_limite', date_fr(p_fin));
 END $$;
 
--- Admin : nombre de destinataires et campagnes déjà lancées.
+-- Période proposée : de demain au même jour de la semaine suivante inclus (8 jours).
+CREATE OR REPLACE FUNCTION fidelite.campagne_dates_ok(p_debut date, p_fin date) RETURNS void
+LANGUAGE plpgsql STABLE SET search_path = fidelite AS $$
+BEGIN
+    IF p_debut IS NULL OR p_fin IS NULL THEN RAISE EXCEPTION 'Indique les dates de début et de fin.'; END IF;
+    IF p_debut < (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date THEN RAISE EXCEPTION 'La date de début est passée.'; END IF;
+    IF p_fin < p_debut THEN RAISE EXCEPTION 'La date de fin est avant la date de début.'; END IF;
+    IF p_fin - p_debut > 30 THEN RAISE EXCEPTION 'Une campagne dure 31 jours au plus.'; END IF;
+END $$;
+
+-- E-mails de test (aucun cadeau, code RB-EXEMPLE), partent tout de suite : aux adresses
+-- `toujours` et à l'adresse donnée. Chacun voit son propre QR code.
+CREATE OR REPLACE FUNCTION fidelite.campagne_envoyer_test(p_autre text, p_debut date, p_fin date) RETURNS text[]
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = fidelite, public AS $$
+DECLARE c record; m record; v_dest text[] := '{}';
+BEGIN
+    PERFORM campagne_dates_ok(p_debut, p_fin);
+    FOR c IN SELECT DISTINCT ON (x.email) x.email, vp.personne, coalesce(vp.prenom, '') AS prenom, coalesce(vp.jeton, gen_random_uuid()) AS jeton
+             FROM (SELECT jsonb_array_elements_text(cfg('campagne_5e') -> 'toujours') AS email
+                   UNION SELECT lower(p_autre) WHERE coalesce(p_autre, '') LIKE '%_@_%') x
+             LEFT JOIN v_personnes vp ON vp.email = x.email
+             ORDER BY x.email, vp.personne LOOP
+        SELECT * INTO m FROM campagne_message(c.prenom, c.jeton, 'RB-EXEMPLE', p_debut, p_fin);
+        INSERT INTO messages (cle, personne, type, canal, destinataire, sujet, corps, statut, cree_le, donnees)
+        VALUES ('campagne-test:' || gen_random_uuid(), coalesce(c.personne, 'equipe'), 'campagne', 'email', c.email,
+                '[TEST] ' || m.sujet, m.corps, 'a_envoyer', fidelite.maintenant(), m.donnees || '{"test": true}');
+        v_dest := v_dest || c.email;
+    END LOOP;
+    RETURN v_dest;
+END $$;
+REVOKE ALL ON FUNCTION fidelite.campagne_envoyer_test(text, date, date) FROM PUBLIC;
+
+-- Admin : nombre de destinataires, période proposée et campagnes déjà lancées.
 CREATE OR REPLACE FUNCTION public.fidelite_campagne_etat() RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = fidelite, public AS $$
+DECLARE v_jour date := (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date;
 BEGIN
     IF NOT public.est_staff() THEN RAISE EXCEPTION 'réservé au staff' USING ERRCODE = '42501'; END IF;
     RETURN jsonb_build_object(
         'destinataires', (SELECT count(*) FROM v_campagne_cibles),
         'offre', cfg('campagne_5e'),
+        'debut', v_jour + 1, 'fin', v_jour + 8,
         'test_a', (SELECT email FROM public.staff WHERE user_id = auth.uid()),
         'campagnes', (SELECT coalesce(jsonb_agg(jsonb_build_object(
-                          'lancee_le', ca.lancee_le, 'lancee_par', ca.lancee_par, 'expire_le', ca.expire_le,
-                          'destinataires', ca.destinataires,
+                          'lancee_le', ca.lancee_le, 'lancee_par', ca.lancee_par, 'valable_du', ca.valable_du,
+                          'expire_le', ca.expire_le, 'destinataires', ca.destinataires,
                           'envoyes', (SELECT count(*) FROM messages m JOIN cadeaux k ON k.id = m.cadeau_id
                                       WHERE k.campagne_id = ca.id AND m.statut = 'envoye'),
                           'en_attente', (SELECT count(*) FROM messages m JOIN cadeaux k ON k.id = m.cadeau_id
@@ -441,36 +483,28 @@ BEGIN
                       ORDER BY ca.lancee_le DESC), '[]') FROM campagnes ca));
 END $$;
 
--- Admin : e-mail d'exemple envoyé tout de suite à l'adresse du membre du staff connecté
--- (prénom et QR code d'un vrai client, code « RB-EXEMPLE » ; aucun cadeau créé).
-CREATE OR REPLACE FUNCTION public.fidelite_campagne_test() RETURNS text
+DROP FUNCTION IF EXISTS public.fidelite_campagne_test();
+CREATE OR REPLACE FUNCTION public.fidelite_campagne_test(p_debut date, p_fin date) RETURNS text[]
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = fidelite, public AS $$
-DECLARE v_email text; c record; m record; v_maintenant timestamptz := fidelite.maintenant();
-        v_expire date := (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date + (cfg('campagne_5e')->>'validite_jours')::int - 1;
 BEGIN
     IF NOT public.est_staff() THEN RAISE EXCEPTION 'réservé au staff' USING ERRCODE = '42501'; END IF;
-    SELECT email INTO v_email FROM public.staff WHERE user_id = auth.uid();
-    IF coalesce(v_email, '') = '' THEN RAISE EXCEPTION 'Pas d''adresse e-mail pour ton compte staff.'; END IF;
-    SELECT * INTO c FROM v_campagne_cibles ORDER BY personne LIMIT 1;
-    IF NOT FOUND THEN RAISE EXCEPTION 'Aucun destinataire.'; END IF;
-    SELECT * INTO m FROM campagne_message(c.personne, c.prenom, c.jeton, 'RB-EXEMPLE', v_expire, v_maintenant);
-    INSERT INTO messages (cle, personne, type, canal, destinataire, sujet, corps, statut, cree_le, donnees)
-    VALUES ('campagne-test:' || gen_random_uuid(), c.personne, 'campagne', 'email', v_email,
-            '[TEST] ' || m.sujet, m.corps, 'a_envoyer', v_maintenant, m.donnees || '{"test": true}');
-    RETURN v_email;
+    RETURN fidelite.campagne_envoyer_test((SELECT email FROM public.staff WHERE user_id = auth.uid()), p_debut, p_fin);
 END $$;
 
--- Admin : lance la campagne. `p_nombre` = nombre de destinataires affiché à l'écran (évite
--- d'envoyer à une liste qui a changé) ; une seule campagne par 24 h (double clic).
-CREATE OR REPLACE FUNCTION public.fidelite_campagne_envoyer(p_nombre integer) RETURNS jsonb
+ALTER TABLE fidelite.campagnes ADD COLUMN IF NOT EXISTS valable_du date;
+
+-- Admin : lance la campagne pour la période choisie. `p_nombre` = nombre de destinataires
+-- affiché à l'écran (évite d'envoyer à une liste qui a changé) ; une par 24 h (double clic).
+-- Le code ne marche qu'entre `p_debut` et `p_fin` inclus (contrôlé par fidelite_bar_utiliser).
+DROP FUNCTION IF EXISTS public.fidelite_campagne_envoyer(integer);
+CREATE OR REPLACE FUNCTION public.fidelite_campagne_envoyer(p_nombre integer, p_debut date, p_fin date) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = fidelite, public AS $$
 DECLARE v_campagne uuid; v_cadeau uuid; v_code text; c record; m record; n integer := 0;
         g jsonb := cfg('campagne_5e');
         v_maintenant timestamptz := fidelite.maintenant();
-        v_jour date := (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date;
-        v_expire date := (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date + (cfg('campagne_5e')->>'validite_jours')::int - 1;
 BEGIN
     IF NOT public.est_staff() THEN RAISE EXCEPTION 'réservé au staff' USING ERRCODE = '42501'; END IF;
+    PERFORM campagne_dates_ok(p_debut, p_fin);
     PERFORM pg_advisory_xact_lock(hashtext('fidelite.campagne'));
     IF EXISTS (SELECT 1 FROM campagnes WHERE lancee_le > v_maintenant - interval '24 hours') THEN
         RAISE EXCEPTION 'Une campagne a déjà été lancée il y a moins de 24 h.';
@@ -478,27 +512,27 @@ BEGIN
     IF p_nombre IS DISTINCT FROM (SELECT count(*)::int FROM v_campagne_cibles) THEN
         RAISE EXCEPTION 'Le nombre de destinataires a changé : recharge la page.';
     END IF;
-    INSERT INTO campagnes (lancee_le, lancee_par, expire_le, destinataires)
-    VALUES (v_maintenant, (SELECT email FROM public.staff WHERE user_id = auth.uid()), v_expire, p_nombre)
+    INSERT INTO campagnes (lancee_le, lancee_par, valable_du, expire_le, destinataires)
+    VALUES (v_maintenant, (SELECT email FROM public.staff WHERE user_id = auth.uid()), p_debut, p_fin, p_nombre)
     RETURNING id INTO v_campagne;
     UPDATE cadeaux SET statut = 'remplace', motif = 'nouvelle campagne' WHERE statut = 'actif' AND origine = 'campagne';
     FOR c IN SELECT * FROM v_campagne_cibles ORDER BY personne LOOP
         v_code := nouveau_code();
         INSERT INTO cadeaux (code, personne, origine, libelle, formule, choix_requis, valable_du, expire_le, cree_le, campagne_id)
-        VALUES (v_code, c.personne, 'campagne', g->>'libelle', g->>'formule', false, v_jour, v_expire, v_maintenant, v_campagne)
+        VALUES (v_code, c.personne, 'campagne', g->>'libelle', g->>'formule', false, p_debut, p_fin, v_maintenant, v_campagne)
         RETURNING id INTO v_cadeau;
-        SELECT * INTO m FROM campagne_message(c.personne, c.prenom, c.jeton, v_code, v_expire, v_maintenant);
+        SELECT * INTO m FROM campagne_message(c.prenom, c.jeton, v_code, p_debut, p_fin);
         INSERT INTO messages (cle, personne, cadeau_id, type, canal, destinataire, sujet, corps, statut, cree_le, donnees)
         VALUES ('campagne:' || v_cadeau, c.personne, v_cadeau, 'campagne', 'email', c.email, m.sujet, m.corps,
                 'a_envoyer', v_maintenant, m.donnees || jsonb_build_object('campagne', v_campagne));
         n := n + 1;
     END LOOP;
-    RETURN jsonb_build_object('destinataires', n, 'expire_le', v_expire);
+    RETURN jsonb_build_object('destinataires', n, 'valable_du', p_debut, 'expire_le', p_fin);
 END $$;
 
 REVOKE ALL ON FUNCTION public.fidelite_campagne_etat() FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.fidelite_campagne_test() FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.fidelite_campagne_envoyer(integer) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.fidelite_campagne_test(date, date) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.fidelite_campagne_envoyer(integer, date, date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.fidelite_campagne_etat() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.fidelite_campagne_test() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.fidelite_campagne_envoyer(integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fidelite_campagne_test(date, date) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fidelite_campagne_envoyer(integer, date, date) TO authenticated;

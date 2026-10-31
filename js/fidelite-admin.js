@@ -368,15 +368,19 @@
         var d = r.data, o = d.offre || {};
         var h = '<div class="fid-carte fid-offre"><h3>Campagne : ' + e(o.libelle) + '</h3>'
             + '<p style="line-height:1.5;margin:.3rem 0 .6rem">Un e-mail à <b>' + d.destinataires + ' clients</b> : ceux qui ont un e-mail, ne se sont pas désinscrits et n\'ont aucune réservation depuis ' + e(o.inactivite_jours || 60) + ' jours (ni à venir) : '
-            + e(o.formule) + ', pendant ' + e(o.validite_jours) + ' jours, sur présentation du QR code ou du code à l\'accueil. '
+            + e(o.formule) + ', sur présentation du QR code ou du code à l\'accueil, uniquement entre les deux dates ci-dessous (inclus). '
             + 'Ils réservent en ligne avec leur empreinte bancaire ; la réduction est faite sur place (bouton « Marquer utilisé » de leur fiche).</p>'
-            + '<div class="fid-actions"><button class="fid-btn fid-btn--creme" data-campagne="test">M\'envoyer un test (' + e(d.test_a || '?') + ')</button>'
+            + '<div class="fid-actions" style="align-items:center"><label>Du <input type="date" id="fid-camp-du" value="' + e(d.debut) + '"></label>'
+            + '<label>au <input type="date" id="fid-camp-au" value="' + e(d.fin) + '"></label></div>'
+            + '<div class="fid-actions"><button class="fid-btn fid-btn--creme" data-campagne="test">Envoyer un test à l\'équipe</button>'
             + '<button class="fid-btn fid-btn--or" data-campagne="envoyer">Envoyer à ' + d.destinataires + ' clients</button></div>'
             + '<div id="fid-msg-campagne"></div>'
-            + '<div class="fid-aide">Envoi entre 10 h et 19 h, environ 700 e-mails par heure. Une campagne au plus par 24 h.</div></div>';
-        h += '<div class="fid-carte"><h3>Campagnes lancées</h3>' + table(['Lancée le', 'Par', 'Valable jusqu\'au', 'Destinataires', 'Envoyés', 'En attente', 'Échecs', 'Utilisées'],
+            + '<div class="fid-aide">Le test part à ' + e((d.offre.toujours || []).concat(d.test_a && (d.offre.toujours || []).indexOf(d.test_a) < 0 ? [d.test_a] : []).join(', '))
+            + ' (code RB-EXEMPLE, sans cadeau). La campagne part dès le clic, environ 700 e-mails par heure ; ces adresses la reçoivent aussi. '
+            + 'Une campagne au plus par 24 h.</div></div>';
+        h += '<div class="fid-carte"><h3>Campagnes lancées</h3>' + table(['Lancée le', 'Par', 'Période', 'Destinataires', 'Envoyés', 'En attente', 'Échecs', 'Utilisées'],
             d.campagnes.map(function (c) {
-                return '<tr><td>' + jour(c.lancee_le) + ' ' + heure(c.lancee_le) + '</td><td>' + e(c.lancee_par || '') + '</td><td>' + jour(c.expire_le)
+                return '<tr><td>' + jour(c.lancee_le) + ' ' + heure(c.lancee_le) + '</td><td>' + e(c.lancee_par || '') + '</td><td>' + (c.valable_du ? jour(c.valable_du) + ' → ' : '') + jour(c.expire_le)
                     + '</td><td>' + c.destinataires + '</td><td>' + c.envoyes + '</td><td>' + c.en_attente + '</td><td>' + c.echecs
                     + '</td><td>' + c.utilises + '</td></tr>';
             })) + '<div class="fid-aide">Ouvertures, clics et clients venus jouer : onglet Suivi, ligne « Campagne 5 € ».</div></div>';
@@ -386,14 +390,16 @@
     async function campagne(bouton) {
         var msg = document.getElementById('fid-msg-campagne');
         var action = bouton.getAttribute('data-campagne');
-        if (action === 'envoyer' && !confirm('Envoyer la campagne à ' + etatCampagne.destinataires + ' clients ? Ce n\'est pas annulable.')) return;
+        var du = document.getElementById('fid-camp-du').value, au = document.getElementById('fid-camp-au').value;
+        if (action === 'envoyer' && !confirm('Envoyer la campagne à ' + etatCampagne.destinataires + ' clients, valable du ' + jour(du) + ' au ' + jour(au)
+            + ' inclus ? Ce n\'est pas annulable.')) return;
         section().querySelectorAll('[data-campagne]').forEach(function (x) { x.disabled = true; });
-        var r = action === 'test' ? await supa.rpc('fidelite_campagne_test')
-            : await supa.rpc('fidelite_campagne_envoyer', { p_nombre: etatCampagne.destinataires });
+        var r = action === 'test' ? await supa.rpc('fidelite_campagne_test', { p_debut: du, p_fin: au })
+            : await supa.rpc('fidelite_campagne_envoyer', { p_nombre: etatCampagne.destinataires, p_debut: du, p_fin: au });
         section().querySelectorAll('[data-campagne]').forEach(function (x) { x.disabled = false; });
         if (r.error) { msg.className = 'fid-err'; msg.textContent = r.error.message; return; }
         msg.className = 'fid-ok';
-        msg.textContent = action === 'test' ? 'Test envoyé à ' + r.data + ' (arrive dans les 5 minutes).'
+        msg.textContent = action === 'test' ? 'Test envoyé à ' + r.data.join(', ') + ' (arrive dans les 5 minutes).'
             : 'Campagne lancée : ' + r.data.destinataires + ' e-mails en file d\'envoi.';
         if (action === 'envoyer') setTimeout(chargerCampagne, 2000);
     }
