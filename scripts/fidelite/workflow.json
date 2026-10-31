@@ -23,7 +23,7 @@
   {
    "parameters": {
     "operation": "executeQuery",
-    "query": "UPDATE fidelite.messages SET tentatives = tentatives + 1\nWHERE id IN (\n    SELECT id FROM fidelite.messages\n    WHERE tentatives < 5\n      AND ((statut = 'a_envoyer' AND fidelite.envoi_autorise(canal))\n        OR (statut = 'a_envoyer' AND type = 'campagne' AND fidelite.campagne_autorisee(donnees))\n        OR (statut = 'simule' AND apercu_envoye_le IS NULL AND fidelite.apercu_autorise(canal)))\n    ORDER BY cree_le\n    LIMIT 60\n    FOR UPDATE SKIP LOCKED)\nRETURNING id, canal, destinataire, sujet, corps, type, tentatives, statut, donnees,\n          fidelite.cfg_txt('expediteur') AS expediteur,\n          CASE WHEN statut = 'simule' THEN fidelite.cfg_txt('email_test') END AS email_test",
+    "query": "UPDATE fidelite.messages SET tentatives = tentatives + 1\nWHERE id IN (\n    SELECT id FROM fidelite.messages\n    WHERE tentatives < 5\n      AND ((statut = 'a_envoyer' AND type <> 'campagne' AND fidelite.envoi_autorise(canal))\n        OR (statut = 'a_envoyer' AND type = 'campagne' AND fidelite.campagne_autorisee(donnees)\n            AND id IN (SELECT fidelite.campagne_a_prendre()))\n        OR (statut = 'simule' AND apercu_envoye_le IS NULL AND fidelite.apercu_autorise(canal)))\n    ORDER BY cree_le\n    LIMIT 60\n    FOR UPDATE SKIP LOCKED)\nRETURNING id, canal, destinataire, sujet, corps, type, tentatives, statut, donnees,\n          fidelite.cfg_txt('expediteur') AS expediteur,\n          CASE WHEN statut = 'simule' THEN fidelite.cfg_txt('email_test') END AS email_test",
     "options": {}
    },
    "name": "Prendre un lot",

@@ -25,14 +25,15 @@ MS = {'microsoftOAuth2Api': {'id': 'b05FlvDa9smA6GSa', 'name': 'Microsoft accoun
 
 # Messages réels « a_envoyer », campagnes lancées depuis l'admin (envoyées même en dry-run,
 # le test tout de suite), ou, en dry-run, aperçus des messages simulés envoyés à
-# `email_test` (jamais au client). 60 par passage à 1 e-mail/s : 12 e-mails/min en
-# moyenne, sous la limite Exchange Online de 30 par minute.
+# `email_test` (jamais au client). 60 par passage à 1 e-mail/s, sous la limite Exchange Online
+# de 30 par minute ; les campagnes sont lissées à part (`fidelite.campagne_a_prendre`, 100/h).
 PRENDRE = """UPDATE fidelite.messages SET tentatives = tentatives + 1
 WHERE id IN (
     SELECT id FROM fidelite.messages
     WHERE tentatives < 5
-      AND ((statut = 'a_envoyer' AND fidelite.envoi_autorise(canal))
-        OR (statut = 'a_envoyer' AND type = 'campagne' AND fidelite.campagne_autorisee(donnees))
+      AND ((statut = 'a_envoyer' AND type <> 'campagne' AND fidelite.envoi_autorise(canal))
+        OR (statut = 'a_envoyer' AND type = 'campagne' AND fidelite.campagne_autorisee(donnees)
+            AND id IN (SELECT fidelite.campagne_a_prendre()))
         OR (statut = 'simule' AND apercu_envoye_le IS NULL AND fidelite.apercu_autorise(canal)))
     ORDER BY cree_le
     LIMIT 60
