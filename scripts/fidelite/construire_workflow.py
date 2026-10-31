@@ -58,28 +58,45 @@ const [texte, pied = ''] = echapper(n.corps).split('\n—\n');
 const paragraphes = texte.trim().split(/\n{2,}/)
     .map(p => '<p style="margin:0 0 14px;line-height:1.5">' + liens(p).replace(/\n/g, '<br>') + '</p>').join('');
 
-// Échelle des paliers.
-const pluriel = k => k + ' réservation' + (k > 1 ? 's' : '');
+// Échelle des paliers, en escalier : une marche par palier, de plus en plus haute.
+// Atteints = couleurs du Rebond (pêche → brun → bleu nuit) ; celui qui vient d'être validé
+// est entouré d'or ; les suivants sont grisés avec ce qu'il reste à jouer.
+const COULEURS = [['#f0d5c3', '#8a3b17', '#1f2a3a'], ['#e4b08f', '#7a3412', '#1f2a3a'], ['#cc7a4c', '#ffffff', '#ffffff'],
+                  ['#b45a2f', '#ffffff', '#ffffff'], ['#17253a', '#e8945b', '#ffffff']];
+const ordinal = k => k === 1 ? '1re' : k + 'e';
 let echelle = '';
 if (Array.isArray(d.paliers) && d.paliers.length) {
-    const lignes = d.paliers.map(p => {
-        const nom = p.fin ? echapper(p.libelle) : 'Palier ' + p.rang + ' — ' + echapper(p.libelle);
-        if (p.etat === 'actuel') {
-            return '<tr><td style="padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
-                + '<div style="font-size:12px;font-weight:700;color:#680920;text-transform:uppercase;letter-spacing:.5px">Palier ' + p.rang + ' validé</div>'
-                + '<div style="font-size:16px;font-weight:700;margin-top:2px">Tu as gagné : ' + echapper(p.libelle) + '</div>'
-                + '<div style="font-size:13px;color:#5c5249;margin-top:2px">À utiliser à ta prochaine partie, d\'ici le ' + echapper(d.date_limite) + '.</div>'
-                + '</td></tr>';
+    const actuel = d.paliers.find(p => p.etat === 'actuel');
+    const marches = d.paliers.map((p, i) => {
+        const [fond, label, texte] = COULEURS[Math.min(i, COULEURS.length - 1)];
+        const hauteur = 165 + i * 30;     // hauteur minimale : le texte ne déborde jamais
+        const etiquette = p.fin ? 'Fin du tunnel' : 'Après la ' + ordinal(p.rang) + ' partie';
+        const contenu = (atteint, couleurLabel, couleurTexte, badge) =>
+            '<div style="font-size:9px;font-weight:700;color:' + couleurLabel + ';line-height:1.2">' + etiquette + '</div>'
+            + '<div style="font-size:12px;font-weight:700;color:' + couleurTexte + ';margin-top:4px;line-height:1.15">' + echapper(p.titre || p.libelle) + '</div>'
+            + '<div style="font-size:10px;color:' + couleurTexte + ';opacity:.85;margin-top:3px;line-height:1.3">' + echapper(p.detail || '') + '</div>'
+            + '<div style="font-size:9px;font-weight:700;color:' + couleurLabel + ';margin-top:6px">' + badge + '</div>';
+        let style, html;
+        if (p.etat === 'a_debloquer') {
+            style = 'background:#ebe7e1;';
+            html = contenu(false, '#a39a8f', '#a39a8f', '🔒 Encore ' + p.manque + ' résa');
+        } else {
+            style = 'background:' + fond + ';' + (p.etat === 'actuel' ? 'border:3px solid #efa707;' : '');
+            html = contenu(true, label, texte, p.etat === 'actuel' ? '✔ Ton cadeau' : '✔ Validé');
         }
-        if (p.etat === 'valide') {
-            return '<tr><td style="padding:8px 14px;color:#2e7d32;font-size:14px">✔ Palier ' + p.rang + ' validé — ' + echapper(p.libelle) + '</td></tr>';
-        }
-        return '<tr><td style="padding:8px 14px;color:#a39a8f;font-size:14px;background:#f4f1ec;border-radius:8px">'
-            + '🔒 ' + nom + '<br><span style="font-size:12px">encore ' + pluriel(p.manque) + ' pour le débloquer</span></td></tr>';
+        return '<td valign="bottom" width="20%" style="padding:0 1px">'
+            + '<div style="' + style + 'min-height:' + hauteur + 'px;border-radius:8px 8px 0 0;padding:6px 4px;box-sizing:border-box;-webkit-hyphens:auto;hyphens:auto" lang="fr">'
+            + html + '</div></td>';
     });
-    echelle = '<div style="margin:6px 0 18px"><div style="font-weight:700;color:#680920;margin-bottom:8px">Ta progression</div>'
-        + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:0 6px">'
-        + lignes.join('') + '</table></div>';
+    echelle = '<div style="margin:6px 0 18px">'
+        + (actuel ? '<div style="padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px;margin-bottom:14px">'
+            + '<div style="font-size:12px;font-weight:700;color:#680920;text-transform:uppercase;letter-spacing:.5px">Palier ' + actuel.rang + ' validé</div>'
+            + '<div style="font-size:16px;font-weight:700;margin-top:2px">Tu as gagné : ' + echapper(actuel.libelle) + '</div>'
+            + '<div style="font-size:13px;color:#5c5249;margin-top:2px">À utiliser à ta prochaine partie, d\'ici le ' + echapper(d.date_limite) + '.</div></div>' : '')
+        + '<div style="font-weight:700;color:#680920;margin-bottom:8px">Ta progression</div>'
+        + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed"><tr>'
+        + marches.join('') + '</tr></table>'
+        + '<div style="border-top:3px solid #680920"></div></div>';
 } else if (d.cadeau) {
     echelle = '<div style="margin:6px 0 18px;padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
         + '<div style="font-size:16px;font-weight:700">Ton cadeau : ' + echapper(d.cadeau) + '</div>'
@@ -101,10 +118,11 @@ if (d.qr_url) {
         + '<div style="font-size:13px;color:#5c5249">À montrer au bar</div></div>';
 }
 
-const html = '<!DOCTYPE html><html lang="fr"><body style="margin:0;background:#f4f0e6;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">'
-    + '<div style="max-width:560px;margin:0 auto;padding:24px">'
+const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>'
+    + '<body style="margin:0;background:#f4f0e6;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">'
+    + '<div style="max-width:560px;margin:0 auto;padding:16px 10px">'
     + '<div style="background:#680920;color:#f4f0e6;padding:18px 22px;border-radius:12px 12px 0 0;font-size:20px;font-weight:700">Le Rebond — Padel</div>'
-    + '<div style="background:#ffffff;padding:22px;border-radius:0 0 12px 12px">' + paragraphes + echelle + qrHtml + '</div>'
+    + '<div style="background:#ffffff;padding:20px 14px;border-radius:0 0 12px 12px">' + paragraphes + echelle + qrHtml + '</div>'
     + '<p style="font-size:12px;color:#8a7f75;text-align:center;margin-top:14px;line-height:1.5">' + liens(pied).replace(/\n/g, '<br>') + '</p>'
     + '</div></body></html>';
 // Aperçu (dry-run) : envoyé à l'adresse de test, avec le vrai destinataire dans l'objet.

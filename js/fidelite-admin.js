@@ -60,6 +60,14 @@
         + '.fid-table th:first-child,.fid-table td:first-child{text-align:left}.fid-table th{opacity:.65;font-weight:600}'
         + '.fid-puces{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.6rem}.fid-puce{background:rgba(0,0,0,.25);border-radius:999px;padding:.2rem .7rem;font-size:.82rem}'
         + '.fid-msg summary{cursor:pointer;font-size:.88rem;padding:.35rem 0;list-style:none}.fid-msg pre{white-space:pre-wrap;font-size:.8rem;opacity:.85;margin:.3rem 0 .6rem}'
+        + '.fid-escalier{display:flex;align-items:flex-end;gap:4px;border-bottom:3px solid #efa707}'
+        + '.fid-marche{flex:1;border-radius:8px 8px 0 0;padding:.45rem .4rem;font-size:.75rem;min-width:0;hyphens:auto}'
+        + '.fid-marche-etiq{font-size:.62rem;font-weight:700;opacity:.8}.fid-marche-titre{font-size:.82rem;font-weight:700;margin:.2rem 0}'
+        + '.fid-marche-detail{font-size:.68rem;opacity:.85;margin-bottom:.3rem}'
+        + '.fid-marche--1{background:#f0d5c3;color:#3a1d10}.fid-marche--2{background:#e4b08f;color:#3a1d10}'
+        + '.fid-marche--3{background:#cc7a4c;color:#fff}.fid-marche--4{background:#b45a2f;color:#fff}.fid-marche--5{background:#17253a;color:#fff}'
+        + '.fid-marche--actuel{outline:3px solid #efa707;outline-offset:-3px}'
+        + '.fid-marche.fid-marche--a_debloquer{background:rgba(244,240,230,.12);color:rgba(244,240,230,.5)}'
         + '.fid-retour{background:none;border:0;color:#efa707;font-weight:600;cursor:pointer;margin-bottom:.6rem;padding:0}';
 
     function e(s) {
@@ -191,12 +199,14 @@
         }
 
         if (f.paliers && f.paliers.length) {
-            h += '<div class="fid-carte"><h3>Paliers</h3>' + f.paliers.map(function (p) {
-                var nom = p.fin ? e(p.libelle) : 'Palier ' + p.rang + ' — ' + e(p.libelle);
-                if (p.etat === 'valide') return '<div class="fid-palier fid-palier--valide">✔ ' + nom + '</div>';
-                if (p.etat === 'actuel') return '<div class="fid-palier fid-palier--actuel">Palier ' + p.rang + ' validé — ' + e(p.libelle) + '</div>';
-                return '<div class="fid-palier fid-palier--a_debloquer">🔒 ' + nom + ' · encore ' + p.manque + ' réservation' + (p.manque > 1 ? 's' : '') + '</div>';
-            }).join('') + '</div>';
+            // Escalier, comme dans les e-mails : atteints en couleur, suivants grisés.
+            h += '<div class="fid-carte"><h3>Paliers</h3><div class="fid-escalier">' + f.paliers.map(function (p, i) {
+                var etiquette = p.fin ? 'Fin du tunnel' : 'Après la ' + (p.rang === 1 ? '1re' : p.rang + 'e') + ' partie';
+                var badge = p.etat === 'a_debloquer' ? '🔒 Encore ' + p.manque + ' résa' : (p.etat === 'actuel' ? '✔ Cadeau en cours' : '✔ Validé');
+                return '<div class="fid-marche fid-marche--' + p.etat + ' fid-marche--' + Math.min(i + 1, 5) + '" style="min-height:' + (120 + i * 26) + 'px">'
+                    + '<div class="fid-marche-etiq">' + etiquette + '</div><div class="fid-marche-titre">' + e(p.titre || p.libelle) + '</div>'
+                    + '<div class="fid-marche-detail">' + e(p.detail || '') + '</div><div class="fid-marche-etiq">' + badge + '</div></div>';
+            }).join('') + '</div></div>';
         }
 
         h += '<div class="fid-carte"><h3>Cadeaux gagnés</h3>' + (f.cadeaux.length ? f.cadeaux.map(function (g) {
