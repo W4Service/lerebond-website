@@ -44,3 +44,8 @@ CREATE TABLE livex.livex_reservations (
     id text, id_centre text, type_resa text, open text, all_day text, title text, resource_id text,
     start text, "end" text, id_client text, prix text, paye text, caution text, public text,
     date_reservation text, date_resa text, _jour text);
+CREATE TABLE livex.livex_paiements_jour (
+    _pk bigint GENERATED ALWAYS AS IDENTITY, _scraped_at timestamptz DEFAULT now(),
+    numero text, heure text, client text, col_4 text, id_resa text, description text, statut text,
+    abonn text, cash text, cb text, chequ text, compt text, egym text, fidel text, offer text, virem text,
+    web text, _jour text, abonnement text, cheque text, compte text, fidelite text, offert text, virement text, wellpass text);

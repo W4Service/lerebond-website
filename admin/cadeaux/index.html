@@ -19,8 +19,6 @@ header h1 { font-size: 20px; font-weight: 600; }
 header button { background: none; border: 1px solid var(--creme); color: var(--creme); border-radius: 6px; padding: 4px 10px; font-size: 13px; }
 main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .bandeau { border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
-.bandeau.hc { background: #e3f1e4; color: var(--ok); }
-.bandeau.hp { background: #fbe4e2; color: var(--alerte); }
 .bandeau.test { background: #fff3d6; color: #6b4e00; }
 input[type=search], input[type=email], input[type=password] { width: 100%; font-size: 18px; padding: 12px 14px; border: 2px solid #d8d0c2; border-radius: 10px; background: #fff; }
 input:focus { outline: none; border-color: var(--bordeaux); }
@@ -65,9 +63,9 @@ input:focus { outline: none; border-color: var(--bordeaux); }
     </section>
 </main>
 
-<script src="js/vendor/supabase.min.js?v=1e922ef1"></script>
-<script src="js/resa-config.min.js?v=1e922ef1"></script>
-<script src="js/supabase-client.js?v=1e922ef1"></script>
+<script src="js/vendor/supabase.min.js?v=fd16dfca"></script>
+<script src="js/resa-config.min.js?v=fd16dfca"></script>
+<script src="js/supabase-client.js?v=fd16dfca"></script>
 <script>
 (function () {
     var supa = window.LeRebondSupa;
@@ -97,9 +95,7 @@ input:focus { outline: none; border-color: var(--bordeaux); }
         var r = await supa.rpc('fidelite_bar_contexte');
         if (r.error) { $('bandeaux').innerHTML = '<div class="bandeau hp">' + echapper(r.error.message) + '</div>'; return; }
         contexte = r.data;
-        var html = contexte.maintenant_hc
-            ? '<div class="bandeau hc">En ce moment : heures creuses. Les cadeaux sont valables.</div>'
-            : '<div class="bandeau hp">En ce moment : heures pleines. Les cadeaux ne sont valables que pour une partie commencée en heures creuses (' + echapper(contexte.heures_creuses) + ').</div>';
+        var html = '';
         if (contexte.dry_run === true) {
             html += '<div class="bandeau test">Mode test : les clients n\'ont pas encore reçu ces offres.</div>';
         }
@@ -123,8 +119,7 @@ input:focus { outline: none; border-color: var(--bordeaux); }
         if (k) {
             html += '<div class="cadeau"><div class="libelle">' + echapper(k.libelle) + '</div>'
                 + '<div class="code">' + echapper(k.code) + '</div>'
-                + '<div class="cond">' + echapper(ORIGINES[k.origine] || '') + ' · valable jusqu\'au ' + dateFr(k.expire_le)
-                + ' · partie commencée en heures creuses</div>';
+                + '<div class="cond">' + echapper(ORIGINES[k.origine] || '') + ' · valable jusqu\'au ' + dateFr(k.expire_le) + '</div>';
             if (k.pas_encore_valable) {
                 html += '<div class="msg erreur">Valable à partir du ' + dateFr(k.valable_du) + ' (pour la partie suivante).</div>';
             } else if (k.choix_requis) {
@@ -137,6 +132,7 @@ input:focus { outline: none; border-color: var(--bordeaux); }
         } else {
             html += '<div class="aucun">Aucun cadeau actif.</div>';
         }
+        html += '<div class="aide"><a href="admin/client/?j=' + encodeURIComponent(c.jeton) + '">Fiche complète (réservations, cadeaux, caisse) →</a></div>';
         if (c.dernier_utilise) {
             var d = c.dernier_utilise;
             html += '<div class="aide">Dernier cadeau utilisé : ' + echapper(d.libelle) + (d.choix ? ' (' + echapper(d.choix) + ')' : '')
@@ -148,10 +144,6 @@ input:focus { outline: none; border-color: var(--bordeaux); }
     async function utiliser(bouton) {
         var id = bouton.getAttribute('data-cadeau');
         var choix = bouton.getAttribute('data-choix');
-        if (contexte && !contexte.maintenant_hc
-            && !confirm('Nous sommes en heures pleines. Le cadeau n\'est valable que pour une partie commencée en heures creuses. Continuer ?')) {
-            return;
-        }
         document.querySelectorAll('[data-cadeau="' + id + '"]').forEach(function (b) { b.disabled = true; });
         var r = await supa.rpc('fidelite_bar_utiliser', { p_cadeau: id, p_choix: choix || null });
         var msg = $('msg-' + id);

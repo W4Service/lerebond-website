@@ -4,7 +4,7 @@
 # Code de sortie ≠ 0 si un scénario échoue.
 set -euo pipefail
 ICI="$(cd "$(dirname "$0")" && pwd)"
-MIGRATION="$ICI/../../supabase/migrations/20261031_fidelite.sql $ICI/../../supabase/migrations/20261031_fidelite_apercu.sql"
+MIGRATION="$(ls "$ICI"/../../supabase/migrations/2026103*_fidelite*.sql "$ICI"/../../supabase/migrations/202611*_fidelite*.sql | sort)"
 NOM="fidelite-test-$$"
 
 docker run -d --rm --name "$NOM" -e POSTGRES_PASSWORD=test -e TZ=UTC postgres:17-alpine >/dev/null
