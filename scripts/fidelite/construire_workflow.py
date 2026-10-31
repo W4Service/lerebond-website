@@ -61,14 +61,18 @@ const paragraphes = texte.trim().split(/\n{2,}/)
 // Échelle des paliers, en escalier : une marche par palier, de plus en plus haute.
 // Atteints = couleurs du Rebond (pêche → brun → bleu nuit) ; celui qui vient d'être validé
 // est entouré d'or ; les suivants sont grisés avec ce qu'il reste à jouer.
-const COULEURS = [['#f0d5c3', '#8a3b17', '#1f2a3a'], ['#e4b08f', '#7a3412', '#1f2a3a'], ['#cc7a4c', '#ffffff', '#ffffff'],
-                  ['#b45a2f', '#ffffff', '#ffffff'], ['#17253a', '#e8945b', '#ffffff']];
+// [fond atteint, étiquette, texte, fond pastel si pas encore atteint, texte pastel]
+const COULEURS = [['#f2c4a0', '#8a3b17', '#2b1a10', '#fbeee4', '#b7896b'], ['#e8955f', '#6e2a0c', '#2b1a10', '#fadfcb', '#b9774b'],
+                  ['#d4652f', '#fff3d6', '#ffffff', '#f6cfb6', '#b0623a'], ['#a8401c', '#ffd9a8', '#ffffff', '#f1c0a8', '#9e4a2c']];
 const ordinal = k => k === 1 ? '1re' : k + 'e';
 let echelle = '';
-if (Array.isArray(d.paliers) && d.paliers.length) {
-    const actuel = d.paliers.find(p => p.etat === 'actuel');
-    const marches = d.paliers.map((p, i) => {
-        const [fond, label, texte] = COULEURS[Math.min(i, COULEURS.length - 1)];
+// La fin du tunnel (« régulier ») n'est pas affichée : seulement les paliers à cadeau.
+const paliers = Array.isArray(d.paliers) ? d.paliers.filter(p => !p.fin) : [];
+if (paliers.length) {
+    const actuel = paliers.find(p => p.etat === 'actuel');
+    const largeur = Math.floor(100 / paliers.length) + '%';
+    const marches = paliers.map((p, i) => {
+        const [fond, label, texte, pastel, textePastel] = COULEURS[Math.min(i, COULEURS.length - 1)];
         const hauteur = 165 + i * 30;     // hauteur minimale : le texte ne déborde jamais
         const etiquette = p.fin ? 'Fin du tunnel' : 'Après la ' + ordinal(p.rang) + ' partie';
         const contenu = (atteint, couleurLabel, couleurTexte, badge) =>
@@ -78,13 +82,13 @@ if (Array.isArray(d.paliers) && d.paliers.length) {
             + '<div style="font-size:9px;font-weight:700;color:' + couleurLabel + ';margin-top:6px">' + badge + '</div>';
         let style, html;
         if (p.etat === 'a_debloquer') {
-            style = 'background:#ebe7e1;';
-            html = contenu(false, '#a39a8f', '#a39a8f', '🔒 Encore ' + p.manque + ' résa');
+            style = 'background:' + pastel + ';border:2px dashed ' + fond + ';';
+            html = contenu(false, textePastel, textePastel, '🔒 Encore ' + p.manque + ' résa');
         } else {
             style = 'background:' + fond + ';' + (p.etat === 'actuel' ? 'border:3px solid #efa707;' : '');
             html = contenu(true, label, texte, p.etat === 'actuel' ? '✔ Ton cadeau' : '✔ Validé');
         }
-        return '<td valign="bottom" width="20%" style="padding:0 1px">'
+        return '<td valign="bottom" width="' + largeur + '" style="padding:0 1px">'
             + '<div style="' + style + 'min-height:' + hauteur + 'px;border-radius:8px 8px 0 0;padding:6px 4px;box-sizing:border-box;-webkit-hyphens:auto;hyphens:auto" lang="fr">'
             + html + '</div></td>';
     });
@@ -93,10 +97,10 @@ if (Array.isArray(d.paliers) && d.paliers.length) {
             + '<div style="font-size:12px;font-weight:700;color:#680920;text-transform:uppercase;letter-spacing:.5px">Palier ' + actuel.rang + ' validé</div>'
             + '<div style="font-size:16px;font-weight:700;margin-top:2px">Tu as gagné : ' + echapper(actuel.libelle) + '</div>'
             + '<div style="font-size:13px;color:#5c5249;margin-top:2px">À utiliser à ta prochaine partie, d\'ici le ' + echapper(d.date_limite) + '.</div></div>' : '')
-        + '<div style="font-weight:700;color:#680920;margin-bottom:8px">Ta progression</div>'
+        + '<div style="font-weight:700;color:#680920;margin-bottom:8px">🎾 Ta progression</div>'
         + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed"><tr>'
         + marches.join('') + '</tr></table>'
-        + '<div style="border-top:3px solid #680920"></div></div>';
+        + '<div style="height:6px;background:#680920;border-radius:0 0 4px 4px"></div></div>';
 } else if (d.cadeau) {
     echelle = '<div style="margin:6px 0 18px;padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
         + '<div style="font-size:16px;font-weight:700">Ton cadeau : ' + echapper(d.cadeau) + '</div>'
