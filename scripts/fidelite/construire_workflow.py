@@ -67,8 +67,10 @@ const liens = s => s
         '<a href="' + suivi + '" style="display:inline-block;margin:6px 0;padding:10px 18px;background:#efa707;color:#1a1a1a;border-radius:8px;text-decoration:none;font-weight:600">Réserver un terrain</a>');
 // Le pied (à partir du tiret long) est affiché en petit, sous la carte.
 const [texte, pied = ''] = echapper(n.corps).split('\n—\n');
+// **texte** des modèles → gras.
+const gras = s => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 const paragraphes = texte.trim().split(/\n{2,}/)
-    .map(p => '<p style="margin:0 0 14px;line-height:1.5">' + liens(p).replace(/\n/g, '<br>') + '</p>').join('');
+    .map(p => '<p style="margin:0 0 14px;line-height:1.5">' + gras(liens(p)).replace(/\n/g, '<br>') + '</p>').join('');
 
 // Échelle des paliers, en escalier : une marche par palier à cadeau (la fin du tunnel,
 // « régulier », n'est pas affichée). Atteints = couleurs du Rebond, de l'or au bordeaux ;
@@ -111,7 +113,7 @@ if (paliers.length) {
 } else if (d.cadeau) {
     echelle = '<div style="margin:6px 0 18px;padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
         + '<div style="font-size:16px;font-weight:700">Ton cadeau : ' + echapper(d.cadeau) + '</div>'
-        + '<div style="font-size:13px;color:#5c5249;margin-top:2px">Valable jusqu\'au ' + echapper(d.date_limite) + '.</div></div>';
+        + '<div style="font-size:13px;color:#5c5249;margin-top:2px">Valable jusqu\'au <strong>' + echapper(d.date_limite) + '</strong> inclus.</div></div>';
 }
 
 // QR code de la fiche client, en image jointe (les images « data: » sont bloquées par Gmail).
