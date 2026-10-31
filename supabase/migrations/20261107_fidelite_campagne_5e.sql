@@ -3,8 +3,8 @@
 --
 -- - Rattrapage (J+14) et grand retour (J+60) désactivés pour l'instant (`rattrapage_actif`,
 --   `grand_retour_actif`) : le client sort du tunnel à la fin de sa fenêtre.
--- - Campagne lancée depuis l'admin, envoyée à tous les clients joignables par e-mail (non
---   désinscrits) : 5 € la partie par joueur, pour le client et son équipe, 7 jours, sur
+-- - Campagne lancée depuis l'admin, envoyée aux clients joignables par e-mail (non désinscrits)
+--   sans aucune réservation (padel ou five, passée ou à venir) depuis 60 jours : 5 € la partie par joueur, pour le client et son équipe, 7 jours, sur
 --   présentation du QR code ou du code à l'accueil. Réservation en ligne avec l'empreinte
 --   bancaire ; la réduction est faite sur place. Elle part même en mode test (c'est le
 --   bouton qui décide) et ne compte pas dans le plafond d'un message par semaine.
@@ -13,8 +13,8 @@
 INSERT INTO fidelite.config (cle, valeur, description) VALUES
     ('rattrapage_actif', 'false', 'relance J+14 (rattrapage) : false = désactivée, le client sort du tunnel'),
     ('grand_retour_actif', 'false', 'grand retour J+60 : false = désactivé'),
-    ('campagne_5e', '{"libelle": "Partie à 5 € par joueur", "formule": "la partie de padel à 5 € par joueur, pour toi et ton équipe", "validite_jours": 7}',
-        'campagne lancée depuis l''admin : cadeau et durée de validité (jour d''envoi compris)')
+    ('campagne_5e', '{"libelle": "Partie à 5 € par joueur", "formule": "la partie de padel à 5 € par joueur, pour toi et ton équipe", "validite_jours": 7, "inactivite_jours": 60}',
+        'campagne lancée depuis l''admin : cadeau, validité (jour d''envoi compris), clients sans réservation depuis N jours')
 ON CONFLICT (cle) DO UPDATE SET valeur = EXCLUDED.valeur, description = EXCLUDED.description;
 
 -- Rattrapages et grands retours pas encore partis : retenus, et leurs offres closes.
@@ -388,10 +388,15 @@ INSERT INTO fidelite.templates (code, canal, sujet, corps) VALUES
      E'Salut {prenom},\n\nCette semaine au Rebond, la partie de padel est à 5 € par joueur, pour toi et ton équipe, jusqu''au {date_limite}.\n\nComment en profiter :\n1. Réserve ton terrain en ligne comme d''habitude, avec ton empreinte bancaire.\n2. À ton arrivée, présente ce QR code (ou ton code {code}) à l''accueil : la réduction est faite sur place.\n\nRéserve ici : {lien}')
 ON CONFLICT (code, canal) DO UPDATE SET sujet = EXCLUDED.sujet, corps = EXCLUDED.corps;
 
--- Destinataires : tout client avec un e-mail qui ne s'est pas désinscrit des offres.
+-- Destinataires : clients avec un e-mail, non désinscrits des offres, sans aucune réservation
+-- (padel ou five) depuis `inactivite_jours` jours ni à venir.
 CREATE OR REPLACE VIEW fidelite.v_campagne_cibles AS
-SELECT personne, prenom, email, jeton FROM fidelite.v_personnes
-WHERE relances_ok AND email LIKE '%_@_%';
+SELECT vp.personne, vp.prenom, vp.email, vp.jeton FROM fidelite.v_personnes vp
+WHERE vp.relances_ok AND vp.email LIKE '%_@_%'
+  AND NOT EXISTS (SELECT 1 FROM fidelite.parties p
+                  WHERE p.personne = vp.personne
+                    AND p.jour > (fidelite.maintenant() AT TIME ZONE 'Europe/Paris')::date
+                                 - coalesce((fidelite.cfg('campagne_5e')->>'inactivite_jours')::int, 60));
 
 -- Rédige un e-mail de campagne (le pied commun sans sa phrase « au bar », déjà dans le texte).
 CREATE OR REPLACE FUNCTION fidelite.campagne_message(p_personne text, p_prenom text, p_jeton uuid, p_code text,

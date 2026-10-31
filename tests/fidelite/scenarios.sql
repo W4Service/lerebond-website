@@ -471,19 +471,29 @@ END $$;
 
 -- ===================================================================== campagne 5 €
 DO $$ DECLARE r jsonb; n integer; g text; BEGIN
+    -- 1er mars 2027 : les parties de test (novembre 2026) datent de plus de 60 jours.
+    PERFORM set_config('fidelite.maintenant', t.a('2027-03-01', '11:00')::text, false);
+    PERFORM t.client('1050', 'lea');
+    PERFORM t.partie('1050', '2027-02-20 10:00');
+    PERFORM t.client('1051', 'max');
+    PERFORM t.partie('1051', '2027-03-10 10:00');
+    PERFORM fidelite.synchroniser();
+    PERFORM t.check('campagne : exclut qui a réservé dans les 60 jours ou a une réservation à venir',
+        NOT EXISTS (SELECT 1 FROM fidelite.v_campagne_cibles WHERE personne IN ('1050', '1051'))
+        AND EXISTS (SELECT 1 FROM fidelite.v_campagne_cibles WHERE personne = '1001'));
     PERFORM set_config('test.uid', '', false);
     PERFORM t.check('campagne : refusée hors staff', t.erreur('SELECT public.fidelite_campagne_envoyer(1)') LIKE '%staff%');
     PERFORM set_config('test.uid', '00000000-0000-0000-0000-000000000003', false);
     n := (public.fidelite_campagne_etat()->>'destinataires')::int;
-    PERFORM t.check('campagne : destinataires = clients avec e-mail non désinscrits',
-        n = (SELECT count(*) FROM fidelite.v_personnes WHERE relances_ok AND email IS NOT NULL) AND n > 0);
+    PERFORM t.check('campagne : destinataires = clients sans réservation depuis 60 jours', n = (SELECT count(*) FROM fidelite.v_campagne_cibles) AND n > 0);
     PERFORM t.check('campagne : test envoyé à l''adresse du staff, tout de suite, sans cadeau',
         public.fidelite_campagne_test() = 'gerant@le-rebond.fr'
         AND (SELECT statut = 'a_envoyer' AND cadeau_id IS NULL AND sujet LIKE '[TEST]%' AND fidelite.campagne_autorisee(donnees, t.a('2026-11-05', '22:00'))
              FROM fidelite.messages WHERE type = 'campagne' AND destinataire = 'gerant@le-rebond.fr'));
     PERFORM t.check('campagne : nombre périmé refusé', t.erreur(format('SELECT public.fidelite_campagne_envoyer(%s)', n + 1)) LIKE '%changé%');
     -- Un client du tunnel avec une offre en cours la garde à côté de celle de la campagne.
-    g := (SELECT personne FROM fidelite.cadeaux WHERE statut = 'actif' AND origine <> 'campagne' LIMIT 1);
+    g := (SELECT personne FROM fidelite.cadeaux WHERE statut = 'actif' AND origine <> 'campagne'
+          AND personne IN (SELECT personne FROM fidelite.v_campagne_cibles) LIMIT 1);
     r := public.fidelite_campagne_envoyer(n);
     PERFORM t.check('campagne : un cadeau et un e-mail « a_envoyer » par destinataire, même en dry-run',
         (r->>'destinataires')::int = n
@@ -510,6 +520,7 @@ DO $$ DECLARE r jsonb; n integer; g text; BEGIN
     PERFORM t.check('réinitialisation : les campagnes réelles ne la bloquent pas et sont gardées',
         fidelite.reinitialiser('2026-11-02', false) LIKE 'dry-run%'
         AND EXISTS (SELECT 1 FROM fidelite.messages WHERE type = 'campagne'));
+    PERFORM set_config('fidelite.maintenant', '', false);
 END $$;
 
 -- ===================================================================== rattrapage / grand retour désactivés
