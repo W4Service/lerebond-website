@@ -15,6 +15,7 @@ Un e-mail en erreur est retenté (5 tentatives au total), puis marqué « echec 
 
     python3 construire_workflow.py   → workflow.json
 """
+import base64
 import json
 import os
 
@@ -22,16 +23,19 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 PG = {'postgres': {'id': 'B35nAS73YaZAkrBk', 'name': 'Postgres account Le Rebond'}}
 MS = {'microsoftOAuth2Api': {'id': 'b05FlvDa9smA6GSa', 'name': 'Microsoft account'}}
 
-# Messages réels « a_envoyer », ou, en dry-run, aperçus des messages simulés envoyés à
-# `email_test` (jamais au client).
+# Messages réels « a_envoyer », campagnes lancées depuis l'admin (envoyées même en dry-run,
+# le test tout de suite), ou, en dry-run, aperçus des messages simulés envoyés à
+# `email_test` (jamais au client). 60 par passage à 1 e-mail/s : 12 e-mails/min en
+# moyenne, sous la limite Exchange Online de 30 par minute.
 PRENDRE = """UPDATE fidelite.messages SET tentatives = tentatives + 1
 WHERE id IN (
     SELECT id FROM fidelite.messages
     WHERE tentatives < 5
       AND ((statut = 'a_envoyer' AND fidelite.envoi_autorise(canal))
+        OR (statut = 'a_envoyer' AND type = 'campagne' AND fidelite.campagne_autorisee(donnees))
         OR (statut = 'simule' AND apercu_envoye_le IS NULL AND fidelite.apercu_autorise(canal)))
     ORDER BY cree_le
-    LIMIT 20
+    LIMIT 60
     FOR UPDATE SKIP LOCKED)
 RETURNING id, canal, destinataire, sujet, corps, type, tentatives, statut, donnees,
           fidelite.cfg_txt('expediteur') AS expediteur,
@@ -41,6 +45,11 @@ RETURNING id, canal, destinataire, sujet, corps, type, tentatives, statut, donne
 # aux modules npm. Elle définit la variable globale `qrcode`.
 with open(os.path.join(ICI, 'vendor', 'qrcode-generator.js'), encoding='utf-8') as f:
     QRCODE_LIB = f.read()
+
+# Logo du Rebond (img/favicon-512x512.png réduit à 192 px), joint à chaque e-mail et affiché
+# en tête : une image jointe s'affiche même quand la messagerie bloque les images distantes.
+with open(os.path.join(ICI, 'logo-email.png'), 'rb') as f:
+    LOGO_B64 = base64.b64encode(f.read()).decode()
 
 MISE_EN_PAGE = r"""// Met le message en forme (charte Le Rebond) et prépare l'appel Graph :
 // texte, échelle des paliers (validés / en cours / à débloquer en grisé), QR code de la
@@ -106,7 +115,8 @@ if (paliers.length) {
 }
 
 // QR code de la fiche client, en image jointe (les images « data: » sont bloquées par Gmail).
-let qrHtml = '', attachments = [];
+let qrHtml = '', attachments = [{ '@odata.type': '#microsoft.graph.fileAttachment', name: 'le-rebond.png',
+                                  contentType: 'image/png', contentBytes: LOGO, isInline: true, contentId: 'logo-rebond' }];
 if (d.qr_url) {
     const qr = qrcode(0, 'M');
     qr.addData(d.qr_url);
@@ -117,13 +127,14 @@ if (d.qr_url) {
     qrHtml = '<div style="text-align:center;margin:8px 0 4px">'
         + '<img src="cid:qr-rebond" width="180" height="180" alt="QR code à montrer au bar" style="display:inline-block;border:8px solid #fff;border-radius:8px">'
         + '<div style="font-family:monospace;font-size:16px;letter-spacing:1px;margin-top:4px">' + echapper(d.code) + '</div>'
-        + '<div style="font-size:13px;color:#5c5249">À montrer au bar</div></div>';
+        + '<div style="font-size:13px;color:#5c5249">' + (d.origine === 'campagne' ? 'À montrer à l\'accueil' : 'À montrer au bar') + '</div></div>';
 }
 
 const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>'
     + '<body style="margin:0;background:#f4f0e6;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">'
     + '<div style="max-width:560px;margin:0 auto;padding:16px 10px">'
-    + '<div style="background:#680920;color:#f4f0e6;padding:18px 22px;border-radius:12px 12px 0 0;font-size:20px;font-weight:700">Le Rebond — Padel</div>'
+    + '<div style="background:#680920;padding:16px 22px;border-radius:12px 12px 0 0;text-align:center">'
+    + '<img src="cid:logo-rebond" width="96" height="96" alt="Le Rebond" style="display:inline-block;width:96px;height:96px;border-radius:50%"></div>'
     + '<div style="background:#ffffff;padding:20px 14px;border-radius:0 0 12px 12px">' + paragraphes + echelle + qrHtml + '</div>'
     + '<p style="font-size:12px;color:#8a7f75;text-align:center;margin-top:14px;line-height:1.5">' + liens(pied).replace(/\n/g, '<br>') + '</p>'
     // Image invisible : son chargement compte une ouverture (workflow « Fidélité (ouvertures) »).
@@ -153,7 +164,7 @@ def construire():
                                                        'operator': {'type': 'string', 'operation': 'equals'}}],
                                        'combinator': 'and'}, 'options': {}},
          'name': 'E-mail ?', 'type': 'n8n-nodes-base.if', 'typeVersion': 2.2, 'position': [440, 200]},
-        {'parameters': {'mode': 'runOnceForEachItem', 'jsCode': QRCODE_LIB + '\n' + MISE_EN_PAGE},
+        {'parameters': {'mode': 'runOnceForEachItem', 'jsCode': QRCODE_LIB + "\nconst LOGO = '" + LOGO_B64 + "';\n" + MISE_EN_PAGE},
          'name': 'Mettre en page', 'type': 'n8n-nodes-base.code', 'typeVersion': 2, 'position': [660, 100]},
         {'parameters': {'method': 'POST', 'url': '=https://graph.microsoft.com/v1.0/users/{{ $json.expediteur }}/sendMail',
                         'authentication': 'predefinedCredentialType', 'nodeCredentialType': 'microsoftOAuth2Api',

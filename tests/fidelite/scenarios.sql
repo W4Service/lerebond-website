@@ -24,6 +24,8 @@ BEGIN
     UPDATE fidelite.config SET valeur = 'true' WHERE cle = 'dry_run';
     UPDATE fidelite.config SET valeur = '"2026-11-02"' WHERE cle = 'date_lancement';
     UPDATE fidelite.config SET valeur = '0' WHERE cle = 'pourcentage_temoin';
+    -- Désactivés en prod pour l'instant : testés activés, puis désactivés en fin de fichier.
+    UPDATE fidelite.config SET valeur = 'true' WHERE cle IN ('rattrapage_actif', 'grand_retour_actif');
     PERFORM set_config('fidelite.maintenant', '', false);
     PERFORM set_config('test.uid', '', false);
 END $$;
@@ -465,6 +467,62 @@ DO $$ DECLARE m uuid; BEGIN
          WHERE x->>'type' = (SELECT type FROM fidelite.messages WHERE id = m))
         AND public.fidelite_tableau()->'liens' @> '[{"lien": "reserver"}]');
     PERFORM set_config('test.uid', '', false);
+END $$;
+
+-- ===================================================================== campagne 5 €
+DO $$ DECLARE r jsonb; n integer; g text; BEGIN
+    PERFORM set_config('test.uid', '', false);
+    PERFORM t.check('campagne : refusée hors staff', t.erreur('SELECT public.fidelite_campagne_envoyer(1)') LIKE '%staff%');
+    PERFORM set_config('test.uid', '00000000-0000-0000-0000-000000000003', false);
+    n := (public.fidelite_campagne_etat()->>'destinataires')::int;
+    PERFORM t.check('campagne : destinataires = clients avec e-mail non désinscrits',
+        n = (SELECT count(*) FROM fidelite.v_personnes WHERE relances_ok AND email IS NOT NULL) AND n > 0);
+    PERFORM t.check('campagne : test envoyé à l''adresse du staff, tout de suite, sans cadeau',
+        public.fidelite_campagne_test() = 'gerant@le-rebond.fr'
+        AND (SELECT statut = 'a_envoyer' AND cadeau_id IS NULL AND sujet LIKE '[TEST]%' AND fidelite.campagne_autorisee(donnees, t.a('2026-11-05', '22:00'))
+             FROM fidelite.messages WHERE type = 'campagne' AND destinataire = 'gerant@le-rebond.fr'));
+    PERFORM t.check('campagne : nombre périmé refusé', t.erreur(format('SELECT public.fidelite_campagne_envoyer(%s)', n + 1)) LIKE '%changé%');
+    -- Un client du tunnel avec une offre en cours la garde à côté de celle de la campagne.
+    g := (SELECT personne FROM fidelite.cadeaux WHERE statut = 'actif' AND origine <> 'campagne' LIMIT 1);
+    r := public.fidelite_campagne_envoyer(n);
+    PERFORM t.check('campagne : un cadeau et un e-mail « a_envoyer » par destinataire, même en dry-run',
+        (r->>'destinataires')::int = n
+        AND (SELECT count(*) FROM fidelite.cadeaux WHERE origine = 'campagne' AND statut = 'actif') = n
+        AND (SELECT count(*) FROM fidelite.messages WHERE type = 'campagne' AND statut = 'a_envoyer' AND cadeau_id IS NOT NULL) = n
+        AND fidelite.cfg('dry_run') = 'true'::jsonb);
+    PERFORM t.check('campagne : valable 7 jours, texte 5 € par joueur, accueil, empreinte bancaire',
+        (SELECT bool_and(k.expire_le - k.valable_du = 6) FROM fidelite.cadeaux k WHERE origine = 'campagne')
+        AND (SELECT bool_and(corps LIKE '%5 € par joueur%' AND corps LIKE '%accueil%' AND corps LIKE '%empreinte bancaire%'
+                             AND corps NOT LIKE '%au bar%' AND corps LIKE '%desinscription%')
+             FROM fidelite.messages WHERE type = 'campagne' AND cadeau_id IS NOT NULL));
+    PERFORM t.check('campagne : l''offre du tunnel en cours est gardée',
+        g IS NULL OR (SELECT count(*) FROM fidelite.cadeaux WHERE personne = g AND statut = 'actif') = 2);
+    PERFORM t.check('campagne : fiche avec les deux offres actives',
+        g IS NULL OR jsonb_array_length(public.fidelite_fiche_client((SELECT jeton FROM fidelite.clients WHERE personne = g LIMIT 1))->'cadeaux_actifs') = 2);
+    PERFORM t.check('campagne : une seule par 24 h', t.erreur(format('SELECT public.fidelite_campagne_envoyer(%s)', n)) LIKE '%24 h%');
+    PERFORM t.check('campagne : hors plafond hebdomadaire', g IS NULL OR fidelite.plafond_ok(g, fidelite.maintenant() + interval '1 day'));
+    PERFORM t.check('campagne : le test n''entre pas dans les statistiques e-mails',
+        NOT EXISTS (SELECT 1 FROM fidelite.v_suivi_emails WHERE type = 'campagne'));
+    PERFORM t.check('campagne : utilisable au bar',
+        (public.fidelite_bar_utiliser((SELECT id FROM fidelite.cadeaux WHERE origine = 'campagne' AND statut = 'actif' LIMIT 1))->>'ok')::boolean);
+    PERFORM set_config('test.uid', '', false);
+    DELETE FROM fidelite.messages WHERE type <> 'campagne' AND statut IN ('a_envoyer', 'envoye', 'echec');   -- scénario 12
+    PERFORM t.check('réinitialisation : les campagnes réelles ne la bloquent pas et sont gardées',
+        fidelite.reinitialiser('2026-11-02', false) LIKE 'dry-run%'
+        AND EXISTS (SELECT 1 FROM fidelite.messages WHERE type = 'campagne'));
+END $$;
+
+-- ===================================================================== rattrapage / grand retour désactivés
+DO $$ BEGIN
+    UPDATE fidelite.config SET valeur = 'false' WHERE cle IN ('rattrapage_actif', 'grand_retour_actif');
+    PERFORM t.client('1040', 'zoe');
+    PERFORM t.partie('1040', '2026-11-20 10:00');
+    PERFORM t.jour('2026-11-21');
+    PERFORM t.jour('2026-12-10');
+    PERFORM t.check('désactivé : pas de rattrapage, le client sort du tunnel',
+        t.nb_msg('1040', 'rattrapage') = 0 AND (SELECT statut FROM fidelite.tunnel WHERE personne = '1040') = 'decroche');
+    PERFORM t.jour('2027-02-15');
+    PERFORM t.check('désactivé : pas de grand retour', t.nb_msg('1040', 'grand_retour') = 0);
 END $$;
 
 DO $$ BEGIN

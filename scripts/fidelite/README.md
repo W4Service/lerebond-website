@@ -132,3 +132,19 @@ calcul est rejoué jour par jour à 10 h, heure de Paris. Le résultat est écri
   `fidelite.consentements` (source `stop_sms`).
 - **Five** : ajouter des lignes `sport = 'five'` dans `paliers` et adapter le moteur, qui
   ne traite aujourd'hui que `sport = 'padel'`.
+
+## Campagne « 5 € par joueur » (31/10/2026)
+
+Admin → Fidélité → **Campagne** : « M'envoyer un test » (part tout de suite à l'adresse du
+compte staff, code RB-EXEMPLE, aucun cadeau créé), puis « Envoyer à N clients » (tous les
+clients avec un e-mail, non désinscrits). Chaque client reçoit un cadeau `origine =
+'campagne'` valable 7 jours (jour d'envoi compris), à côté de son offre du tunnel. La
+campagne part même en dry-run, entre 10 h et 19 h, et ne compte pas dans le plafond
+hebdomadaire. Une campagne au plus par 24 h. Le client réserve en ligne avec son empreinte
+bancaire ; l'accueil applique la réduction et marque le cadeau utilisé sur sa fiche.
+
+Rattrapage (J+14) et grand retour (J+60) sont **désactivés** (`rattrapage_actif`,
+`grand_retour_actif` = false) : `UPDATE fidelite.config SET valeur = 'true' WHERE cle = …`
+pour les rallumer.
+
+Chaque e-mail porte le logo du Rebond (`logo-email.png`, joint en `cid:logo-rebond`).
