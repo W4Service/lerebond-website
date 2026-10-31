@@ -195,6 +195,14 @@ DO $$ BEGIN
     PERFORM t.simuler('2026-11-17', '2026-11-19');
     PERFORM t.check('3. revenu pendant le rattrapage : palier 2',
         (SELECT palier = 2 AND rattrapage_utilise AND statut = 'actif' FROM fidelite.tunnel WHERE personne = '1003'));
+    UPDATE livex.livex_reservations SET prix = '48' WHERE id_client = '1003' AND start = '2026-11-18 10:00';
+    PERFORM t.jour('2026-11-19');     -- recopie le prix dans la base fidélité
+    PERFORM set_config('fidelite.maintenant', t.a('2026-11-19')::text, false);
+    PERFORM t.check('3. conversions : le rattrapage a converti (1 partie, 48 €), pas l''annonce ni le rappel',
+        (SELECT conversions = 1 AND parties = 1 AND ca = 48 FROM fidelite.v_suivi_conversions WHERE type = 'rattrapage')
+        AND (SELECT conversions = 0 FROM fidelite.v_suivi_conversions WHERE type = 'annonce')
+        AND (SELECT conversions = 0 FROM fidelite.v_suivi_conversions WHERE type = 'rappel'));
+    PERFORM set_config('fidelite.maintenant', '', false);
     PERFORM t.simuler('2026-11-20', '2026-12-15');
     PERFORM t.check('4. second rattrapage refusé (un seul par client)', t.nb_msg('1003', 'rattrapage') = 1);
     PERFORM t.check('4. fenêtre suivante manquée → décroché', (SELECT statut FROM fidelite.tunnel WHERE personne = '1003') = 'decroche');
@@ -420,10 +428,12 @@ END $$;
 DO $$ BEGIN
     INSERT INTO public.staff VALUES ('00000000-0000-0000-0000-000000000003', 'gerant@le-rebond.fr') ON CONFLICT DO NOTHING;
     PERFORM set_config('test.uid', '00000000-0000-0000-0000-000000000003', false);
-    PERFORM t.check('suivi : tableau lisible par le staff',
-        jsonb_typeof(public.fidelite_tableau()->'paliers') = 'array' AND jsonb_typeof(public.fidelite_tableau()->'messages') = 'array');
+    PERFORM t.check('suivi : tableau lisible par le staff (paliers, conversions, effet, messages)',
+        jsonb_typeof(public.fidelite_tableau()->'paliers') = 'array' AND jsonb_typeof(public.fidelite_tableau()->'messages') = 'array'
+        AND jsonb_typeof(public.fidelite_tableau()->'conversions') = 'array'
+        AND jsonb_typeof(public.fidelite_tableau()->'conversions_total') = 'object'
+        AND public.fidelite_tableau() ? 'effet' AND NOT public.fidelite_tableau() ? 'heures_creuses');
     PERFORM set_config('test.uid', '', false);
-    PERFORM t.check('suivi : vue heures creuses (12 semaines)', (SELECT count(*) FROM fidelite.v_suivi_heures_creuses) BETWEEN 12 AND 14);
     PERFORM t.check('cron : calcul planifié à 8 h et 9 h UTC',
         (SELECT schedule FROM cron.job WHERE jobname = 'fidelite-calcul') = '0 8,9 * * *');
 END $$;
