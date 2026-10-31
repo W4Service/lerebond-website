@@ -6,7 +6,7 @@
      (ce à quoi il a droit + bouton « utilisé », paliers, cadeaux, réservations,
      passages en caisse, messages reçus).
    - Suivi : progression ciblés / témoins, cadeaux, conversions, ouvertures et clics, messages.
-   - Campagne : e-mail « 5 € par joueur » à tous les clients (test, puis envoi).
+   - Campagne : e-mail « 5 € par joueur » aux clients sans réservation depuis 60 jours (test, puis envoi).
    Le QR code des e-mails ouvre /admin/client/?j=<jeton>, qui redirige ici
    (/admin/?client=<jeton>). Toutes les données passent par des fonctions réservées
    au staff (public.fidelite_*) : sans compte staff, rien ne s'affiche.
@@ -367,7 +367,7 @@
         etatCampagne = r.data;
         var d = r.data, o = d.offre || {};
         var h = '<div class="fid-carte fid-offre"><h3>Campagne : ' + e(o.libelle) + '</h3>'
-            + '<p style="line-height:1.5;margin:.3rem 0 .6rem">Un e-mail à <b>' + d.destinataires + ' clients</b> (tous ceux qui ont un e-mail et ne se sont pas désinscrits) : '
+            + '<p style="line-height:1.5;margin:.3rem 0 .6rem">Un e-mail à <b>' + d.destinataires + ' clients</b> : ceux qui ont un e-mail, ne se sont pas désinscrits et n\'ont aucune réservation depuis ' + e(o.inactivite_jours || 60) + ' jours (ni à venir) : '
             + e(o.formule) + ', pendant ' + e(o.validite_jours) + ' jours, sur présentation du QR code ou du code à l\'accueil. '
             + 'Ils réservent en ligne avec leur empreinte bancaire ; la réduction est faite sur place (bouton « Marquer utilisé » de leur fiche).</p>'
             + '<div class="fid-actions"><button class="fid-btn fid-btn--creme" data-campagne="test">M\'envoyer un test (' + e(d.test_a || '?') + ')</button>'
