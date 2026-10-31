@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mes préférences — Le Rebond</title>
+<meta name="robots" content="noindex, nofollow">
+<meta content="#680920" name="theme-color">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+<style>
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+:root { --bordeaux: #680920; --creme: #f4f0e6; --or: #efa707; --gris: #8a7f75; --ok: #2e7d32; --alerte: #b3261e; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', Arial, sans-serif; }
+body { background: var(--creme); color: #1a1a1a; min-height: 100vh; }
+header { background: var(--bordeaux); color: var(--creme); padding: 16px; text-align: center; font-size: 20px; font-weight: 600; }
+main { max-width: 480px; margin: 24px auto; padding: 0 16px; }
+.carte { background: #fff; border-radius: 12px; padding: 18px; }
+h1 { font-size: 20px; margin-bottom: 10px; }
+p { line-height: 1.5; margin-bottom: 12px; }
+.option { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid #eee6d8; }
+.option input { width: 22px; height: 22px; margin-top: 3px; accent-color: var(--bordeaux); flex: none; }
+.option small { display: block; color: var(--gris); font-size: 13px; }
+.btn { width: 100%; border: 0; border-radius: 10px; padding: 12px; font-size: 16px; font-weight: 600; background: var(--bordeaux); color: var(--creme); margin-top: 12px; cursor: pointer; }
+.msg { margin-top: 10px; font-size: 14px; }
+.msg.ok { color: var(--ok); }
+.msg.erreur { color: var(--alerte); }
+</style>
+</head>
+<body>
+<header>Le Rebond</header>
+<main>
+    <div class="carte" id="carte"><p>Chargement…</p></div>
+</main>
+
+<script src="js/vendor/supabase.min.js"></script>
+<script src="js/resa-config.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+(function () {
+    var supa = window.LeRebondSupa;
+    var jeton = new URLSearchParams(location.search).get('t');
+    var carte = document.getElementById('carte');
+
+    function e(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function invalide() {
+        carte.innerHTML = '<h1>Lien invalide</h1><p>Ce lien ne fonctionne pas. Utilise le lien reçu dans ton dernier e-mail, ou écris-nous à contact@le-rebond.fr.</p>';
+    }
+
+    function afficher(p) {
+        carte.innerHTML = '<h1>' + (p.prenom ? 'Salut ' + e(p.prenom) + ',' : 'Mes préférences') + '</h1>'
+            + '<p>Choisis les messages que tu veux recevoir du Rebond.</p>'
+            + '<label class="option"><input type="checkbox" id="relances"' + (p.relances ? ' checked' : '') + '>'
+            + '<span>Offres après mes parties<small>Cadeaux pour revenir jouer (raquettes, boisson…), au plus un message par semaine.</small></span></label>'
+            + '<label class="option"><input type="checkbox" id="newsletter"' + (p.newsletter ? ' checked' : '') + '>'
+            + '<span>Newsletter mensuelle<small>Les tournois, événements et nouveautés du mois.</small></span></label>'
+            + '<button class="btn" id="enregistrer">Enregistrer</button><div class="msg" id="msg"></div>';
+        document.getElementById('enregistrer').addEventListener('click', enregistrer);
+    }
+
+    async function enregistrer() {
+        var msg = document.getElementById('msg');
+        var r = await supa.rpc('fidelite_consentement', {
+            p_jeton: jeton,
+            p_relances: document.getElementById('relances').checked,
+            p_newsletter: document.getElementById('newsletter').checked
+        });
+        if (r.error) { msg.className = 'msg erreur'; msg.textContent = r.error.message; return; }
+        msg.className = 'msg ok';
+        msg.textContent = 'C\'est enregistré.';
+    }
+
+    async function demarrer() {
+        if (!jeton || !/^[0-9a-f-]{36}$/i.test(jeton)) { invalide(); return; }
+        var r = await supa.rpc('fidelite_preferences', { p_jeton: jeton });
+        if (r.error || !r.data) { invalide(); return; }
+        afficher(r.data);
+    }
+    demarrer();
+})();
+</script>
+</body>
+</html>

@@ -6,6 +6,9 @@ Tests sans dépendance, lancés avec Node :
 cd tests && for f in test-*.js; do node "$f" || echo "ÉCHEC : $f"; done
 ```
 
+- `fidelite/lancer.sh` — moteur du tunnel de bienvenue (schéma `fidelite`), sur un
+  Postgres jetable (Docker) : paliers, heures creuses, rattrapage, plafond hebdo, témoin,
+  grand retour, annulation, page bar, désinscription. Voir `scripts/fidelite/README.md`.
 - `test-fft-officiel.js` — conformité du classement de poule au Guide de la
   compétition padel FFT, chapitre I (MAJ février 2026) : barème 2/1/−1/−2 et
   cascade de départage. Les passages du règlement sont cités dans le test.
