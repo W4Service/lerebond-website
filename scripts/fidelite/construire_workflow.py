@@ -33,13 +33,21 @@ WHERE id IN (
     ORDER BY cree_le
     LIMIT 20
     FOR UPDATE SKIP LOCKED)
-RETURNING id, canal, destinataire, sujet, corps, type, tentatives, statut,
+RETURNING id, canal, destinataire, sujet, corps, type, tentatives, statut, donnees,
           fidelite.cfg_txt('expediteur') AS expediteur,
           CASE WHEN statut = 'simule' THEN fidelite.cfg_txt('email_test') END AS email_test"""
 
-MISE_EN_PAGE = r"""// Met le texte brut du message en forme (charte Le Rebond) et prépare l'appel Graph.
+# Bibliothèque QR (Kazuhiko Arase, MIT), copiée dans vendor/ : le node Code n'a pas accès
+# aux modules npm. Elle définit la variable globale `qrcode`.
+with open(os.path.join(ICI, 'vendor', 'qrcode-generator.js'), encoding='utf-8') as f:
+    QRCODE_LIB = f.read()
+
+MISE_EN_PAGE = r"""// Met le message en forme (charte Le Rebond) et prépare l'appel Graph :
+// texte, échelle des paliers (validés / en cours / à débloquer en grisé), QR code de la
+// fiche client (image jointe, affichée dans le corps), pied.
 const n = $input.item.json;
-const echapper = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const d = typeof n.donnees === 'string' ? JSON.parse(n.donnees) : (n.donnees || {});
+const echapper = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const liens = s => s
     .replace(/(https:\/\/le-rebond\.fr\/desinscription\/\S+)/g,
         '<a href="$1" style="color:#8a7f75">me désinscrire</a>')
@@ -49,27 +57,66 @@ const liens = s => s
 const [texte, pied = ''] = echapper(n.corps).split('\n—\n');
 const paragraphes = texte.trim().split(/\n{2,}/)
     .map(p => '<p style="margin:0 0 14px;line-height:1.5">' + liens(p).replace(/\n/g, '<br>') + '</p>').join('');
+
+// Échelle des paliers.
+const pluriel = k => k + ' réservation' + (k > 1 ? 's' : '');
+let echelle = '';
+if (Array.isArray(d.paliers) && d.paliers.length) {
+    const lignes = d.paliers.map(p => {
+        const nom = p.fin ? echapper(p.libelle) : 'Palier ' + p.rang + ' — ' + echapper(p.libelle);
+        if (p.etat === 'actuel') {
+            return '<tr><td style="padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
+                + '<div style="font-size:12px;font-weight:700;color:#680920;text-transform:uppercase;letter-spacing:.5px">Palier ' + p.rang + ' validé</div>'
+                + '<div style="font-size:16px;font-weight:700;margin-top:2px">Tu as gagné : ' + echapper(p.libelle) + '</div>'
+                + '<div style="font-size:13px;color:#5c5249;margin-top:2px">À utiliser à ta prochaine partie, d\'ici le ' + echapper(d.date_limite) + '.</div>'
+                + '</td></tr>';
+        }
+        if (p.etat === 'valide') {
+            return '<tr><td style="padding:8px 14px;color:#2e7d32;font-size:14px">✔ Palier ' + p.rang + ' validé — ' + echapper(p.libelle) + '</td></tr>';
+        }
+        return '<tr><td style="padding:8px 14px;color:#a39a8f;font-size:14px;background:#f4f1ec;border-radius:8px">'
+            + '🔒 ' + nom + '<br><span style="font-size:12px">encore ' + pluriel(p.manque) + ' pour le débloquer</span></td></tr>';
+    });
+    echelle = '<div style="margin:6px 0 18px"><div style="font-weight:700;color:#680920;margin-bottom:8px">Ta progression</div>'
+        + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:0 6px">'
+        + lignes.join('') + '</table></div>';
+} else if (d.cadeau) {
+    echelle = '<div style="margin:6px 0 18px;padding:12px 14px;background:#fff3d6;border:2px solid #efa707;border-radius:10px">'
+        + '<div style="font-size:16px;font-weight:700">Ton cadeau : ' + echapper(d.cadeau) + '</div>'
+        + '<div style="font-size:13px;color:#5c5249;margin-top:2px">Valable jusqu\'au ' + echapper(d.date_limite) + '.</div></div>';
+}
+
+// QR code de la fiche client, en image jointe (les images « data: » sont bloquées par Gmail).
+let qrHtml = '', attachments = [];
+if (d.qr_url) {
+    const qr = qrcode(0, 'M');
+    qr.addData(d.qr_url);
+    qr.make();
+    const gif = qr.createDataURL(5, 2).split(',')[1];
+    attachments.push({ '@odata.type': '#microsoft.graph.fileAttachment', name: 'qr-le-rebond.gif',
+                       contentType: 'image/gif', contentBytes: gif, isInline: true, contentId: 'qr-rebond' });
+    qrHtml = '<div style="text-align:center;margin:8px 0 4px">'
+        + '<img src="cid:qr-rebond" width="180" height="180" alt="QR code à montrer au bar" style="display:inline-block;border:8px solid #fff;border-radius:8px">'
+        + '<div style="font-family:monospace;font-size:16px;letter-spacing:1px;margin-top:4px">' + echapper(d.code) + '</div>'
+        + '<div style="font-size:13px;color:#5c5249">À montrer au bar</div></div>';
+}
+
 const html = '<!DOCTYPE html><html lang="fr"><body style="margin:0;background:#f4f0e6;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">'
     + '<div style="max-width:560px;margin:0 auto;padding:24px">'
     + '<div style="background:#680920;color:#f4f0e6;padding:18px 22px;border-radius:12px 12px 0 0;font-size:20px;font-weight:700">Le Rebond — Padel</div>'
-    + '<div style="background:#ffffff;padding:22px;border-radius:0 0 12px 12px">' + paragraphes + '</div>'
+    + '<div style="background:#ffffff;padding:22px;border-radius:0 0 12px 12px">' + paragraphes + echelle + qrHtml + '</div>'
     + '<p style="font-size:12px;color:#8a7f75;text-align:center;margin-top:14px;line-height:1.5">' + liens(pied).replace(/\n/g, '<br>') + '</p>'
     + '</div></body></html>';
 // Aperçu (dry-run) : envoyé à l'adresse de test, avec le vrai destinataire dans l'objet.
 const apercu = n.statut === 'simule' && n.email_test;
-return { json: {
-    id: n.id,
-    expediteur: n.expediteur,
-    graph: {
-        message: {
-            subject: (apercu ? '[TEST → ' + n.destinataire + '] ' : '') + (n.sujet || 'Le Rebond'),
-            body: { contentType: 'HTML', content: html },
-            toRecipients: [{ emailAddress: { address: apercu ? n.email_test : n.destinataire } }],
-            replyTo: [{ emailAddress: { address: n.expediteur } }]
-        },
-        saveToSentItems: true
-    }
-} };
+const message = {
+    subject: (apercu ? '[TEST → ' + n.destinataire + '] ' : '') + (n.sujet || 'Le Rebond'),
+    body: { contentType: 'HTML', content: html },
+    toRecipients: [{ emailAddress: { address: apercu ? n.email_test : n.destinataire } }],
+    replyTo: [{ emailAddress: { address: n.expediteur } }]
+};
+if (attachments.length) message.attachments = attachments;
+return { json: { id: n.id, expediteur: n.expediteur, graph: { message, saveToSentItems: true } } };
 """
 
 
@@ -84,7 +131,7 @@ def construire():
                                                        'operator': {'type': 'string', 'operation': 'equals'}}],
                                        'combinator': 'and'}, 'options': {}},
          'name': 'E-mail ?', 'type': 'n8n-nodes-base.if', 'typeVersion': 2.2, 'position': [440, 200]},
-        {'parameters': {'mode': 'runOnceForEachItem', 'jsCode': MISE_EN_PAGE},
+        {'parameters': {'mode': 'runOnceForEachItem', 'jsCode': QRCODE_LIB + '\n' + MISE_EN_PAGE},
          'name': 'Mettre en page', 'type': 'n8n-nodes-base.code', 'typeVersion': 2, 'position': [660, 100]},
         {'parameters': {'method': 'POST', 'url': '=https://graph.microsoft.com/v1.0/users/{{ $json.expediteur }}/sendMail',
                         'authentication': 'predefinedCredentialType', 'nodeCredentialType': 'microsoftOAuth2Api',

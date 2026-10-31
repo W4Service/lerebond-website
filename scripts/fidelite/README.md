@@ -23,10 +23,11 @@ LiveXperience ──(script Python, wepepc, 3 h : veille → J+30)──▶ Supa
 
 | Élément | Où |
 |---|---|
-| Schéma, moteur, fonctions du site | `supabase/migrations/20261031_fidelite.sql` (schéma `fidelite`) |
+| Schéma, moteur, fonctions du site | `supabase/migrations/2026103*_fidelite*.sql` puis `202611*_fidelite*.sql` (schéma `fidelite`), à appliquer dans l'ordre |
 | Tests du moteur (79 vérifications) | `tests/fidelite/` |
 | Workflow n8n | `scripts/fidelite/construire_workflow.py` → `workflow.json` |
 | Page bar (mobile) | `admin/cadeaux/` → https://le-rebond.fr/admin/cadeaux/ |
+| Fiche client (ouverte par le QR code des e-mails) | `admin/client/?j=<jeton>` : réservations, paliers, cadeaux, passages en caisse, offre en cours |
 | Tableau de suivi + relecture des messages | `admin/fidelite/` → https://le-rebond.fr/admin/fidelite/ |
 | Désinscription / préférences | `desinscription/?t=<jeton>` (lien en pied de chaque e-mail) |
 
@@ -44,10 +45,15 @@ avec un compte **staff** (table `staff`, voir la migration `20261020_staff.sql`)
   téléphone ou un e-mail sont regroupées sous la plus petite ref.
 - **Nouveau** = 1re partie de padel à partir de `date_lancement`, et aucune réservation
   (padel ou five) avant.
-- **Heures creuses** = la partie *commence* dans une plage HC (config `heures_creuses`).
-- Retour dans la fenêtre → palier suivant ; en heures pleines, le palier avance mais le
-  cadeau est perdu. Retour après la fenêtre → même palier, nouvelle fenêtre. Pas de retour
-  → rattrapage à J+14 (une seule fois par client), puis « décroché ».
+- Les cadeaux sont valables **à toute heure** (la condition « heures creuses » a été
+  retirée le 31/10/2026 ; les plages HC ne servent plus qu'au tableau de remplissage).
+- Retour dans la fenêtre → palier suivant. Retour après la fenêtre → même palier, nouvelle
+  fenêtre. Pas de retour → rattrapage à J+14 (une seule fois par client), puis « décroché ».
+- **E-mails** : chaque message porte l'échelle des paliers (validé, en cours, suivants en
+  grisé avec le nombre de réservations restantes) et un **QR code** qui ouvre la fiche
+  client pour le staff (`messages.donnees`, mis en page par le workflow n8n).
+- **Mode aperçu** : en dry-run, les messages simulés sont envoyés à `email_test`
+  (objet « [TEST → client] »), jamais aux clients ; le passage en réel vide `email_test`.
 - **Messages** : annonce à J+1 (toujours), rappel à J+5 (si rien de réservé),
   rattrapage J+14 et grand retour J+60 (si rien de réservé).
 - **Plafond** : 1 message par client sur 7 jours, newsletter comprise (1er mardi du mois,
@@ -67,7 +73,7 @@ Tous les réglages sont dans `fidelite.config` (paliers dans `fidelite.paliers`,
 Toutes les commandes SQL ci-dessous s'exécutent dans l'**éditeur SQL de Supabase** (projet
 Le Rebond, `vabotavilswqtrevishs`), ou depuis **wepepc** avec `DATABASE_URL`.
 
-1. **Base** : appliquer `supabase/migrations/20261031_fidelite.sql`. La migration est
+1. **Base** : appliquer les migrations `*_fidelite*.sql` dans l'ordre des noms. La migration est
    rejouable. Elle crée le job pg_cron `fidelite-calcul`, mais sans `date_lancement`
    personne n'entre dans le tunnel.
 2. **n8n** (sur le Mac) : `python3 scripts/fidelite/construire_workflow.py`, puis importer

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche client — Le Rebond</title>
+<meta name="robots" content="noindex, nofollow">
+<meta content="#680920" name="theme-color">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+<style>
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Kanit'; src: url('fonts/Kanit-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+:root { --bordeaux: #680920; --creme: #f4f0e6; --or: #efa707; --gris: #8a7f75; --ok: #2e7d32; --alerte: #b3261e; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', Arial, sans-serif; }
+body { background: var(--creme); color: #1a1a1a; min-height: 100vh; }
+header { background: var(--bordeaux); color: var(--creme); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+header h1 { font-size: 20px; font-weight: 600; }
+header a, header button { background: none; border: 1px solid var(--creme); color: var(--creme); border-radius: 6px; padding: 4px 10px; font-size: 13px; text-decoration: none; }
+main { max-width: 640px; margin: 0 auto; padding: 16px; }
+.carte { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+h2 { font-size: 16px; color: var(--bordeaux); margin-bottom: 8px; }
+.nom { font-size: 22px; font-weight: 600; }
+.meta { color: var(--gris); font-size: 14px; }
+.chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+.chiffre { background: var(--creme); border-radius: 10px; padding: 8px 10px; }
+.chiffre b { display: block; font-size: 20px; }
+.chiffre span { font-size: 12px; color: var(--gris); }
+.offre { border: 2px solid var(--or); background: #fff3d6; }
+.offre .libelle { font-size: 19px; font-weight: 600; }
+.offre .code { font-family: monospace; font-size: 16px; letter-spacing: 1px; }
+.actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.btn { flex: 1; min-width: 120px; border: 0; border-radius: 10px; padding: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+.btn.principal { background: var(--bordeaux); color: var(--creme); }
+.btn.second { background: var(--or); color: #1a1a1a; }
+.btn:disabled { opacity: .5; }
+.palier { padding: 7px 10px; border-radius: 8px; margin-bottom: 5px; font-size: 14px; }
+.palier.valide { color: var(--ok); }
+.palier.actuel { background: #fff3d6; border: 2px solid var(--or); font-weight: 600; }
+.palier.a_debloquer { background: #f4f1ec; color: #a39a8f; }
+.ligne { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid #eee6d8; font-size: 14px; }
+.ligne:last-child { border-bottom: 0; }
+.ligne .d { color: var(--gris); white-space: nowrap; }
+.etiquette { font-size: 12px; border-radius: 999px; padding: 1px 8px; background: #eee6d8; white-space: nowrap; }
+.etiquette.utilise, .etiquette.envoye { background: #e3f1e4; color: var(--ok); }
+.etiquette.actif, .etiquette.avenir { background: #fff3d6; color: #6b4e00; }
+.vide, .aide { color: var(--gris); font-size: 13px; }
+.msg { margin-top: 8px; font-size: 14px; }
+.msg.erreur, .erreur { color: var(--alerte); }
+.msg.ok { color: var(--ok); }
+input { width: 100%; font-size: 16px; padding: 10px 12px; border: 2px solid #d8d0c2; border-radius: 10px; }
+form.carte { display: grid; gap: 10px; }
+</style>
+</head>
+<body>
+<header><h1>Fiche client</h1><span><a href="admin/cadeaux/">Recherche</a> <button id="sortir" hidden>Déconnexion</button></span></header>
+<main>
+    <form class="carte" id="form-connexion" hidden>
+        <div class="nom">Connexion staff</div>
+        <input type="email" id="email" placeholder="E-mail" autocomplete="username" required>
+        <input type="password" id="mdp" placeholder="Mot de passe" autocomplete="current-password" required>
+        <button class="btn principal" type="submit">Se connecter</button>
+        <div class="erreur" id="erreur-connexion"></div>
+    </form>
+    <div id="fiche"></div>
+</main>
+
+<script src="js/vendor/supabase.min.js"></script>
+<script src="js/resa-config.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+(function () {
+    var supa = window.LeRebondSupa;
+    var $ = function (id) { return document.getElementById(id); };
+    var jeton = new URLSearchParams(location.search).get('j');
+
+    function e(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function jour(iso) { return iso ? new Date(String(iso).length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : ''; }
+    function heure(iso) { return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+    function eur(n) { return n == null ? '' : Number(n).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); }
+    var ORIGINES = { palier: 'Tunnel', retour: 'Tunnel (retour)', rattrapage: 'Rattrapage', grand_retour: 'Grand retour' };
+    var STATUTS = { actif: 'en cours', utilise: 'utilisé', expire: 'expiré', perdu_hp: 'perdu', remplace: 'remplacé' };
+    var TUNNEL = { actif: 'dans le tunnel', regulier: 'joueur régulier', decroche: 'sorti du tunnel' };
+    var TYPES = { annonce: 'Annonce', retour: 'Retour', rappel: 'Rappel', rattrapage: 'Rattrapage', grand_retour: 'Grand retour' };
+
+    function rendre(f) {
+        var c = f.client, s = f.stats || {}, h = '';
+        h += '<div class="carte"><div class="nom">' + e((c.prenom || '') + ' ' + (c.nom || '')) + '</div>'
+            + '<div class="meta">' + e(c.telephone || 'pas de téléphone') + ' · ' + e(c.email || 'pas d\'e-mail') + '</div>'
+            + '<div class="meta">' + (f.tunnel ? e(TUNNEL[f.tunnel.statut] || f.tunnel.statut) + ' · palier ' + f.tunnel.palier
+                + (f.tunnel.groupe === 'temoin' ? ' · groupe témoin' : '') : 'hors tunnel de bienvenue')
+            + (c.relances_ok ? '' : ' · désinscrit des relances') + '</div>'
+            + '<div class="chiffres">'
+            + '<div class="chiffre"><b>' + (s.parties_padel || 0) + '</b><span>parties de padel</span></div>'
+            + '<div class="chiffre"><b>' + (s.parties_five || 0) + '</b><span>parties de five</span></div>'
+            + '<div class="chiffre"><b>' + (s.a_venir || 0) + '</b><span>à venir</span></div>'
+            + '<div class="chiffre"><b>' + (s.derniere ? new Date(s.derniere + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—')
+            + '</b><span>dernière venue</span></div></div>'
+            + (s.premiere ? '<div class="aide" style="margin-top:6px">Client depuis le ' + jour(s.premiere) + '</div>' : '')
+            + '</div>';
+
+        // Ce à quoi il a droit maintenant.
+        var k = f.cadeau;
+        if (k) {
+            h += '<div class="carte offre"><h2>À quoi il a droit</h2><div class="libelle">' + e(k.libelle) + '</div>'
+                + '<div class="code">' + e(k.code) + '</div>'
+                + '<div class="meta">' + e(ORIGINES[k.origine] || '') + ' · valable jusqu\'au ' + jour(k.expire_le) + '</div>';
+            if (k.pas_encore_valable) {
+                h += '<div class="msg erreur">Valable à partir du ' + jour(k.valable_du) + ' (pour la partie suivante).</div>';
+            } else if (k.choix_requis) {
+                h += '<div class="actions"><button class="btn principal" data-cadeau="' + k.id + '" data-choix="pizza">Pizza</button>'
+                    + '<button class="btn second" data-cadeau="' + k.id + '" data-choix="planche">Planche</button></div>';
+            } else {
+                h += '<div class="actions"><button class="btn principal" data-cadeau="' + k.id + '">Marquer utilisé</button></div>';
+            }
+            h += '<div class="msg" id="msg-cadeau"></div></div>';
+        } else {
+            h += '<div class="carte"><h2>À quoi il a droit</h2><div class="vide">Aucun cadeau en cours.</div></div>';
+        }
+
+        if (f.paliers && f.paliers.length) {
+            h += '<div class="carte"><h2>Paliers</h2>' + f.paliers.map(function (p) {
+                var nom = p.fin ? e(p.libelle) : 'Palier ' + p.rang + ' — ' + e(p.libelle);
+                if (p.etat === 'valide') return '<div class="palier valide">✔ ' + nom + '</div>';
+                if (p.etat === 'actuel') return '<div class="palier actuel">Palier ' + p.rang + ' validé — ' + e(p.libelle) + '</div>';
+                return '<div class="palier a_debloquer">🔒 ' + nom + ' · encore ' + p.manque + ' réservation' + (p.manque > 1 ? 's' : '') + '</div>';
+            }).join('') + '</div>';
+        }
+
+        h += '<div class="carte"><h2>Cadeaux gagnés</h2>' + (f.cadeaux.length ? f.cadeaux.map(function (g) {
+            return '<div class="ligne"><span>' + e(g.libelle) + (g.choix ? ' (' + e(g.choix) + ')' : '')
+                + '<br><span class="aide">' + e(ORIGINES[g.origine] || g.origine) + (g.palier ? ' ' + g.palier : '') + ' · ' + e(g.code)
+                + (g.utilise_le ? ' · utilisé le ' + jour(g.utilise_le) + (g.utilise_par ? ' par ' + e(g.utilise_par) : '') : ' · jusqu\'au ' + jour(g.expire_le))
+                + '</span></span><span class="etiquette ' + e(g.statut) + '">' + e(STATUTS[g.statut] || g.statut) + '</span></div>';
+        }).join('') : '<div class="vide">Aucun.</div>') + '</div>';
+
+        h += '<div class="carte"><h2>Réservations</h2>' + (f.reservations.length ? f.reservations.map(function (r) {
+            return '<div class="ligne"><span>' + jour(r.debut) + ' · ' + heure(r.debut) + '–' + heure(r.fin)
+                + '<br><span class="aide">' + e(r.terrain) + (r.prix ? ' · ' + eur(r.prix) : '') + '</span></span>'
+                + (r.a_venir ? '<span class="etiquette avenir">à venir</span>' : '<span class="d">' + e(r.sport) + '</span>') + '</div>';
+        }).join('') : '<div class="vide">Aucune.</div>') + '</div>';
+
+        var total = f.caisse.reduce(function (t, p) { return t + Number(p.montant || 0); }, 0);
+        h += '<div class="carte"><h2>Passages en caisse' + (f.caisse.length ? ' · ' + eur(total) : '') + '</h2>'
+            + '<div class="aide" style="margin-bottom:6px">Retrouvés par le nom. Le détail des produits n\'est pas encore récupéré de LiveXperience.</div>'
+            + (f.caisse.length ? f.caisse.map(function (p) {
+                return '<div class="ligne"><span>' + jour(p.jour) + ' · ' + e(p.heure) + '<br><span class="aide">' + e(p.description)
+                    + (p.numero ? ' n° ' + e(p.numero) : '') + '</span></span><span class="d">' + eur(p.montant) + '</span></div>';
+            }).join('') : '<div class="vide">Aucun.</div>') + '</div>';
+
+        h += '<div class="carte"><h2>Messages reçus</h2>' + (f.messages.length ? f.messages.map(function (m) {
+            return '<div class="ligne"><span>' + jour(m.cree_le) + ' · ' + e(TYPES[m.type] || m.type) + '<br><span class="aide">' + e(m.sujet || '')
+                + '</span></span><span class="etiquette ' + e(m.statut) + '">' + e(m.statut) + '</span></div>';
+        }).join('') : '<div class="vide">Aucun.</div>') + '</div>';
+        $('fiche').innerHTML = h;
+    }
+
+    async function charger() {
+        if (!jeton) { $('fiche').innerHTML = '<div class="carte erreur">Aucun client indiqué : scanne le QR code du client ou passe par la recherche.</div>'; return; }
+        var r = await supa.rpc('fidelite_fiche_client', { p_jeton: jeton });
+        if (r.error) { $('fiche').innerHTML = '<div class="carte erreur">' + e(r.error.message) + '</div>'; return; }
+        rendre(r.data);
+    }
+    async function demarrer() {
+        var s = await supa.auth.getSession();
+        var connecte = !!(s.data && s.data.session);
+        $('form-connexion').hidden = connecte;
+        $('fiche').hidden = !connecte;
+        $('sortir').hidden = !connecte;
+        if (connecte) charger();
+    }
+
+    $('form-connexion').addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        var r = await supa.auth.signInWithPassword({ email: $('email').value.trim(), password: $('mdp').value });
+        if (r.error) { $('erreur-connexion').textContent = 'Identifiants incorrects.'; return; }
+        demarrer();
+    });
+    $('sortir').addEventListener('click', async function () { await supa.auth.signOut(); demarrer(); });
+    $('fiche').addEventListener('click', async function (ev) {
+        var b = ev.target.closest('[data-cadeau]');
+        if (!b) return;
+        var choix = b.getAttribute('data-choix');
+        document.querySelectorAll('[data-cadeau]').forEach(function (x) { x.disabled = true; });
+        var r = await supa.rpc('fidelite_bar_utiliser', { p_cadeau: b.getAttribute('data-cadeau'), p_choix: choix || null });
+        var msg = $('msg-cadeau');
+        if (r.error) {
+            msg.className = 'msg erreur'; msg.textContent = r.error.message;
+            document.querySelectorAll('[data-cadeau]').forEach(function (x) { x.disabled = false; });
+            return;
+        }
+        msg.className = 'msg ok';
+        msg.textContent = 'C\'est noté : ' + r.data.libelle + (choix ? ' (' + choix + ')' : '') + '.';
+        setTimeout(charger, 1500);
+    });
+    demarrer();
+})();
+</script>
+</body>
+</html>

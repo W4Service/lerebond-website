@@ -78,13 +78,15 @@ DO $$ BEGIN
     PERFORM t.check('newsletter : 1er mardi (3/11 oui, 10/11 non, 1/12 oui)',
         fidelite.est_jour_newsletter('2026-11-03') AND NOT fidelite.est_jour_newsletter('2026-11-10')
         AND fidelite.est_jour_newsletter('2026-12-01'));
+    PERFORM t.check('montants : « 12,50 € » → 12.5, « -15 € » → -15, « - » et « None » → NULL',
+        fidelite.eur('12,50 €') = 12.5 AND fidelite.eur('-15 €') = -15 AND fidelite.eur('-') IS NULL AND fidelite.eur('None') IS NULL);
     PERFORM t.check('date en français', fidelite.date_fr('2026-11-09') = 'lundi 9 novembre'
                     AND fidelite.date_fr('2026-12-01') = 'mardi 1er décembre');
 END $$;
 
 -- ===================================================================== 1. retour en heures creuses
 DO $$
-DECLARE g1 uuid; m record;
+DECLARE g1 uuid; m record; f jsonb;
 BEGIN
     PERFORM t.reset();
     PERFORM t.client('1001', 'alice');
@@ -99,10 +101,16 @@ BEGIN
     SELECT * INTO m FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce';
     PERFORM t.check('1. annonce J+1 en dry-run (simule), par e-mail', m.statut = 'simule' AND m.canal = 'email'
                     AND (m.cree_le AT TIME ZONE 'Europe/Paris')::date = '2026-11-03');
-    PERFORM t.check('1. texte : prénom, date limite, lien, code, heures creuses, désinscription',
+    PERFORM t.check('1. texte : prénom, date limite, lien, code, QR, désinscription, plus d''horaires',
         m.corps LIKE 'Salut Alice,%' AND m.corps LIKE '%au Rebond !%' AND m.corps LIKE '%d''ici le lundi 9 novembre%' AND m.corps LIKE '%lerebond.mymobileapp.fr%'
         AND m.corps LIKE '%' || (SELECT code FROM fidelite.cadeaux WHERE id = g1) || '%'
-        AND m.corps LIKE '%9h–12h, 14h–17h, 22h30–0h%' AND m.corps LIKE '%/desinscription/?t=%', m.corps);
+        AND m.corps LIKE '%QR code%' AND m.corps NOT LIKE '%heures creuses%' AND m.corps LIKE '%/desinscription/?t=%', m.corps);
+    PERFORM t.check('1. QR code : lien vers la fiche client',
+        m.donnees->>'qr_url' = 'https://le-rebond.fr/admin/client/?j=' || (SELECT jeton FROM fidelite.clients WHERE id_client = '1001'));
+    PERFORM t.check('1. échelle : palier 1 en cours, palier 2 à 1 réservation, régulier à 4',
+        m.donnees->'paliers'->0->>'etat' = 'actuel' AND m.donnees->'paliers'->1->>'etat' = 'a_debloquer'
+        AND (m.donnees->'paliers'->1->>'manque')::int = 1 AND (m.donnees->'paliers'->4->>'manque')::int = 4
+        AND m.donnees->'paliers'->4->>'libelle' = 'Joueur régulier du Rebond', m.donnees::text);
 
     -- Le bar valide le cadeau pendant la partie du jeudi.
     INSERT INTO auth.users VALUES ('00000000-0000-0000-0000-000000000001', 'bar@le-rebond.fr');
@@ -127,19 +135,41 @@ BEGIN
         (SELECT libelle FROM fidelite.cadeaux WHERE personne = '1001' AND statut = 'actif') LIKE 'Boisson%');
     PERFORM t.check('1. plafond : la 2e annonce attend 7 jours après la 1re (le 10/11, pas le 6/11)',
         (SELECT max((cree_le AT TIME ZONE 'Europe/Paris')::date) FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce') = '2026-11-10');
+    PERFORM t.check('1. échelle de la 2e annonce : palier 1 validé, palier 2 en cours',
+        (SELECT donnees->'paliers'->0->>'etat' = 'valide' AND donnees->'paliers'->1->>'etat' = 'actuel' AND (donnees->>'palier')::int = 2
+         FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce' ORDER BY cree_le DESC LIMIT 1));
+
+    -- Fiche client (QR code) : réservations, cadeaux, passages en caisse rapprochés par le nom.
+    INSERT INTO livex.livex_paiements_jour (numero, heure, client, description, statut, cb, _jour)
+    VALUES ('4585', '20:43', 'Test1001' || chr(160) || 'Alice', 'Nouvelle commande', 'Validé', '12,50', '2026-11-05'),
+           ('4586', '21:00', 'Autre' || chr(160) || 'Client', 'Nouvelle commande', 'Validé', '9,00', '2026-11-05');
+    PERFORM set_config('test.uid', '00000000-0000-0000-0000-000000000001', false);
+    PERFORM set_config('fidelite.maintenant', t.a('2026-11-12', '11:00')::text, false);
+    SELECT public.fidelite_fiche_client((SELECT jeton FROM fidelite.clients WHERE id_client = '1001')) INTO f;
+    PERFORM t.check('1. fiche : 2 réservations, 2 parties de padel',
+        jsonb_array_length(f->'reservations') = 2 AND (f->'stats'->>'parties_padel')::int = 2, f->>'stats');
+    PERFORM t.check('1. fiche : cadeaux (utilisé + en cours) et offre active',
+        jsonb_array_length(f->'cadeaux') = 2 AND f->'cadeau'->>'libelle' LIKE 'Boisson%');
+    PERFORM t.check('1. fiche : passage en caisse de 12,50 € retrouvé par le nom (et pas celui d''un autre)',
+        jsonb_array_length(f->'caisse') = 1 AND (f->'caisse'->0->>'montant')::numeric = 12.5, f->>'caisse');
+    PERFORM set_config('test.uid', '', false);
+    PERFORM t.check('1. fiche : refusée hors staff',
+        t.erreur(format('SELECT public.fidelite_fiche_client(%L)', (SELECT jeton FROM fidelite.clients WHERE id_client = '1001'))) LIKE '%staff%');
+    PERFORM set_config('fidelite.maintenant', '', false);
 END $$;
 
--- ===================================================================== 2. retour en heures pleines
+-- ===================================================================== 2. retour en heures pleines (valable à toute heure)
 DO $$ BEGIN
     PERFORM t.reset();
     PERFORM t.client('1002', 'bruno');
     PERFORM t.partie('1002', '2026-11-02 10:00');
     PERFORM t.partie('1002', '2026-11-04 19:00');
     PERFORM t.simuler('2026-11-02', '2026-11-06');
-    PERFORM t.check('2. retour en heures pleines : le palier avance quand même',
+    PERFORM t.check('2. retour en heures pleines : le palier avance',
         (SELECT palier FROM fidelite.tunnel WHERE personne = '1002') = 2);
-    PERFORM t.check('2. … mais le cadeau est perdu (perdu_hp)',
-        (SELECT statut FROM fidelite.cadeaux WHERE personne = '1002' AND palier = 1) = 'perdu_hp');
+    PERFORM t.check('2. pas de perte en heures pleines : non réclamé = expiré, jamais perdu_hp',
+        (SELECT statut FROM fidelite.cadeaux WHERE personne = '1002' AND palier = 1) = 'expire'
+        AND NOT EXISTS (SELECT 1 FROM fidelite.cadeaux WHERE statut = 'perdu_hp'));
     PERFORM t.check('2. le cadeau du palier 2 est ouvert',
         EXISTS (SELECT 1 FROM fidelite.cadeaux WHERE personne = '1002' AND palier = 2 AND statut = 'actif'));
 END $$;
