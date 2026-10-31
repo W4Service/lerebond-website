@@ -112,7 +112,7 @@ BEGIN
         AND (m.donnees->'paliers'->1->>'manque')::int = 1 AND (m.donnees->'paliers'->4->>'manque')::int = 4
         AND m.donnees->'paliers'->4->>'libelle' = 'Joueur régulier du Rebond', m.donnees::text);
     PERFORM t.check('1. échelle : titres courts et détails pour l''escalier',
-        (SELECT donnees->'paliers'->0->>'titre' = 'Raquettes offertes' AND donnees->'paliers'->0->>'detail' = 'aux 4 joueurs'
+        (SELECT donnees->'paliers'->0->>'titre' = 'Raquettes offertes' AND donnees->'paliers'->0->>'detail' = 'pour toi et tes coéquipiers'
                 AND donnees->'paliers'->4->>'titre' = 'Régulier'
          FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce' ORDER BY cree_le LIMIT 1)
         OR fidelite.echelle('1001')->0->>'titre' = 'Raquettes offertes');
@@ -276,17 +276,17 @@ BEGIN
     PERFORM t.check('11. client existant : aucun message', t.nb_msg('1018') = 0);
     PERFORM t.check('8. grand retour (inactif depuis le 1/08) le 2/11', t.msg_jour('1008', 'grand_retour') = '2026-11-02');
     SELECT id INTO g FROM fidelite.cadeaux WHERE personne = '1008' AND origine = 'grand_retour';
-    PERFORM t.check('8. cadeau grand retour valable 21 jours, choix pizza/planche',
+    PERFORM t.check('8. cadeau grand retour valable 21 jours, choix pizza/saucisson',
         (SELECT valable_du = '2026-11-02' AND expire_le = '2026-11-22' AND choix_requis FROM fidelite.cadeaux WHERE id = g));
 
     INSERT INTO public.staff VALUES ('00000000-0000-0000-0000-000000000002', 'bar2@le-rebond.fr') ON CONFLICT DO NOTHING;
     PERFORM set_config('test.uid', '00000000-0000-0000-0000-000000000002', false);
     PERFORM set_config('fidelite.maintenant', t.a('2026-11-05', '15:00')::text, false);
-    PERFORM t.check('14. bar : pizza ou planche obligatoire',
-        t.erreur(format('SELECT public.fidelite_bar_utiliser(%L)', g)) LIKE '%pizza ou planche%');
-    PERFORM t.check('14. bar : utilisé avec le choix « planche »', (public.fidelite_bar_utiliser(g, 'planche')->>'ok')::boolean);
+    PERFORM t.check('14. bar : pizza ou saucisson obligatoire',
+        t.erreur(format('SELECT public.fidelite_bar_utiliser(%L)', g)) LIKE '%pizza ou saucisson%');
+    PERFORM t.check('14. bar : utilisé avec le choix « saucisson »', (public.fidelite_bar_utiliser(g, 'saucisson')->>'ok')::boolean);
     PERFORM t.check('14. bar : choix et membre du staff enregistrés',
-        (SELECT choix = 'planche' AND utilise_par = 'bar2@le-rebond.fr' FROM fidelite.cadeaux WHERE id = g));
+        (SELECT choix = 'saucisson' AND utilise_par = 'bar2@le-rebond.fr' FROM fidelite.cadeaux WHERE id = g));
     PERFORM set_config('fidelite.maintenant', '', false);
     PERFORM set_config('test.uid', '', false);
 
@@ -440,6 +440,35 @@ DO $$ BEGIN
         AND public.fidelite_tableau() ? 'effet' AND NOT public.fidelite_tableau() ? 'heures_creuses');
     PERFORM set_config('test.uid', '', false);
     PERFORM t.check('cron : calcul planifié à 8 h et 9 h UTC',
+        (SELECT schedule FROM cron.job WHERE jobname = 'fidelite-calcul') = '0 8,9 * * *');
+END $$;
+
+-- ===================================================================== ouvertures et clics
+DO $$ DECLARE m uuid; BEGIN
+    SELECT id INTO m FROM fidelite.messages WHERE canal = 'email' ORDER BY cree_le LIMIT 1;
+    UPDATE fidelite.messages SET apercu_envoye_le = now() WHERE id = m;
+    PERFORM t.check('suivi e-mails : ouverture notée', fidelite.noter_ouverture(m::text, 'Mozilla/5.0'));
+    PERFORM t.check('suivi e-mails : identifiant invalide ou inconnu ignoré',
+        NOT fidelite.noter_ouverture('pas-un-uuid') AND NOT fidelite.noter_ouverture(gen_random_uuid()::text));
+    PERFORM t.check('suivi e-mails : clic « réserver » noté, renvoie le lien de réservation',
+        public.fidelite_clic(m::text, 'reserver') = fidelite.cfg_txt('lien_reservation')
+        AND EXISTS (SELECT 1 FROM fidelite.evenements WHERE message_id = m AND type = 'clic' AND lien = 'reserver'));
+    PERFORM t.check('suivi e-mails : lien inconnu non noté (pas de redirection ouverte)',
+        public.fidelite_clic(m::text, 'https://pirate.example') = fidelite.cfg_txt('lien_reservation')
+        AND (SELECT count(*) FROM fidelite.evenements WHERE message_id = m AND type = 'clic') = 1);
+    FOR i IN 1..30 LOOP PERFORM fidelite.noter_ouverture(m::text); END LOOP;
+    PERFORM t.check('suivi e-mails : au plus 20 ouvertures notées par message',
+        (SELECT count(*) FROM fidelite.evenements WHERE message_id = m AND type = 'ouverture') = 20);
+    PERFORM set_config('test.uid', '00000000-0000-0000-0000-000000000003', false);
+    PERFORM t.check('suivi e-mails : tableau (1 ouvert, 1 cliqué, lien réserver)',
+        (SELECT (x->>'ouverts')::int >= 1 AND (x->>'cliques')::int >= 1 FROM jsonb_array_elements(public.fidelite_tableau()->'emails') x
+         WHERE x->>'type' = (SELECT type FROM fidelite.messages WHERE id = m))
+        AND public.fidelite_tableau()->'liens' @> '[{"lien": "reserver"}]');
+    PERFORM set_config('test.uid', '', false);
+END $$;
+
+DO $$ BEGIN
+    PERFORM t.check('cron : toujours planifié',
         (SELECT schedule FROM cron.job WHERE jobname = 'fidelite-calcul') = '0 8,9 * * *');
 END $$;
 

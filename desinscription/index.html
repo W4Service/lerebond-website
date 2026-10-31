@@ -34,9 +34,9 @@ p { line-height: 1.5; margin-bottom: 12px; }
     <div class="carte" id="carte"><p>Chargement…</p></div>
 </main>
 
-<script src="js/vendor/supabase.min.js?v=0d84484c"></script>
-<script src="js/resa-config.min.js?v=0d84484c"></script>
-<script src="js/supabase-client.js?v=0d84484c"></script>
+<script src="js/vendor/supabase.min.js?v=ccd4d30e"></script>
+<script src="js/resa-config.min.js?v=ccd4d30e"></script>
+<script src="js/supabase-client.js?v=ccd4d30e"></script>
 <script>
 (function () {
     var supa = window.LeRebondSupa;
@@ -77,6 +77,9 @@ p { line-height: 1.5; margin-bottom: 12px; }
 
     async function demarrer() {
         if (!jeton || !/^[0-9a-f-]{36}$/i.test(jeton)) { invalide(); return; }
+        // Venu d'un e-mail fidélité : le clic est compté dans le suivi.
+        var message = new URLSearchParams(location.search).get('m');
+        if (message) supa.rpc('fidelite_clic', { p_message: message, p_lien: 'desinscription', p_agent: navigator.userAgent }).then(null, function () {});
         var r = await supa.rpc('fidelite_preferences', { p_jeton: jeton });
         if (r.error || !r.data) { invalide(); return; }
         afficher(r.data);
