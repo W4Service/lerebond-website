@@ -1,6 +1,6 @@
 # Tunnel de bienvenue (fidélité padel)
 
-Chaque fois qu'un **nouveau joueur de padel** revient jouer dans les 7 jours, il débloque un
+Chaque fois qu'un **joueur de padel** (nouveau ou non, dès sa 1re partie depuis le lancement) revient jouer dans les 7 jours, il débloque un
 cadeau pour sa partie suivante (raquettes → boisson → pizza/saucisson → tournée + pizza/saucisson → « régulier »).
 Rattrapage à J+14 (une fois), grand retour à J+60 (une fois par an). V1 : padel seulement,
 e-mail seulement.
@@ -57,9 +57,9 @@ avec un compte **staff** (table `staff`, voir la migration `20261020_staff.sql`)
   client pour le staff (`messages.donnees`, mis en page par le workflow n8n).
 - **Mode aperçu** : en dry-run, les messages simulés sont envoyés à `email_test`
   (objet « [TEST → client] »), jamais aux clients ; le passage en réel vide `email_test`.
-- **Messages** : annonce à J+1 (toujours), rappel à J+5 (si rien de réservé),
+- **Messages** : annonce le lendemain de chaque partie (toujours, hors plafond), rappel à J+5 (si rien de réservé),
   rattrapage J+14 et grand retour J+60 (si rien de réservé).
-- **Plafond** : 1 message par client sur 7 jours, newsletter comprise (1er mardi du mois,
+- **Plafond** (sauf annonces) : 1 message par client sur 7 jours, newsletter comprise (1er mardi du mois,
   pour les inscrits) ; l'annonce et son rappel comptent comme un seul envoi. Un message
   bloqué par le plafond attend, il n'est pas perdu (« au moins X jours et pas encore envoyé »).
 - **Groupe témoin** : 10 % des clients, tirés de façon reproductible : suivis, jamais
