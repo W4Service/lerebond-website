@@ -88,7 +88,10 @@ def construire():
          'name': 'Mettre en page', 'type': 'n8n-nodes-base.code', 'typeVersion': 2, 'position': [660, 100]},
         {'parameters': {'method': 'POST', 'url': '=https://graph.microsoft.com/v1.0/users/{{ $json.expediteur }}/sendMail',
                         'authentication': 'predefinedCredentialType', 'nodeCredentialType': 'microsoftOAuth2Api',
-                        'sendBody': True, 'specifyBody': 'json', 'jsonBody': '={{ JSON.stringify($json.graph) }}', 'options': {}},
+                        'sendBody': True, 'specifyBody': 'json', 'jsonBody': '={{ JSON.stringify($json.graph) }}',
+                        # 1 e-mail par seconde : Graph refuse au-delà de 4 envois simultanés par boîte
+                        # (« MailboxConcurrency »).
+                        'options': {'batching': {'batch': {'batchSize': 1, 'batchInterval': 1000}}}},
          'name': 'Envoyer (Graph)', 'type': 'n8n-nodes-base.httpRequest', 'typeVersion': 4.2, 'position': [880, 100],
          'credentials': MS, 'onError': 'continueErrorOutput'},
         {'parameters': {'operation': 'executeQuery',

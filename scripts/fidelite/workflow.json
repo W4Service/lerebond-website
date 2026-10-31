@@ -92,7 +92,14 @@
     "sendBody": true,
     "specifyBody": "json",
     "jsonBody": "={{ JSON.stringify($json.graph) }}",
-    "options": {}
+    "options": {
+     "batching": {
+      "batch": {
+       "batchSize": 1,
+       "batchInterval": 1000
+      }
+     }
+    }
    },
    "name": "Envoyer (Graph)",
    "type": "n8n-nodes-base.httpRequest",
