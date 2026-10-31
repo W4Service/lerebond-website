@@ -111,6 +111,11 @@ BEGIN
         m.donnees->'paliers'->0->>'etat' = 'actuel' AND m.donnees->'paliers'->1->>'etat' = 'a_debloquer'
         AND (m.donnees->'paliers'->1->>'manque')::int = 1 AND (m.donnees->'paliers'->4->>'manque')::int = 4
         AND m.donnees->'paliers'->4->>'libelle' = 'Joueur régulier du Rebond', m.donnees::text);
+    PERFORM t.check('1. échelle : titres courts et détails pour l''escalier',
+        (SELECT donnees->'paliers'->0->>'titre' = 'Raquettes offertes' AND donnees->'paliers'->0->>'detail' = 'aux 4 joueurs, à la 2e partie'
+                AND donnees->'paliers'->4->>'titre' = 'Régulier'
+         FROM fidelite.messages WHERE personne = '1001' AND type = 'annonce' ORDER BY cree_le LIMIT 1)
+        OR fidelite.echelle('1001')->0->>'titre' = 'Raquettes offertes');
 
     -- Le bar valide le cadeau pendant la partie du jeudi.
     INSERT INTO auth.users VALUES ('00000000-0000-0000-0000-000000000001', 'bar@le-rebond.fr');
