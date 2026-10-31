@@ -189,7 +189,7 @@
                 h += '<div class="fid-err">Valable à partir du ' + jour(k.valable_du) + ' (pour la partie suivante).</div>';
             } else if (k.choix_requis) {
                 h += '<div class="fid-actions"><button class="fid-btn fid-btn--or" data-cadeau="' + k.id + '" data-choix="pizza">Pizza</button>'
-                    + '<button class="fid-btn fid-btn--creme" data-cadeau="' + k.id + '" data-choix="planche">Planche</button></div>';
+                    + '<button class="fid-btn fid-btn--creme" data-cadeau="' + k.id + '" data-choix="saucisson">Saucisson</button></div>';
             } else {
                 h += '<div class="fid-actions"><button class="fid-btn fid-btn--or" data-cadeau="' + k.id + '">Marquer utilisé</button></div>';
             }
@@ -313,6 +313,29 @@
                 + ((ef.temoins || 0) < 20 ? '<div class="fid-aide">Moins de 20 témoins : l\'écart n\'est pas encore fiable.</div>' : '');
         }
         h += '</div>';
+        // Ouvertures (image invisible, approximatif) et clics (liens suivis, fiable), par type d'e-mail.
+        var et = d.emails_total || {};
+        var LIENS = { reserver: 'Réserver un terrain', desinscription: 'Me désinscrire' };
+        h += '<div class="fid-carte"><h3>E-mails : ouvertures et clics</h3>'
+            + '<div class="fid-chiffres" style="margin:0 0 .8rem">'
+            + '<div class="fid-chiffre"><b>' + (et.envoyes || 0) + '</b><span>e-mails envoyés</span></div>'
+            + '<div class="fid-chiffre"><b>' + pct(et.pct_ouverture) + '</b><span>taux d\'ouverture (' + (et.ouverts || 0) + ')</span></div>'
+            + '<div class="fid-chiffre"><b>' + pct(et.pct_clic) + '</b><span>ont cliqué « Réserver » (' + (et.cliques || 0) + ')</span></div>'
+            + '<div class="fid-chiffre"><b>' + (et.cliques_convertis || 0) + '</b><span>ont cliqué puis sont venus jouer</span></div></div>'
+            + table(['E-mail', 'Envoyés', 'Ouverts', 'Taux d\'ouverture', 'Clic « Réserver »', 'Taux de clic', 'Venus jouer'],
+                (d.emails || []).map(function (k) {
+                    return '<tr><td>' + e(TYPES[k.type] || k.type) + '</td><td>' + k.envoyes + '</td><td>' + k.ouverts
+                        + '</td><td>' + pct(k.pct_ouverture) + '</td><td>' + k.cliques + '</td><td>' + pct(k.pct_clic)
+                        + '</td><td>' + k.convertis + '</td></tr>';
+                }))
+            + '<h3 style="margin-top:1rem">Où ils cliquent</h3>'
+            + table(['E-mail', 'Lien', 'E-mails cliqués', 'Clics'],
+                (d.liens || []).map(function (l) {
+                    return '<tr><td>' + e(TYPES[l.type] || l.type) + '</td><td>' + e(LIENS[l.lien] || l.lien) + '</td><td>' + l.messages
+                        + '</td><td>' + l.clics + '</td></tr>';
+                }))
+            + '<div class="fid-aide">Ouverture : chiffre approximatif (l\'app Mail de l\'iPhone charge les images de tous les e-mails, '
+            + 'ce qui gonfle le taux ; Outlook les bloque parfois). Clic : fiable. En mode test, ce sont les aperçus reçus sur l\'adresse de test.</div></div>';
         var statuts = ['tous', 'simule', 'a_envoyer', 'envoye', 'bloque', 'echec'];
         var msgs = d.messages.filter(function (m) { return filtreMessages === 'tous' || m.statut === filtreMessages; });
         h += '<div class="fid-carte"><h3>Messages générés</h3><div class="fid-puces">' + statuts.map(function (s) {

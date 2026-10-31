@@ -1,7 +1,7 @@
 # Tunnel de bienvenue (fidélité padel)
 
 Chaque fois qu'un **nouveau joueur de padel** revient jouer dans les 7 jours, il débloque un
-cadeau pour sa partie suivante (raquettes → boisson → pizza/planche → tournée → « régulier »).
+cadeau pour sa partie suivante (raquettes → boisson → pizza/saucisson → tournée + pizza/saucisson → « régulier »).
 Rattrapage à J+14 (une fois), grand retour à J+60 (une fois par an). V1 : padel seulement,
 e-mail seulement.
 

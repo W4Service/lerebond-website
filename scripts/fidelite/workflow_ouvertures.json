@@ -1,0 +1,118 @@
+{
+ "name": "Le Rebond — Fidélité (ouvertures)",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "GET",
+    "path": "rebond-ouverture",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "name": "Image ouverte",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    200
+   ],
+   "webhookId": "6f1d0f3e-5b7a-4c1e-9a52-2c4d8e0b7a31"
+  },
+  {
+   "parameters": {
+    "jsCode": "const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');\nreturn [{ json: {}, binary: { data: await this.helpers.prepareBinaryData(gif, 'p.gif', 'image/gif') } }];\n"
+   },
+   "name": "Pixel",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    220,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "respondWith": "binary",
+    "options": {
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Cache-Control",
+        "value": "no-store, max-age=0"
+       }
+      ]
+     }
+    }
+   },
+   "name": "Répondre",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    440,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "SELECT fidelite.noter_ouverture($1, $2) AS notee",
+    "options": {
+     "queryReplacement": "={{ [ String($('Image ouverte').item.json.query.m || ''), String($('Image ouverte').item.json.headers['user-agent'] || '') ] }}"
+    }
+   },
+   "name": "Noter l'ouverture",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    660,
+    200
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "B35nAS73YaZAkrBk",
+     "name": "Postgres account Le Rebond"
+    }
+   },
+   "onError": "continueRegularOutput"
+  }
+ ],
+ "connections": {
+  "Image ouverte": {
+   "main": [
+    [
+     {
+      "node": "Pixel",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Pixel": {
+   "main": [
+    [
+     {
+      "node": "Répondre",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Répondre": {
+   "main": [
+    [
+     {
+      "node": "Noter l'ouverture",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "Europe/Paris",
+  "callerPolicy": "workflowsFromSameOwner"
+ }
+}

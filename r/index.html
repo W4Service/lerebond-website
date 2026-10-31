@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base href="https://le-rebond.fr/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Rebond</title>
+<meta name="robots" content="noindex, nofollow">
+<meta content="#680920" name="theme-color">
+<style>
+body { margin: 0; background: #f4f0e6; color: #1a1a1a; font-family: Arial, sans-serif; display: flex; min-height: 100vh; align-items: center; justify-content: center; }
+a { color: #680920; }
+</style>
+</head>
+<body>
+<p>Redirection vers la réservation… <a id="lien" href="https://lerebond.mymobileapp.fr/">continuer</a></p>
+
+<script src="js/vendor/supabase.min.js"></script>
+<script src="js/resa-config.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+// Lien des e-mails fidélité : note le clic (message m, lien l) puis redirige.
+// La réservation reste accessible même si Supabase ne répond pas (1,5 s au plus).
+(function () {
+    var q = new URLSearchParams(location.search);
+    var cible = 'https://lerebond.mymobileapp.fr/';
+    var parti = false;
+    function partir(url) {
+        if (parti) return;
+        parti = true;
+        location.replace(/^https:\/\//.test(url || '') ? url : cible);
+    }
+    setTimeout(function () { partir(cible); }, 1500);
+    try {
+        window.LeRebondSupa.rpc('fidelite_clic', { p_message: q.get('m') || '', p_lien: q.get('l') || 'reserver', p_agent: navigator.userAgent })
+            .then(function (r) { partir(r && r.data); }, function () { partir(cible); });
+    } catch (err) { partir(cible); }
+})();
+</script>
+</body>
+</html>

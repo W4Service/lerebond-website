@@ -48,11 +48,14 @@ MISE_EN_PAGE = r"""// Met le message en forme (charte Le Rebond) et prépare l'a
 const n = $input.item.json;
 const d = typeof n.donnees === 'string' ? JSON.parse(n.donnees) : (n.donnees || {});
 const echapper = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Liens suivis : « Réserver » passe par le-rebond.fr/r/ (note le clic puis redirige), la page
+// de désinscription note elle-même le clic (paramètre m).
+const suivi = 'https://le-rebond.fr/r/?m=' + n.id + '&amp;l=reserver';
 const liens = s => s
     .replace(/(https:\/\/le-rebond\.fr\/desinscription\/\S+)/g,
-        '<a href="$1" style="color:#8a7f75">me désinscrire</a>')
-    .replace(/(https:\/\/lerebond\.mymobileapp\.fr\/\S*)/g,
-        '<a href="$1" style="display:inline-block;margin:6px 0;padding:10px 18px;background:#efa707;color:#1a1a1a;border-radius:8px;text-decoration:none;font-weight:600">Réserver un terrain</a>');
+        '<a href="$1&amp;m=' + n.id + '" style="color:#8a7f75">me désinscrire</a>')
+    .replace(/https:\/\/lerebond\.mymobileapp\.fr\/\S*/g,
+        '<a href="' + suivi + '" style="display:inline-block;margin:6px 0;padding:10px 18px;background:#efa707;color:#1a1a1a;border-radius:8px;text-decoration:none;font-weight:600">Réserver un terrain</a>');
 // Le pied (à partir du tiret long) est affiché en petit, sous la carte.
 const [texte, pied = ''] = echapper(n.corps).split('\n—\n');
 const paragraphes = texte.trim().split(/\n{2,}/)
@@ -123,6 +126,8 @@ const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta n
     + '<div style="background:#680920;color:#f4f0e6;padding:18px 22px;border-radius:12px 12px 0 0;font-size:20px;font-weight:700">Le Rebond — Padel</div>'
     + '<div style="background:#ffffff;padding:20px 14px;border-radius:0 0 12px 12px">' + paragraphes + echelle + qrHtml + '</div>'
     + '<p style="font-size:12px;color:#8a7f75;text-align:center;margin-top:14px;line-height:1.5">' + liens(pied).replace(/\n/g, '<br>') + '</p>'
+    // Image invisible : son chargement compte une ouverture (workflow « Fidélité (ouvertures) »).
+    + '<img src="https://n8n.wepe.fr/webhook/rebond-ouverture?m=' + n.id + '" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0">'
     + '</div></body></html>';
 // Aperçu (dry-run) : envoyé à l'adresse de test, avec le vrai destinataire dans l'objet.
 const apercu = n.statut === 'simule' && n.email_test;
@@ -192,7 +197,40 @@ def construire():
             'settings': {'executionOrder': 'v1', 'timezone': 'Europe/Paris', 'callerPolicy': 'workflowsFromSameOwner'}}
 
 
+# Image transparente de 1 px renvoyée à la messagerie, puis ouverture notée en base.
+PIXEL = r"""const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+return [{ json: {}, binary: { data: await this.helpers.prepareBinaryData(gif, 'p.gif', 'image/gif') } }];
+"""
+
+
+def construire_ouvertures():
+    """« Le Rebond — Fidélité (ouvertures) » : GET /webhook/rebond-ouverture?m=<message>."""
+    nodes = [
+        {'parameters': {'httpMethod': 'GET', 'path': 'rebond-ouverture', 'responseMode': 'responseNode', 'options': {}},
+         'name': 'Image ouverte', 'type': 'n8n-nodes-base.webhook', 'typeVersion': 2, 'position': [0, 200],
+         'webhookId': '6f1d0f3e-5b7a-4c1e-9a52-2c4d8e0b7a31'},
+        {'parameters': {'jsCode': PIXEL},
+         'name': 'Pixel', 'type': 'n8n-nodes-base.code', 'typeVersion': 2, 'position': [220, 200]},
+        {'parameters': {'respondWith': 'binary', 'options': {'responseHeaders': {'entries': [
+            {'name': 'Cache-Control', 'value': 'no-store, max-age=0'}]}}},
+         'name': 'Répondre', 'type': 'n8n-nodes-base.respondToWebhook', 'typeVersion': 1.1, 'position': [440, 200]},
+        {'parameters': {'operation': 'executeQuery', 'query': 'SELECT fidelite.noter_ouverture($1, $2) AS notee',
+                        'options': {'queryReplacement': "={{ [ String($('Image ouverte').item.json.query.m || ''), "
+                                                        "String($('Image ouverte').item.json.headers['user-agent'] || '') ] }}"}},
+         'name': 'Noter l\'ouverture', 'type': 'n8n-nodes-base.postgres', 'typeVersion': 2.5, 'position': [660, 200],
+         'credentials': PG, 'onError': 'continueRegularOutput'},
+    ]
+    connections = {
+        'Image ouverte': {'main': [[{'node': 'Pixel', 'type': 'main', 'index': 0}]]},
+        'Pixel': {'main': [[{'node': 'Répondre', 'type': 'main', 'index': 0}]]},
+        'Répondre': {'main': [[{'node': 'Noter l\'ouverture', 'type': 'main', 'index': 0}]]},
+    }
+    return {'name': 'Le Rebond — Fidélité (ouvertures)', 'nodes': nodes, 'connections': connections,
+            'settings': {'executionOrder': 'v1', 'timezone': 'Europe/Paris', 'callerPolicy': 'workflowsFromSameOwner'}}
+
+
 if __name__ == '__main__':
-    with open(os.path.join(ICI, 'workflow.json'), 'w', encoding='utf-8') as f:
-        json.dump(construire(), f, ensure_ascii=False, indent=1)
-    print('workflow.json écrit')
+    for nom, wf in (('workflow.json', construire()), ('workflow_ouvertures.json', construire_ouvertures())):
+        with open(os.path.join(ICI, nom), 'w', encoding='utf-8') as f:
+            json.dump(wf, f, ensure_ascii=False, indent=1)
+        print(nom, 'écrit')
