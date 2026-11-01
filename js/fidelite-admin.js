@@ -264,6 +264,8 @@
         var r = await supa.rpc('fidelite_tableau');
         if (r.error) { zone().innerHTML = '<div class="fid-carte fid-err">' + e(r.error.message) + '</div>'; return; }
         suivi = r.data;
+        var c = await supa.rpc('fidelite_clics_reserver');
+        suivi.clics_noms = c.error ? [] : c.data;
         rendreSuivi();
     }
 
@@ -342,6 +344,15 @@
                 }))
             + '<div class="fid-aide">Ouverture : chiffre approximatif (l\'app Mail de l\'iPhone charge les images de tous les e-mails, '
             + 'ce qui gonfle le taux ; Outlook les bloque parfois). Clic : fiable. En mode test, ce sont les aperçus reçus sur l\'adresse de test.</div></div>';
+        h += '<div class="fid-carte"><h3>Qui a cliqué « Réserver »</h3>'
+            + table(['Date', 'Client', 'E-mail', 'Téléphone', 'Message', 'Venu jouer'],
+                (d.clics_noms || []).map(function (c) {
+                    return '<tr><td>' + jour(c.le) + '</td><td><a href="/admin/client/?j=' + encodeURIComponent(c.jeton) + '">'
+                        + e((c.prenom || '') + ' ' + (c.nom || '')) + '</a></td><td>' + e(c.email || '') + '</td><td>' + e(c.telephone || '')
+                        + '</td><td>' + e(TYPES[c.type] || c.type) + '</td><td>' + (c.venu ? 'Oui' : 'Non') + '</td></tr>';
+                }))
+            + '<div class="fid-aide">Clics depuis le 1er novembre 2026 après-midi (annonce dans la politique de confidentialité), gardés 90 jours. '
+            + 'Les clients désinscrits n\'apparaissent pas. Les ouvertures restent en chiffres globaux.</div></div>';
         var statuts = ['tous', 'simule', 'a_envoyer', 'envoye', 'bloque', 'echec'];
         var msgs = d.messages.filter(function (m) { return filtreMessages === 'tous' || m.statut === filtreMessages; });
         h += '<div class="fid-carte"><h3>Messages générés</h3><div class="fid-puces">' + statuts.map(function (s) {
