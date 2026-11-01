@@ -557,6 +557,12 @@ DO $$ BEGIN
         (SELECT schedule FROM cron.job WHERE jobname = 'fidelite-calcul') = '0 8,9 * * *');
 END $$;
 
+-- ===================================================================== clics nominatifs
+DO $$ BEGIN
+    PERFORM set_config('test.uid', '', false);
+    PERFORM t.check('clics nominatifs : refusés hors staff', t.erreur('SELECT public.fidelite_clics_reserver()') LIKE '%staff%');
+END $$;
+
 \pset footer off
 SELECT CASE WHEN ok THEN 'ok  ' ELSE 'FAIL' END AS " ", nom AS "scénario", coalesce(detail, '') AS "détail"
 FROM t.resultats ORDER BY n;
