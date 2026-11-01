@@ -270,6 +270,8 @@
         suivi.ouvertures_noms = o.error ? [] : o.data;
         var x = await supa.rpc('fidelite_desinscrits');
         suivi.desinscrits = x.error ? [] : x.data;
+        var u = await supa.rpc('fidelite_codes_utilises');
+        suivi.codes_utilises = u.error ? [] : u.data;
         rendreSuivi();
     }
 
@@ -348,16 +350,24 @@
                 }))
             + '<div class="fid-aide">Ouverture : chiffre approximatif (l\'app Mail de l\'iPhone charge les images de tous les e-mails, '
             + 'ce qui gonfle le taux ; Outlook les bloque parfois). Clic : fiable. En mode test, ce sont les aperçus reçus sur l\'adresse de test.</div></div>';
+        h += '<div class="fid-carte"><h3>Qui a utilisé son code (' + (d.codes_utilises || []).length + ')</h3>'
+            + table(['Date', 'Client', 'Code', 'Cadeau', 'Validé par'],
+                (d.codes_utilises || []).map(function (c) {
+                    return '<tr><td>' + jour(c.utilise_le) + '</td><td><a style="color:inherit;text-decoration:none" href="/admin/client/?j=' + encodeURIComponent(c.jeton) + '">'
+                        + e((c.prenom || '') + ' ' + (c.nom || '')) + '</a></td><td>' + e(c.code) + '</td><td>' + e(c.libelle) + (c.choix ? ' (' + e(c.choix) + ')' : '')
+                        + '</td><td>' + e(c.utilise_par || '') + '</td></tr>';
+                }))
+            + '</div>';
         h += '<div class="fid-carte"><h3>Qui a cliqué « Réserver »</h3>'
             + table(['Date', 'Client', 'E-mail', 'Téléphone', 'Message', 'Venu jouer'],
                 (d.clics_noms || []).map(function (c) {
-                    return '<tr><td>' + jour(c.le) + '</td><td><a href="/admin/client/?j=' + encodeURIComponent(c.jeton) + '">'
+                    return '<tr><td>' + jour(c.le) + '</td><td><a style="color:inherit;text-decoration:none" href="/admin/client/?j=' + encodeURIComponent(c.jeton) + '">'
                         + e((c.prenom || '') + ' ' + (c.nom || '')) + '</a></td><td>' + e(c.email || '') + '</td><td>' + e(c.telephone || '')
                         + '</td><td>' + e(TYPES[c.type] || c.type) + '</td><td>' + (c.venu ? 'Oui' : 'Non') + '</td></tr>';
                 }))
             + '<div class="fid-aide">Sur 90 jours. Les antivirus d\'entreprise cliquent parfois sur tous les liens d\'un e-mail : un clic n\'est pas toujours celui du client.</div></div>';
         function ligneClient(c) {
-            return '<a href="/admin/client/?j=' + encodeURIComponent(c.jeton) + '">' + e((c.prenom || '') + ' ' + (c.nom || '')) + '</a></td><td>'
+            return '<a style="color:inherit;text-decoration:none" href="/admin/client/?j=' + encodeURIComponent(c.jeton) + '">' + e((c.prenom || '') + ' ' + (c.nom || '')) + '</a></td><td>'
                 + e(c.email || '') + '</td><td>' + e(c.telephone || '');
         }
         h += '<div class="fid-carte"><details><summary><b>Qui a ouvert (' + (d.ouvertures_noms || []).length + ')</b></summary>'
