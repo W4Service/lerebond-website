@@ -94,7 +94,7 @@
         st.textContent = CSS;
         document.head.appendChild(st);
         section().innerHTML = '<div class="fid-wrap"><div class="fid-onglets">'
-            + '<button type="button" data-vue="clients">Clients &amp; cadeaux</button>'
+            + '<button type="button" data-vue="clients">Recherche joueur</button>'
             + '<button type="button" data-vue="suivi">Suivi</button>'
             + '<button type="button" data-vue="campagne">Campagne</button></div><div id="fid-zone"></div></div>';
         section().addEventListener('click', clic);
@@ -112,7 +112,7 @@
         if (v === 'campagne') { chargerCampagne(); return; }
         if (jetonOuvert) { chargerFiche(jetonOuvert); return; }
         zone().innerHTML = '<div class="fid-carte"><input type="search" class="fid-recherche" id="fid-q" autocomplete="off"'
-            + ' placeholder="Code RB-…, nom, prénom ou téléphone">'
+            + ' placeholder="Code RB-…, nom, prénom, téléphone ou e-mail">'
             + '<div class="fid-aide">Le client te donne son code ou montre son QR code (le scanner ouvre directement sa fiche).</div>'
             + '<div id="fid-resultats"></div></div>';
         var q = document.getElementById('fid-q');
@@ -235,10 +235,23 @@
                     + (p.numero ? ' n° ' + e(p.numero) : '') + '</span></span><span>' + eur(p.montant) + '</span></div>';
             }).join('') : '<div class="fid-petit">Aucun.</div>') + '</div>';
 
-        h += '<div class="fid-carte"><h3>Messages reçus</h3>' + (f.messages.length ? f.messages.map(function (m) {
-            return '<div class="fid-ligne"><span>' + jour(m.cree_le) + ' · ' + e(TYPES[m.type] || m.type) + '<br><span class="fid-petit">' + e(m.sujet || '')
-                + '</span></span><span class="fid-etiq fid-etiq--' + e(m.statut) + '">' + e(m.statut) + '</span></div>';
-        }).join('') : '<div class="fid-petit">Aucun.</div>') + '</div>';
+        function etape(fait, texte) {
+            return '<span class="fid-etiq' + (fait ? ' fid-etiq--utilise' : '" style="opacity:.45') + '">' + texte + '</span> ';
+        }
+        h += '<div class="fid-carte"><h3>Ce qu\'il a fait de nos e-mails</h3>' + (f.messages.length ? f.messages.map(function (m) {
+            var envoye = m.statut === 'envoye';
+            return '<div class="fid-ligne" style="display:block"><div>' + jour(m.envoye_le || m.cree_le) + ' · ' + e(TYPES[m.type] || m.type) + (m.test ? ' (test)' : '')
+                + '<br><span class="fid-petit">' + e(m.sujet || '') + '</span></div><div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem">'
+                + (envoye ? etape(true, 'Envoyé') : '<span class="fid-etiq fid-etiq--' + e(m.statut) + '">' + e(m.statut.replace('_', ' ')) + '</span> ')
+                + etape(!!m.ouvert_le, m.ouvert_le ? 'Ouvert le ' + jour(m.ouvert_le) : 'Pas ouvert')
+                + etape(!!m.clic_reserver_le, m.clic_reserver_le ? 'A cliqué « Réserver » le ' + jour(m.clic_reserver_le) : 'Pas de clic « Réserver »')
+                + (m.clic_desinscription_le ? '<span class="fid-etiq fid-etiq--bloque">A cliqué « Se désinscrire » le ' + jour(m.clic_desinscription_le) + '</span> ' : '')
+                + etape(m.parties_jouees > 0, m.parties_jouees > 0 ? m.parties_jouees + ' partie(s) jouée(s) ensuite' : 'Pas de partie jouée ensuite')
+                + (m.parties_prevues > 0 ? '<span class="fid-etiq fid-etiq--avenir">' + m.parties_prevues + ' partie(s) prévue(s)</span> ' : '')
+                + (m.code ? etape(!!m.code_utilise_le, m.code_utilise_le ? 'Code ' + e(m.code) + ' utilisé le ' + jour(m.code_utilise_le) : 'Code ' + e(m.code) + ' non utilisé') : '')
+                + '</div></div>';
+        }).join('') + '<div class="fid-aide">« Envoyé » : parti de notre messagerie, un rejet n\'est pas détecté ici. « Ouvert » est approximatif, et un antivirus peut cliquer à la place du client. '
+            + 'Une partie prévue a pu être réservée avant l\'e-mail.</div>' : '<div class="fid-petit">Aucun.</div>') + '</div>';
         zone().innerHTML = h;
     }
 
