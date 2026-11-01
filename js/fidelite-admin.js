@@ -266,6 +266,10 @@
         suivi = r.data;
         var c = await supa.rpc('fidelite_clics_reserver');
         suivi.clics_noms = c.error ? [] : c.data;
+        var o = await supa.rpc('fidelite_ouvertures_noms');
+        suivi.ouvertures_noms = o.error ? [] : o.data;
+        var x = await supa.rpc('fidelite_desinscrits');
+        suivi.desinscrits = x.error ? [] : x.data;
         rendreSuivi();
     }
 
@@ -351,8 +355,21 @@
                         + e((c.prenom || '') + ' ' + (c.nom || '')) + '</a></td><td>' + e(c.email || '') + '</td><td>' + e(c.telephone || '')
                         + '</td><td>' + e(TYPES[c.type] || c.type) + '</td><td>' + (c.venu ? 'Oui' : 'Non') + '</td></tr>';
                 }))
-            + '<div class="fid-aide">Clics depuis le 1er novembre 2026 après-midi (annonce dans la politique de confidentialité), gardés 90 jours. '
-            + 'Les clients désinscrits n\'apparaissent pas. Les ouvertures restent en chiffres globaux.</div></div>';
+            + '<div class="fid-aide">Sur 90 jours. Les antivirus d\'entreprise cliquent parfois sur tous les liens d\'un e-mail : un clic n\'est pas toujours celui du client.</div></div>';
+        function ligneClient(c) {
+            return '<a href="/admin/client/?j=' + encodeURIComponent(c.jeton) + '">' + e((c.prenom || '') + ' ' + (c.nom || '')) + '</a></td><td>'
+                + e(c.email || '') + '</td><td>' + e(c.telephone || '');
+        }
+        h += '<div class="fid-carte"><details><summary><b>Qui a ouvert (' + (d.ouvertures_noms || []).length + ')</b></summary>'
+            + table(['Date', 'Client', 'E-mail', 'Téléphone', 'Message'],
+                (d.ouvertures_noms || []).map(function (c) {
+                    return '<tr><td>' + jour(c.le) + '</td><td>' + ligneClient(c) + '</td><td>' + e(TYPES[c.type] || c.type) + '</td></tr>';
+                }))
+            + '<div class="fid-aide">Peu fiable : l\'app Mail de l\'iPhone charge les images sans que l\'e-mail soit forcément lu.</div></details></div>';
+        h += '<div class="fid-carte"><details><summary><b>Clients qui ne reçoivent plus d\'e-mails (' + (d.desinscrits || []).length + ')</b></summary>'
+            + table(['Client', 'E-mail', 'Téléphone'],
+                (d.desinscrits || []).map(function (c) { return '<tr><td>' + ligneClient(c) + '</td></tr>'; }))
+            + '</details></div>';
         var statuts = ['tous', 'simule', 'a_envoyer', 'envoye', 'bloque', 'echec'];
         var msgs = d.messages.filter(function (m) { return filtreMessages === 'tous' || m.statut === filtreMessages; });
         h += '<div class="fid-carte"><h3>Messages générés</h3><div class="fid-puces">' + statuts.map(function (s) {
