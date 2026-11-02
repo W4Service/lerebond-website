@@ -23,8 +23,8 @@
 <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png"/>
 <link rel="manifest" href="manifest.json"/>
-<link href="css/bundle.min.css?v=3bbe6d48" rel="stylesheet"/>
-<link href="css/dropdown.css?v=3bbe6d48" rel="stylesheet"/>
+<link href="css/bundle.min.css?v=8b3a67fb" rel="stylesheet"/>
+<link href="css/dropdown.css?v=8b3a67fb" rel="stylesheet"/>
 <style>
 /* ============================================
    LE REBOND — Carte / Menu (page menu/)
@@ -759,9 +759,9 @@
         }
     </style>
 <!-- Scripts -->
-<script defer src="js/main.min.js?v=3bbe6d48"></script>
-<script src="js/resa-config.min.js?v=3bbe6d48"></script>
-<script src="js/resa-popup.min.js?v=3bbe6d48"></script>
+<script defer src="js/main.min.js?v=8b3a67fb"></script>
+<script src="js/resa-config.min.js?v=8b3a67fb"></script>
+<script src="js/resa-popup.min.js?v=8b3a67fb"></script>
 <script>
         function showToast(message) {
             var toast = document.getElementById('toast');
@@ -806,18 +806,6 @@
         
     }).catch(function(){ document.getElementById("event-banner").style.display="none"; document.body.classList.remove("has-event-banner"); });
 })();
-</script>
-<!-- Promo Popup -->
-<div class="promo-popup" id="promo-popup">
-<div class="promo-popup__content">
-<span class="promo-popup__emoji">🎉</span>
-<p class="promo-popup__text"><strong>Tout mai</strong> — Tarifs heures creuses sur tous les créneaux, Padel et Five !</p>
-<a class="promo-popup__link" href="tarifs/">Voir les tarifs →</a>
-</div>
-<button class="promo-popup__close" onclick="document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo-closed','1')" aria-label="Fermer">&times;</button>
-</div>
-<script>
-if(!sessionStorage.getItem('promo-closed')){setTimeout(function(){document.getElementById('promo-popup').classList.add('show')},1500);}
 </script>
 <script>
 (function () {
