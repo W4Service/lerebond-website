@@ -396,6 +396,34 @@
         return null;
     }
 
+    // Sans tournoi en cours : les prochaines dates du calendrier, pour que la page ne paraisse pas vide.
+    var prochainsTournois = null;
+
+    function ligneProchain(t) {
+        var d = new Date(t.date + 'T00:00:00');
+        var quand = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        var h = t.heure_debut ? ' · ' + parseInt(t.heure_debut, 10) + 'h' + (t.heure_debut.slice(3, 5) !== '00' ? t.heure_debut.slice(3, 5) : '') : '';
+        var ligne = el('a', { href: 'tournois/#tournoi-' + t.id, class: 'live-prochains__ligne' });
+        ligne.appendChild(el('span', { class: 'live-prochains__nom' }, t.nom));
+        ligne.appendChild(el('span', { class: 'live-prochains__date' }, quand + h));
+        return ligne;
+    }
+
+    async function afficherProchains(zone) {
+        if (!prochainsTournois) {
+            var auj = new Date();
+            var iso = auj.getFullYear() + '-' + String(auj.getMonth() + 1).padStart(2, '0') + '-' + String(auj.getDate()).padStart(2, '0');
+            var res = await supa.from('tournois_calendrier').select('id,nom,date,heure_debut')
+                .gte('date', iso).eq('status', 'planifie')
+                .order('date', { ascending: true }).order('heure_debut', { ascending: true }).limit(5);
+            prochainsTournois = res.data || [];
+        }
+        if (!prochainsTournois.length) return;
+        zone.appendChild(el('h3', { class: 'live-prochains__titre' }, '📅 Prochains tournois'));
+        prochainsTournois.forEach(function (t) { zone.appendChild(ligneProchain(t)); });
+        zone.appendChild(el('a', { href: 'tournois/', class: 'live-prochains__tout' }, 'Voir tout le calendrier →'));
+    }
+
     function render() {
         var root = document.getElementById('tournoi-content');
         if (!root) return;
@@ -407,6 +435,9 @@
                 el('h2', { class: 'live-empty-title' }, 'Aucun tournoi en cours'),
                 el('p', { class: 'live-empty-text' }, 'Restez connectés, le prochain tournoi sera bientôt annoncé !')
             ]));
+            var prochains = el('div', { class: 'live-prochains' });
+            root.appendChild(prochains);
+            afficherProchains(prochains);
             // Même sans tournoi actif, montrer l'historique
             if (closedTournois.length > 0) root.appendChild(renderHistorique());
             return;

@@ -2707,3 +2707,12 @@ select.tournoi-input option {
     font-size: 0.76rem;
     font-style: italic;
 }
+
+/* Prochains tournois, quand aucun tournoi n'est en cours */
+.live-prochains { max-width: 640px; margin: 0 auto 32px; display: flex; flex-direction: column; gap: 8px; }
+.live-prochains__titre { margin: 0 0 4px; font-size: 1.1rem; color: #f4f0e6; }
+.live-prochains__ligne { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 16px; padding: 12px 16px; border-radius: 10px; background: #f4f0e6; color: #131c24; text-decoration: none; font-weight: 600; }
+.live-prochains__ligne:hover, .live-prochains__ligne:focus-visible { background: #efa707; }
+.live-prochains__nom { min-width: 0; }
+.live-prochains__date { font-weight: 400; font-size: .9rem; opacity: .8; }
+.live-prochains__tout { align-self: flex-end; color: #efa707; font-weight: 600; text-decoration: none; }
