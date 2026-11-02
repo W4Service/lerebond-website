@@ -558,7 +558,7 @@
                     if (t.homologue && nom !== 'partenaire à confirmer') {
                         fft = pts != null
                             ? ' · ' + Number(pts).toLocaleString('fr-FR') + ' pts · ' + Number(rang).toLocaleString('fr-FR') + 'e'
-                            : ' · non trouvé sur Ten\'Up';
+                            : rang != null ? ' · ' + Number(rang).toLocaleString('fr-FR') + 'e' : ' · non trouvé sur Ten\'Up';
                     }
                     return el('div', { class: 'inscr-joueur' }, el('span', { class: 'inscr-nom' }, nom + fft));
                 }
