@@ -128,9 +128,12 @@
 
     function renderFormulaire() {
         var t = enEdition || {};
-        var card = el('div', { class: 'tournoi-card' });
-        card.appendChild(el('h3', { class: 'tournoi-section-title' },
-            enEdition ? '✏️ Modifier « ' + (t.nom || '') + ' »' : '➕ Planifier un tournoi'));
+        var card = el('div', { class: 'tournoi-card planning-modale' });
+        card.appendChild(el('div', { class: 'planning-entete' }, [
+            el('h3', { class: 'tournoi-section-title' },
+                enEdition ? '✏️ Modifier « ' + (t.nom || '') + ' »' : '➕ Planifier un tournoi'),
+            el('button', { class: 'icon-btn', title: 'Fermer', 'aria-label': 'Fermer', onclick: fermerFormulaire }, '✕')
+        ]));
 
         var i = {
             nom: el('input', { type: 'text', class: 'tournoi-input', placeholder: 'Auto : « P100 Messieurs »' }),
@@ -220,14 +223,34 @@
             class: 'btn-live btn-live--primary btn-live--small',
             onclick: function () { enregistrer(i); }
         }, enEdition ? '💾 Enregistrer' : '📅 Planifier'));
-        if (enEdition) {
-            actions.appendChild(el('button', {
-                class: 'btn-live btn-live--outline btn-live--small',
-                onclick: function () { enEdition = null; render(); }
-            }, 'Annuler'));
-        }
+        actions.appendChild(el('button', {
+            class: 'btn-live btn-live--outline btn-live--small',
+            onclick: fermerFormulaire
+        }, 'Annuler'));
         card.appendChild(actions);
         return card;
+    }
+
+    // Pop-up de création ou de modification (t = tournoi à modifier).
+    function ouvrirFormulaire(t) {
+        fermerFormulaire();
+        enEdition = t || null;
+        var overlay = el('div', { id: 'planning-popup', class: 'format-picker-overlay', role: 'dialog', 'aria-modal': 'true' });
+        overlay.appendChild(renderFormulaire());
+        document.body.appendChild(overlay);
+        document.addEventListener('keydown', echapFormulaire);
+        overlay.querySelector('input[type="date"]').focus();
+    }
+
+    function fermerFormulaire() {
+        enEdition = null;
+        var overlay = document.getElementById('planning-popup');
+        if (overlay) overlay.remove();
+        document.removeEventListener('keydown', echapFormulaire);
+    }
+
+    function echapFormulaire(e) {
+        if (e.key === 'Escape') fermerFormulaire();
     }
 
     function entierOuNull(v) {
@@ -280,7 +303,7 @@
             })).select().single();
         if (res.error) { toast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         toast(enEdition ? 'Tournoi modifié' : 'Tournoi planifié' + (champs.publie ? ' et publié' : ''), 'ok');
-        enEdition = null;
+        fermerFormulaire();
         await charger();
     }
 
@@ -331,7 +354,13 @@
 
     function renderListe() {
         var card = el('div', { class: 'tournoi-card' });
-        card.appendChild(el('h3', { class: 'tournoi-section-title' }, '📅 Tournois planifiés (' + planifies.length + ')'));
+        card.appendChild(el('div', { class: 'planning-entete' }, [
+            el('h3', { class: 'tournoi-section-title' }, '📅 Tournois planifiés (' + planifies.length + ')'),
+            el('button', {
+                class: 'btn-live btn-live--primary btn-live--small',
+                onclick: function () { ouvrirFormulaire(null); }
+            }, '➕ Planifier un tournoi')
+        ]));
         card.appendChild(el('p', { class: 'tournoi-hint' }, [
             'Les tournois publiés apparaissent sur ',
             el('a', { href: 'tournois/', target: '_blank', style: 'color:#efa707' }, 'le-rebond.fr/tournois'),
@@ -388,7 +417,7 @@
                 }, t.publie ? 'Dépublier' : 'Publier'),
                 el('button', {
                     class: 'icon-btn',
-                    onclick: function () { enEdition = t; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+                    onclick: function () { ouvrirFormulaire(t); },
                     title: 'Modifier'
                 }, '✏️'),
                 el('button', {
@@ -434,10 +463,12 @@
             .sort(function (a, b) { return (a.poids == null) - (b.poids == null) || (a.poids || 0) - (b.poids || 0); });
         var attente = liste.filter(function (x) { return x.statut === 'liste_attente'; });
         var retirees = liste.filter(function (x) { return x.statut === 'annulee' || x.statut === 'refusee'; });
+        var lx = await pairesLiveXperience(t, inscrites.concat(attente));
 
         panneau.innerHTML = '';
         var barre = el('div', { class: 'inscr-barre' });
-        barre.appendChild(el('strong', null, inscrites.length + ' inscrite' + (inscrites.length > 1 ? 's' : '')
+        var total = inscrites.length + lx.length;
+        barre.appendChild(el('strong', null, total + ' inscrite' + (total > 1 ? 's' : '')
             + (t.nb_equipes_max ? ' / ' + t.nb_equipes_max : '') + (attente.length ? ' · ' + attente.length + ' en attente' : '')));
         barre.appendChild(el('button', {
             class: 'btn-live btn-live--outline btn-live--small',
@@ -448,12 +479,12 @@
         }, t.inscriptions_fermees ? 'Rouvrir les inscriptions' : 'Fermer les inscriptions'));
         barre.appendChild(el('button', {
             class: 'btn-live btn-live--outline btn-live--small',
-            onclick: function () { exporterCsv(t, inscrites.concat(attente), contacts); }
+            onclick: function () { exporterCsv(t, inscrites.concat(attente), contacts, lx); }
         }, '⬇️ Export CSV (JA)'));
         panneau.appendChild(barre);
 
-        if (!liste.length) {
-            panneau.appendChild(el('p', { class: 'poule-empty' }, 'Aucune inscription en ligne pour l\'instant.'));
+        if (!liste.length && !lx.length) {
+            panneau.appendChild(el('p', { class: 'poule-empty' }, 'Aucune inscription pour l\'instant.'));
             return;
         }
 
@@ -518,9 +549,44 @@
                 panneau.appendChild(ligne);
             });
         }
+        if (lx.length) {
+            panneau.appendChild(el('h4', { class: 'inscr-titre' }, 'Paires inscrites sur LiveXperience (par poids)'));
+            panneau.appendChild(el('p', { class: 'tournoi-hint' }, 'Mises à jour toutes les 15 minutes. Coordonnées et paiements : dans LiveXperience.'));
+            lx.forEach(function (p, n) {
+                function joueur(nom, rang, pts) {
+                    var fft = '';
+                    if (t.homologue && nom !== 'partenaire à confirmer') {
+                        fft = pts != null
+                            ? ' · ' + Number(pts).toLocaleString('fr-FR') + ' pts · ' + Number(rang).toLocaleString('fr-FR') + 'e'
+                            : ' · non trouvé sur Ten\'Up';
+                    }
+                    return el('div', { class: 'inscr-joueur' }, el('span', { class: 'inscr-nom' }, nom + fft));
+                }
+                panneau.appendChild(el('div', { class: 'inscr-ligne' }, [
+                    el('span', { class: 'inscr-num' }, String(n + 1)),
+                    el('div', { class: 'inscr-qui' }, [joueur(p.joueur1, p.rang1, p.pts1), joueur(p.joueur2, p.rang2, p.pts2)]),
+                    el('div', { class: 'inscr-infos' }, t.homologue
+                        ? el('span', null, p.poids ? 'poids ' + Number(p.poids).toLocaleString('fr-FR') : 'poids NC') : null)
+                ]));
+            });
+        }
         if (inscrites.length) tableau('Paires inscrites (par poids)', inscrites, true);
         if (attente.length) tableau('Liste d\'attente (ordre d\'arrivée)', attente, false);
         if (retirees.length) tableau('Désinscrites / refusées', retirees, false);
+    }
+
+    // paires_tournoi mêle inscriptions en ligne et paires LiveXperience : on retire les premières, déjà listées.
+    async function pairesLiveXperience(t, enLigne) {
+        var res = await supa.rpc('paires_tournoi', { p_tournoi: t.id });
+        if (res.error) { toast('Paires LiveXperience : ' + res.error.message, 'error'); return []; }
+        function nomJ(j) { return j ? ((j.prenom || '') + ' ' + (j.nom || '')).trim() : ''; }
+        var dejaVues = enLigne.map(function (x) { return nomJ(x.j1) + '|' + nomJ(x.j2); });
+        return (res.data || []).filter(function (p) {
+            var i = dejaVues.indexOf(p.joueur1 + '|' + p.joueur2);
+            if (i < 0) return true;
+            dejaVues.splice(i, 1);
+            return false;
+        });
     }
 
     async function retirer(t, x, statut) {
@@ -547,7 +613,7 @@
     }
 
     // Export pour le juge-arbitre (séparateur « ; », ouvrable dans Excel).
-    function exporterCsv(t, lignes, contacts) {
+    function exporterCsv(t, lignes, contacts, lx) {
         function cellule(v) { v = v == null ? '' : String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
         var entete = ['Statut', 'Position', 'Poids de paire', 'Joueur 1', 'Classement joueur 1', 'Club joueur 1', 'Téléphone joueur 1', 'E-mail joueur 1',
                       'Joueur 2', 'Classement joueur 2', 'Club joueur 2', 'Téléphone joueur 2', 'E-mail joueur 2',
@@ -562,6 +628,9 @@
                 oui(x.partenaire_confirme), x.convocation_heure ? new Date(x.convocation_heure).toLocaleString('fr-FR') : '',
                 oui(x.presence_j1), oui(x.presence_j2), new Date(x.cree_le).toLocaleString('fr-FR'), x.message].map(cellule).join(';');
         });
+        lx.forEach(function (p, i) {
+            rows.push(['LiveXperience', i + 1, p.poids, p.joueur1, p.rang1, '', '', '', p.joueur2, p.rang2, '', '', '', '', '', '', '', '', ''].map(cellule).join(';'));
+        });
         var csv = '\ufeff' + [entete.join(';')].concat(rows).join('\r\n');
         var a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -573,7 +642,6 @@
         var root = document.getElementById('planning-root');
         if (!root) return;
         root.innerHTML = '';
-        root.appendChild(renderFormulaire());
         root.appendChild(renderListe());
         root.appendChild(renderLicences());
     }
@@ -631,7 +699,7 @@
     }
 
     window.TournoiPlanning = {
-        init: function () { enEdition = null; charger(); },
+        init: function () { fermerFormulaire(); charger(); },
         nomParDefaut: nomParDefaut
     };
 })();
