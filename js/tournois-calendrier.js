@@ -227,6 +227,10 @@
         return c;
     }
 
+    function joueurPts(nom, pts) {
+        return pts != null ? nom + ' (' + Number(pts).toLocaleString('fr-FR') + ' pts)' : nom;
+    }
+
     // Liste des paires inscrites (noms et classements publics, pas de coordonnées).
     function boutonPaires(t, corps) {
         var b = el('button', 'tcal-paires-btn', 'Voir les paires');
@@ -240,13 +244,13 @@
             zone = el('ol', 'tcal-paires');
             (res.data || []).forEach(function (p) {
                 var li = el('li', p.statut === 'liste_attente' ? 'tcal-paires__attente' : null);
-                li.appendChild(el('span', null, p.joueur1 + ' / ' + p.joueur2));
-                li.appendChild(el('span', 'tcal-paires__poids', p.statut === 'liste_attente'
+                li.appendChild(el('span', null, joueurPts(p.joueur1, p.pts1) + ' / ' + joueurPts(p.joueur2, p.pts2)));
+                if (t.homologue || p.statut === 'liste_attente') li.appendChild(el('span', 'tcal-paires__poids', p.statut === 'liste_attente'
                     ? 'attente n°' + p.rang_attente
                     : (p.poids ? 'poids ' + Number(p.poids).toLocaleString('fr-FR') : 'NC')));
                 zone.appendChild(li);
             });
-            if (!zone.children.length) zone.appendChild(el('li', null, 'Les paires inscrites hors ligne n\'apparaissent pas ici.'));
+            if (!zone.children.length) zone.appendChild(el('li', null, 'La liste des paires sera bientôt à jour.'));
             corps.appendChild(zone);
             b.textContent = 'Masquer les paires';
         });
