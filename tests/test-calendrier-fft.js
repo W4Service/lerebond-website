@@ -36,6 +36,8 @@ check('les archivés ne sortent pas', /status IN \('planifie', 'actif', 'cloture
 
 console.log('\n=== Planning ===');
 check('un tournoi planifié n\'est pas « actif »', /status: 'planifie'/.test(planning));
+check('le formulaire s\'ouvre en pop-up, plus dans la page', !/root\.appendChild\(renderFormulaire\(\)\)/.test(planning) && /overlay\.appendChild\(renderFormulaire\(\)\)/.test(planning));
+check('l\'admin affiche les paires LiveXperience', /supa\.rpc\('paires_tournoi'/.test(planning) && /!liste\.length && !lx\.length/.test(planning));
 check('lancer clôture l\'actif en cours avant de basculer',
       planning.indexOf("status: 'cloture'") < planning.indexOf("update({ status: 'actif'"));
 check('une catégorie P… classe aux classements FFT', /mode_classement: homologue \? 'fft' : 'niveau'/.test(planning));

@@ -2188,6 +2188,24 @@ select.tournoi-input option {
 
 /* ===== Onglet Calendrier (js/tournoi-planning.js) ===== */
 #planning-root { display: flex; flex-direction: column; gap: 1.5rem; }
+.planning-entete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem 1rem;
+    margin-bottom: 1rem;
+}
+.planning-entete .tournoi-section-title { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+.planning-modale {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 3rem);
+    overflow-y: auto;
+    margin: auto;
+    background: #1a1016;
+}
+.planning-modale .planning-entete { flex-wrap: nowrap; align-items: flex-start; }
+.planning-modale .tournoi-input { box-sizing: border-box; width: 100%; }
 .planning-grille {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
