@@ -66,6 +66,7 @@ PAGES = [
     [
         ("h2", "Desserts"),
         ligne("Panini Nutella", "4 €"),
+        ligne("Gaufre au Sucre", "4 €"),
         ligne("Gaufre Nutella", "4 €"),
         ligne("Gaufre Nutella Banane", "4,50 €"),
         ligne("Gaufre Nutella Banane Chantilly", "5 €"),
