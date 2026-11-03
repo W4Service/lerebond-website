@@ -23,8 +23,8 @@
 <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png"/>
 <link rel="manifest" href="manifest.json"/>
-<link href="css/bundle.min.css?v=3e107198" rel="stylesheet"/>
-<link href="css/dropdown.css?v=3e107198" rel="stylesheet"/>
+<link href="css/bundle.min.css?v=67353a6d" rel="stylesheet"/>
+<link href="css/dropdown.css?v=67353a6d" rel="stylesheet"/>
 <style>
 /* ============================================
    LE REBOND — Carte / Menu (page menu/)
@@ -454,6 +454,7 @@
 <button type="button" data-filter="snacking" aria-pressed="false">Snacking</button>
 <button type="button" data-filter="boissons" aria-pressed="false">Boissons</button>
 <button type="button" data-filter="bieres" aria-pressed="false">Bières &amp; Vins</button>
+<button type="button" data-filter="desserts" aria-pressed="false">Desserts</button>
 <button type="button" data-filter="glaces" aria-pressed="false">Glaces</button>
 </div>
 </nav>
@@ -466,10 +467,11 @@
       <div class="carte-list">
         <div class="carte-item"><span class="carte-item__name">Margherita</span><span class="carte-item__price">9,00 €</span><span class="carte-item__desc">Mozzarella, sauce tomate</span></div>
         <div class="carte-item"><span class="carte-item__name">Pepperoni</span><span class="carte-item__price">10,00 €</span><span class="carte-item__desc">Mozzarella, sauce tomate, pepperoni</span></div>
+        <div class="carte-item"><span class="carte-item__name">Calzone</span><span class="carte-item__price">10,00 €</span><span class="carte-item__desc">Sauce tomate, mozzarella, jambon fumé</span></div>
         <div class="carte-item"><span class="carte-item__name">4 Fromages</span><span class="carte-item__price">12,00 €</span><span class="carte-item__desc">Mozzarella, chèvre, roquefort, parmesan</span></div>
         <div class="carte-item"><span class="carte-item__name">Américaine</span><span class="carte-item__price">12,00 €</span><span class="carte-item__desc">Sauce tomate, mozzarella, viande hachée, cheddar, œuf</span></div>
+        <div class="carte-item"><span class="carte-item__name">Parma</span><span class="carte-item__price">12,00 €</span><span class="carte-item__desc">Sauce tomate, mozzarella, jambon de pays, stracciatella</span></div>
         <div class="carte-item"><span class="carte-item__name">Chèvre Miel</span><span class="carte-item__price">13,00 €</span><span class="carte-item__desc">Mozzarella, chèvre, miel, cerneaux de noix</span></div>
-        <div class="carte-item"><span class="carte-item__name">Italienne</span><span class="carte-item__price">18,00 €</span><span class="carte-item__desc">Mozzarella, roquette, jambon de pays, burrata</span></div>
       </div>
 
       <h3>Pâtes Fraîches &amp; Sauces Maison</h3>
@@ -490,11 +492,11 @@
 
     <!-- ─────────── SNACKING ─────────── -->
     <section class="carte-card" id="snacking" data-cat="snacking">
-      <h2>Paninis</h2>
+      <h2>Paninis &amp; Croque</h2>
       <div class="carte-list">
-        <div class="carte-item"><span class="carte-item__name">Poulet</span><span class="carte-item__price">6,00 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Poulet Emmental</span><span class="carte-item__price">6,00 €</span></div>
         <div class="carte-item"><span class="carte-item__name">3 Fromages</span><span class="carte-item__price">6,00 €</span></div>
-        <div class="carte-item"><span class="carte-item__name">Nutella</span><span class="carte-item__price">5,00 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Croque Monsieur</span><span class="carte-item__price">6,00 €</span></div>
       </div>
 
       <h3>Tenders de Poulet</h3>
@@ -514,7 +516,7 @@
       <h3>À Partager</h3>
       <div class="carte-list">
         <div class="carte-item"><span class="carte-item__name">Planche Tex-Mex</span><span class="carte-item__price">18,00 €</span><span class="carte-item__desc">Tenders, onion rings, mozza sticks, mini taquitos</span></div>
-        <div class="carte-item"><span class="carte-item__name">Saucisson à partager</span><span class="carte-item__price">6,50 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Saucisson à partager</span><span class="carte-item__price">6,50 €</span><span class="carte-item__desc">Classique, Beaufort, Poivre</span></div>
       </div>
 
       <h3>Suppléments</h3>
@@ -604,6 +606,20 @@
         </div>
       </div>
       <p class="carte-note" style="margin-top:14px">Suppléments : Picon + 1 € &bull; Sirop + 0,50 €</p>
+    </section>
+
+    <!-- ─────────── DESSERTS ─────────── -->
+    <section class="carte-card carte-card--wide" id="desserts" data-cat="desserts">
+      <h2>Desserts</h2>
+      <div class="carte-list">
+        <div class="carte-item"><span class="carte-item__name">Panini Nutella</span><span class="carte-item__price">4,00 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Gaufre Nutella</span><span class="carte-item__price">4,00 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Gaufre Nutella Banane</span><span class="carte-item__price">4,50 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Gaufre Nutella Banane Chantilly</span><span class="carte-item__price">5,00 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Pizza Nutella Banane</span><span class="carte-item__price">8,00 €</span></div>
+        <div class="carte-item"><span class="carte-item__name">Part de Flan</span><span class="carte-item__price">3,00 €</span></div>
+        <div class="carte-item carte-item--sub"><span class="carte-item__name">Supplément boule de glace</span><span class="carte-item__price">+ 1,50 €</span></div>
+      </div>
     </section>
 
     <!-- ─────────── GLACES ─────────── -->
@@ -759,9 +775,9 @@
         }
     </style>
 <!-- Scripts -->
-<script defer src="js/main.min.js?v=3e107198"></script>
-<script src="js/resa-config.min.js?v=3e107198"></script>
-<script src="js/resa-popup.min.js?v=3e107198"></script>
+<script defer src="js/main.min.js?v=67353a6d"></script>
+<script src="js/resa-config.min.js?v=67353a6d"></script>
+<script src="js/resa-popup.min.js?v=67353a6d"></script>
 <script>
         function showToast(message) {
             var toast = document.getElementById('toast');
