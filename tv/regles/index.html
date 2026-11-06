@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Le Rebond TV · Règles du padel</title>
+<style>
+@font-face { font-family: 'Kanit'; font-weight: 900; src: url(../../fonts/Kanit-Black.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 500; src: url(../../fonts/Kanit-Medium.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 400; src: url(../../fonts/Kanit-Regular.woff2) format('woff2'); }
+:root { --jaune: #f4c941; --creme: #f4f0e6; --nuit: #2a030c; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--nuit); }
+.stage {
+  position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+  background: linear-gradient(155deg, #8a1030 0%, #680920 42%, #2a030c 100%);
+  font-family: 'Kanit', system-ui, sans-serif; color: var(--creme); overflow: hidden;
+}
+.balle {
+  position: absolute; width: 200px; height: 200px; right: -50px; top: -60px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe27a, var(--jaune) 55%, #c99a1c);
+}
+.video {
+  position: absolute; left: 50%; top: 0; width: 608px; height: 1080px; transform: translateX(-50%);
+  background: #000; box-shadow: 0 0 90px rgba(0,0,0,.6);
+}
+.video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cote { position: absolute; top: 0; bottom: 0; width: 656px; display: flex; flex-direction: column; justify-content: center; padding: 0 70px; }
+.gauche { left: 0; }
+.droite { right: 0; align-items: center; text-align: center; }
+.surtitre { font-weight: 500; font-size: 22px; letter-spacing: .5em; text-transform: uppercase; color: var(--jaune); }
+h1 { font-weight: 900; font-size: 110px; line-height: .92; text-transform: uppercase; margin-top: 18px; }
+.gauche p { font-size: 28px; opacity: .8; margin-top: 28px; line-height: 1.35; }
+.droite img { width: 380px; }
+.droite p { font-size: 30px; margin-top: 40px; line-height: 1.35; }
+.droite b { color: var(--jaune); font-weight: 900; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="balle"></div>
+  <div class="cote gauche">
+    <div class="surtitre">Le Rebond · Padel</div>
+    <h1>Les<br>règles<br>du padel</h1>
+    <p>Score, service, vitres&nbsp;:<br>tout ce qu'il faut savoir avant d'entrer sur le terrain.</p>
+  </div>
+  <div class="video"><video id="v" src="regles-du-padel.mp4" autoplay loop muted playsinline preload="auto"></video></div>
+  <div class="cote droite">
+    <img src="../../img/signature-1.svg" alt="Le Rebond">
+    <p>Réservez votre terrain<br>sur l'<b>appli Le Rebond</b></p>
+  </div>
+</div>
+<script>
+(function () {
+  var stage = document.getElementById('stage'), v = document.getElementById('v');
+  function fit() { stage.style.setProperty('--s', Math.min(innerWidth / 1920, innerHeight / 1080)); }
+  addEventListener('resize', fit); fit();
+  // Son coupé par défaut ; ?son=1 pour l'activer.
+  if (new URLSearchParams(location.search).get('son') === '1') v.muted = false;
+  // Relance si la lecture se bloque (réseau, décodeur).
+  var last = -1;
+  setInterval(function () {
+    if (v.currentTime === last) { v.load(); v.play().catch(function () {}); }
+    last = v.currentTime;
+  }, 20000);
+  v.play().catch(function () {});
+})();
+</script>
+</body>
+</html>

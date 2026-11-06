@@ -1,0 +1,9 @@
+{
+  "rev": 1,
+  "ecrans": {
+    "salle":      { "nom": "Salle à manger", "contenu": "evenements" },
+    "cuisine":    { "nom": "Mur cuisine",    "contenu": "menu" },
+    "bureau":     { "nom": "Mur bureau",     "contenu": "menu" },
+    "vestiaires": { "nom": "Mur vestiaires", "contenu": "regles" }
+  }
+}
