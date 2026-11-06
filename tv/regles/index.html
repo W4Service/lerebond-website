@@ -55,7 +55,11 @@ h1 { font-weight: 900; font-size: 110px; line-height: .92; text-transform: upper
 <script>
 (function () {
   var stage = document.getElementById('stage'), v = document.getElementById('v');
-  function fit() { stage.style.setProperty('--s', Math.min(innerWidth / 1920, innerHeight / 1080)); }
+  function fit() {
+    var d = document.documentElement, w = d.clientWidth || innerWidth, h = d.clientHeight || innerHeight;
+    stage.style.setProperty('--s', Math.min(w / 1920, h / 1080));
+  }
+  setInterval(fit, 5000);
   addEventListener('resize', fit); fit();
   // Son coupé par défaut ; ?son=1 pour l'activer.
   if (new URLSearchParams(location.search).get('son') === '1') v.muted = false;

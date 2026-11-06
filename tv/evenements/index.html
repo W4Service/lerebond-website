@@ -98,7 +98,11 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
   var liste = document.getElementById('liste');
   var evs = [], idx = 0, timer = null, signature = '';
 
-  function fit() { stage.style.setProperty('--s', Math.min(innerWidth / 1920, innerHeight / 1080)); }
+  function fit() {
+    var d = document.documentElement, w = d.clientWidth || innerWidth, h = d.clientHeight || innerHeight;
+    stage.style.setProperty('--s', Math.min(w / 1920, h / 1080));
+  }
+  setInterval(fit, 5000);
   addEventListener('resize', fit); fit();
 
   function dateFr(iso) {
