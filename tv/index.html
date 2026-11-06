@@ -28,7 +28,8 @@
 (function () {
   var params = new URLSearchParams(location.search);
   var ECRAN = (params.get('ecran') || '').toLowerCase();
-  var CONTENUS = { menu: 'menu/', evenements: 'evenements/', regles: 'regles/' };
+  var CONTENUS = { menu: 'menu/', 'menu-diapo': 'menu/?mode=slides', evenements: 'evenements/', regles: 'regles/', 'regles-son': 'regles/?son=1' };
+  var FORCE = params.get('contenu'); // choisi depuis la régie, prioritaire sur config.json
   var cadre = document.getElementById('cadre');
   var msg = document.getElementById('msg');
   var courant = null, rev = null, jour = new Date().getDate();
@@ -43,6 +44,7 @@
         if (rev !== null && cfg.rev !== rev) { location.reload(); return; }
         rev = cfg.rev;
         var e = cfg.ecrans && cfg.ecrans[ECRAN];
+        if (FORCE) e = { contenu: FORCE };
         if (!e) { message('Écran « ' + (ECRAN || '?') + ' » non configuré<small>Le Rebond TV</small>'); return; }
         var cible = CONTENUS[e.contenu] || e.contenu;
         if (e.options) cible += (cible.indexOf('?') < 0 ? '?' : '&') + e.options;
