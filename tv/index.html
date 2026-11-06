@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Le Rebond TV</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #2a030c; }
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #2a030c; }
+  #msg {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    color: #f4f0e6; font: 600 42px/1.3 'Kanit', system-ui, sans-serif; text-align: center;
+    background: linear-gradient(160deg, #8a1030, #680920 45%, #2a030c);
+  }
+  #msg small { display: block; font-size: 24px; font-weight: 400; opacity: .7; margin-top: 12px; }
+</style>
+</head>
+<body>
+<iframe id="cadre" allow="autoplay; fullscreen"></iframe>
+<div id="msg"></div>
+<script>
+/*
+ * Lecteur des écrans du Rebond. L'appli Android ouvre /tv/?ecran=<id>.
+ * Le contenu de chaque écran se règle dans tv/config.json (relu chaque minute).
+ * Contenus connus : menu, evenements, regles — ou n'importe quelle URL.
+ */
+(function () {
+  var params = new URLSearchParams(location.search);
+  var ECRAN = (params.get('ecran') || '').toLowerCase();
+  var CONTENUS = { menu: 'menu/', evenements: 'evenements/', regles: 'regles/' };
+  var cadre = document.getElementById('cadre');
+  var msg = document.getElementById('msg');
+  var courant = null, rev = null, jour = new Date().getDate();
+
+  function message(html) { msg.innerHTML = html; msg.style.display = 'flex'; cadre.removeAttribute('src'); courant = null; }
+
+  function maj() {
+    fetch('config.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (cfg) {
+        // Nouvelle version du lecteur publiée : on recharge tout.
+        if (rev !== null && cfg.rev !== rev) { location.reload(); return; }
+        rev = cfg.rev;
+        var e = cfg.ecrans && cfg.ecrans[ECRAN];
+        if (!e) { message('Écran « ' + (ECRAN || '?') + ' » non configuré<small>Le Rebond TV</small>'); return; }
+        var cible = CONTENUS[e.contenu] || e.contenu;
+        if (e.options) cible += (cible.indexOf('?') < 0 ? '?' : '&') + e.options;
+        if (cible !== courant) { courant = cible; msg.style.display = 'none'; cadre.src = cible; }
+      })
+      .catch(function () { /* hors ligne : on garde l'affichage en cours */ });
+  }
+
+  // Rechargement complet une fois par jour (évite les fuites mémoire des vieilles box).
+  setInterval(function () {
+    var d = new Date();
+    if (d.getDate() !== jour && d.getHours() >= 5) location.reload();
+  }, 10 * 60 * 1000);
+
+  maj();
+  setInterval(maj, 60 * 1000);
+})();
+</script>
+</body>
+</html>

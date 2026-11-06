@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Le Rebond TV · Événements</title>
+<style>
+@font-face { font-family: 'Kanit'; font-weight: 900; src: url(../../fonts/Kanit-Black.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 700; src: url(../../fonts/Kanit-Bold.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 500; src: url(../../fonts/Kanit-Medium.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 400; src: url(../../fonts/Kanit-Regular.woff2) format('woff2'); }
+
+:root { --jaune: #f4c941; --creme: #f4f0e6; --bord: #680920; --nuit: #2a030c; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--nuit); }
+
+/* Scène fixe 1920×1080 mise à l'échelle de l'écran (720p, 1080p, 4K). */
+.stage {
+  position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+  background: linear-gradient(155deg, #8a1030 0%, #680920 42%, #2a030c 100%);
+  font-family: 'Kanit', system-ui, sans-serif; color: var(--creme); overflow: hidden;
+}
+/* Lignes de terrain + balle (DA des affiches) */
+.court { position: absolute; inset: 0; pointer-events: none; opacity: .09; }
+.court::before { content: ''; position: absolute; left: 700px; right: 70px; top: 70px; bottom: 70px; border: 3px solid var(--creme); }
+.court::after { content: ''; position: absolute; left: 700px; right: 70px; top: 50%; border-top: 3px solid var(--creme); }
+.balle {
+  position: absolute; width: 230px; height: 230px; right: -60px; top: -70px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe27a, var(--jaune) 55%, #c99a1c);
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+.fantome {
+  position: absolute; right: 40px; bottom: -60px; font-weight: 900; font-size: 300px; line-height: 1;
+  color: transparent; -webkit-text-stroke: 2px rgba(244,240,230,.07); letter-spacing: -4px; white-space: nowrap;
+}
+
+/* Affiche */
+.affiche {
+  position: absolute; left: 70px; top: 40px; width: 562px; height: 1000px; border-radius: 22px;
+  overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.55); background: #1a0208;
+}
+.affiche img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .9s ease; }
+.affiche img.on { opacity: 1; }
+
+/* Colonne de droite */
+.droite { position: absolute; left: 720px; right: 110px; top: 92px; bottom: 80px; display: flex; flex-direction: column; }
+.surtitre { font-weight: 500; font-size: 22px; letter-spacing: .5em; text-transform: uppercase; color: var(--jaune); }
+h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercase; margin: 10px 0 30px; white-space: nowrap; }
+.liste { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow: hidden; padding-left: 12px; }
+.ev {
+  display: flex; align-items: center; gap: 26px; padding: 10px 26px 10px 10px; border-radius: 18px;
+  background: rgba(244,240,230,.07); border: 1px solid rgba(244,240,230,.10);
+  transition: background .5s, color .5s, transform .5s;
+}
+.ev .date {
+  flex: 0 0 104px; height: 82px; border-radius: 14px; background: rgba(0,0,0,.25);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+}
+.ev .date b { font-weight: 900; font-size: 40px; }
+.ev .date span { font-weight: 500; font-size: 16px; letter-spacing: .12em; text-transform: uppercase; margin-top: 6px; }
+.ev .txt { min-width: 0; }
+.ev .titre { font-weight: 700; font-size: 34px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev .info { font-weight: 400; font-size: 24px; opacity: .8; margin-top: 4px; }
+.ev.on { background: var(--jaune); color: var(--nuit); border-color: var(--jaune); transform: translateX(-10px); }
+.ev.on .date { background: var(--nuit); color: var(--jaune); }
+.ev.on .info { opacity: .85; }
+.pied { display: flex; align-items: center; justify-content: space-between; margin-top: 26px; }
+.pied p { font-size: 24px; opacity: .85; }
+.pied p b { color: var(--jaune); font-weight: 700; }
+.pied img { height: 92px; }
+.vide { font-size: 40px; opacity: .8; margin-top: 30px; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="court"></div>
+  <div class="balle"></div>
+  <div class="fantome">LE REBOND</div>
+  <div class="affiche" id="affiche"></div>
+  <div class="droite">
+    <div class="surtitre">Le Rebond · Noyon</div>
+    <h1>Prochains événements</h1>
+    <div class="liste" id="liste"></div>
+    <div class="pied">
+      <p>Inscriptions : <b>appli Le Rebond</b> › Événements · ou au <b>06 59 48 24 17</b></p>
+      <img src="../../img/signature-1.svg" alt="Le Rebond">
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var API = 'https://n8n.wepe.fr/webhook/tv-affiches';
+  var DUREE = 12000, MAX_LISTE = 5;
+  var stage = document.getElementById('stage');
+  var affiche = document.getElementById('affiche');
+  var liste = document.getElementById('liste');
+  var evs = [], idx = 0, timer = null, signature = '';
+
+  function fit() { stage.style.setProperty('--s', Math.min(innerWidth / 1920, innerHeight / 1080)); }
+  addEventListener('resize', fit); fit();
+
+  function dateFr(iso) {
+    var d = new Date(iso + 'T12:00:00');
+    var auj = new Date(); auj.setHours(12, 0, 0, 0);
+    var diff = Math.round((d - auj) / 86400000);
+    var jour = diff === 0 ? 'auj.' : diff === 1 ? 'demain' : d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '');
+    return { num: d.getDate(), haut: jour, mois: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '') };
+  }
+
+  function esc(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function rendre() {
+    affiche.innerHTML = ''; liste.innerHTML = '';
+    if (!evs.length) { liste.innerHTML = '<p class="vide">Le programme arrive bientôt…</p>'; return; }
+    evs.forEach(function (e, i) {
+      var img = new Image(); img.src = API + '?id=' + e.id; img.alt = e.title; affiche.appendChild(img);
+      if (i < MAX_LISTE) {
+        var d = dateFr(e.ref_date), el = document.createElement('div');
+        el.className = 'ev';
+        el.innerHTML = '<div class="date"><span>' + esc(d.haut) + '</span><b>' + d.num + '</b><span>' + esc(d.mois) + '</span></div>' +
+          '<div class="txt"><div class="titre">' + esc(e.title) + '</div><div class="info">' + esc(e.horaire) + '</div></div>';
+        liste.appendChild(el);
+      }
+    });
+  }
+
+  function montrer(i) {
+    var imgs = affiche.children, items = liste.querySelectorAll('.ev');
+    for (var k = 0; k < imgs.length; k++) imgs[k].classList.toggle('on', k === i);
+    for (var j = 0; j < items.length; j++) items[j].classList.toggle('on', j === i);
+  }
+
+  function lancer() {
+    if (timer) clearInterval(timer);
+    idx = 0; montrer(0);
+    if (evs.length > 1) timer = setInterval(function () { idx = (idx + 1) % evs.length; montrer(idx); }, DUREE);
+  }
+
+  function charger() {
+    fetch(API + '?t=' + Math.floor(Date.now() / 300000))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var liste2 = (Array.isArray(data) ? data : []).filter(function (e) { return e && e.id; }).slice(0, MAX_LISTE);
+        var sig = liste2.map(function (e) { return e.id; }).join(',');
+        if (sig === signature) return;           // rien de neuf : on ne coupe pas le diaporama
+        signature = sig; evs = liste2; rendre(); lancer();
+      })
+      .catch(function () { if (!evs.length) setTimeout(charger, 30000); });
+  }
+
+  charger();
+  setInterval(charger, 10 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
