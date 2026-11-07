@@ -9,7 +9,7 @@
 <meta http-equiv="refresh" content="60">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <!-- Styles de la roue du tirage au sort (.tirage-tv-*) -->
-<link rel="stylesheet" href="css/tournoi.css?v=39836db7">
+<link rel="stylesheet" href="css/tournoi.css?v=c55e301f">
 
 <style>
 /*
@@ -37,7 +37,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--nuit
 }
 /* Décor : lignes de terrain + balle */
 .deco-lignes {
-    position: absolute; inset: 70px -200px -120px auto; width: 900px; pointer-events: none;
+    position: absolute; top: 70px; right: -200px; bottom: -120px; width: 900px; pointer-events: none;
     border: 3px solid rgba(244,240,230,.05); border-right: 0;
 }
 .deco-lignes::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 3px solid rgba(244,240,230,.05); }
@@ -48,7 +48,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--nuit
 }
 
 .tv-app {
-    position: absolute; inset: 0; padding: 26px 40px 18px;
+    position: absolute; top:0;right:0;bottom:0;left:0; padding: 26px 40px 18px;
     display: flex; flex-direction: column; overflow: hidden;
 }
 
@@ -326,11 +326,12 @@ body[data-etat="idle"] .tv-main, body[data-etat="idle"] .tv-results-section { di
     heure(); setInterval(heure, 15000);
 })();
 </script>
-<script src="js/resa-config.min.js?v=39836db7"></script>
-<script src="js/vendor/qrcode.min.js?v=39836db7"></script>
-<script src="js/tournoi-classement.js?v=39836db7"></script>
-<script src="js/tournoi-tirage-tv.js?v=39836db7"></script>
-<script src="js/tournoi-tv.js?v=39836db7"></script>
+<script src="js/resa-config.min.js?v=c55e301f"></script>
+<script src="js/vendor/qrcode.min.js?v=c55e301f"></script>
+<script src="js/tournoi-classement.js?v=c55e301f"></script>
+<script src="js/tournoi-tirage-tv.js?v=c55e301f"></script>
+<script src="js/tournoi-tv.js?v=c55e301f"></script>
 
+<script src="tv/flexgap.js"></script>
 </body>
 </html>

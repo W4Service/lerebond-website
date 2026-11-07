@@ -23,7 +23,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--nuit
   font-family: 'Kanit', system-ui, sans-serif; color: var(--creme); overflow: hidden;
 }
 /* Lignes de terrain + balle (DA des affiches) */
-.court { position: absolute; inset: 0; pointer-events: none; opacity: .09; }
+.court { position: absolute; top:0;right:0;bottom:0;left:0; pointer-events: none; opacity: .09; }
 .court::before { content: ''; position: absolute; left: 700px; right: 70px; top: 70px; bottom: 70px; border: 3px solid var(--creme); }
 .court::after { content: ''; position: absolute; left: 700px; right: 70px; top: 50%; border-top: 3px solid var(--creme); }
 .balle {
@@ -41,7 +41,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--nuit
   position: absolute; left: 70px; top: 40px; width: 562px; height: 1000px; border-radius: 22px;
   overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.55); background: #1a0208;
 }
-.affiche img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .9s ease; }
+.affiche img { position: absolute; top:0;right:0;bottom:0;left:0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .9s ease; }
 .affiche img.on { opacity: 1; }
 
 /* Colonne de droite */
@@ -158,5 +158,6 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
   setInterval(charger, 10 * 60 * 1000);
 })();
 </script>
+<script src="../flexgap.js"></script>
 </body>
 </html>
