@@ -1,5 +1,5 @@
 {
-  "rev": 6,
+  "rev": 7,
   "ecrans": {
     "salle":      { "nom": "Salle à manger", "contenu": "tournoi" },
     "cuisine":    { "nom": "Mur cuisine",    "contenu": "menu-diapo" },
