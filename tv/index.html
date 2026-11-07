@@ -53,6 +53,9 @@
         if (!e) { message('Écran « ' + (ECRAN || '?') + ' » non configuré<small>Le Rebond TV</small>'); return; }
         var cible = CONTENUS[e.contenu] || e.contenu;
         if (e.options) cible += (cible.indexOf('?') < 0 ? '?' : '&') + e.options;
+        // Version dans l'adresse : un changement de rev passe outre le cache des télés
+        // (GitHub Pages autorise 10 min de cache, les box gardaient l'ancienne page).
+        if (!/^https?:/.test(cible)) cible += (cible.indexOf('?') < 0 ? '?' : '&') + 'v=' + rev;
         if (cible !== courant) { courant = cible; msg.style.display = 'none'; cadre.src = cible; }
       })
       .catch(function () { /* hors ligne : on garde l'affichage en cours */ });
