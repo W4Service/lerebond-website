@@ -131,8 +131,15 @@ body[data-vue="attente"] #marque { display: none; }
     else if (player.getPlayerState && player.getPlayerState() === 2) player.playVideo();
   }
 
+  var DEMO = new URLSearchParams(location.search).get('demo'); // ?demo=<id YouTube> : essai sans Spotify
+  var debutDemo = Date.now();
   function interroger() {
     clearTimeout(minuteur);
+    if (DEMO) {
+      appliquer({ playing: true, progress_ms: 30000 + Date.now() - debutDemo, videos: [DEMO],
+        track: { id: 'demo', name: 'Essai du clip', artists: 'Le Rebond TV', image: 'https://i.ytimg.com/vi/' + DEMO + '/hqdefault.jpg', duration_ms: 600000 } });
+      return planifier();
+    }
     var x = new XMLHttpRequest();
     x.open('GET', API + '?t=' + Date.now());
     x.timeout = 15000;
