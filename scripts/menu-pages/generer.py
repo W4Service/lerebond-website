@@ -87,8 +87,12 @@ PAGES = [
         ligne("Coupe Fraîcheur", "7,50 €", "Sorbet fraise, citron et pêche, coulis fruits rouges"),
     ],
     [
-        ("h2", "Boissons"),
-        ligne("Café en capsule", "1 €"),
+        ("h2", "Cafés & Thé"),
+        ligne("Cafés", "1,50 €", "Expresso • Allongé • Ristretto • Americano"),
+        ligne("Spécialités", "2,50 €", "Double expresso • Cappuccino • Latte"),
+        ligne("Chocolat chaud", "3 €"),
+        ligne("Thé", "1,50 €"),
+        ("h2", "Eaux"),
         ligne("Eau en bouteille (verre)", "3,50 €"),
         ligne("Eau en plastique (1,5 L)", "2 €"),
         ligne("Eau 50 cl", "1 €"),
@@ -100,6 +104,8 @@ PAGES = [
         ligne("Au choix", "3,50 €", "Classique • Zéro • Abricot-Fraise • Pêche Blanche"),
         ("h2", "Powerade (50 cl)"),
         ligne("Au choix", "3,50 €", "Bleu • Cerise"),
+        ("h2", "Mocktails (sans alcool)"),
+        ligne("Au choix", "5 €", "Virgin Mojito • Virgin Colada • Cranberry Fizz"),
     ],
     [
         ("h2", "Bières Pression"),
@@ -126,6 +132,8 @@ PAGES = [
             ("Rosé", None, ["4 €", "14 €"]),
         ]),
         ("note", "Suppléments : Picon + 1 € • Sirop + 0,50 €"),
+        ("h2", "Cocktails"),
+        ligne("Au choix", "9 €", "Mojito • Aperol Spritz • Sex on the Beach"),
     ],
 ]
 
