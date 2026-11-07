@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Le Rebond TV · Terrains en direct</title>
+<!--
+  Direct des caméras LiveXperience sur une télé du club (même source que /videos/live/).
+  ?t=wuilhome,w4s choisit les terrains (défaut : les 4). Ordre conservé.
+  Droit à l'image : un terrain coupé dans l'administration (table terrains_bloques) n'est
+  pas diffusé ; si la liste est illisible, on ne diffuse rien (même règle que le site).
+  Flux via le tunnel https (la page est en https : pas d'IP locale en http).
+-->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script src="../../js/resa-config.min.js"></script>
+<style>
+@font-face { font-family: 'Kanit'; font-weight: 300; src: url(../../fonts/Kanit-Light.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 600; src: url(../../fonts/Kanit-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: 'Turret Road'; font-weight: 800; src: url(../../fonts/TurretRoad-ExtraBold.woff2) format('woff2'); }
+:root { --primary: #680920; --accent: #efa707; --cream: #fcf1dd; --display: 'Turret Road', Impact, sans-serif; --body: 'Kanit', Arial, sans-serif; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #12030a; color: var(--cream); font-family: var(--body); }
+#grille { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; padding: 1.5vh 1vw; }
+.case { position: relative; padding: .6vh .5vw; }
+.cadre { position: relative; width: 100%; height: 100%; background: #000; border-radius: 1.2vh; overflow: hidden; }
+.cadre video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+.nom { position: absolute; left: 1.2vw; top: 1.6vh; padding: .5vh 1vw; border-radius: .8vh; background: rgba(26,6,12,.75);
+  font-family: var(--display); font-weight: 800; font-size: 2.6vh; letter-spacing: .08em; text-transform: uppercase; }
+.nom i { display: inline-block; width: 1.2vh; height: 1.2vh; border-radius: 50%; background: #e5484d; margin-right: .6vw; vertical-align: middle; }
+.case:not(.live) .nom i { background: #777; }
+.msg { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 70% 20%, rgba(239,167,7,.16), transparent 55%), var(--primary); text-align: center; }
+.msg b { font-family: var(--display); font-weight: 800; font-size: 5vh; letter-spacing: .06em; text-transform: uppercase; }
+.msg span { font-weight: 300; font-size: 2.4vh; opacity: .8; margin-top: 1.2vh; }
+.case.live .msg { display: none; }
+#marque { position: absolute; right: 2vw; bottom: 2vh; font-family: var(--display); font-weight: 800; font-size: 2.4vh; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+</style>
+</head>
+<body>
+<div id="grille"></div>
+<div id="marque">Le Rebond · en direct</div>
+<script>
+(function () {
+  var TOUS = {
+    wuilhome: { nom: 'Padel 1', host: 'wuilhome.le-rebond.com' },
+    w4s:      { nom: 'Padel 2', host: 'w4s.le-rebond.com' },
+    wepe:     { nom: 'Padel 3', host: 'wepe.le-rebond.com' },
+    five:     { nom: 'Five',    host: 'five.le-rebond.com' }
+  };
+  var choix = (new URLSearchParams(location.search).get('t') || 'wuilhome,w4s,wepe,five').split(',')
+    .filter(function (id) { return TOUS[id]; });
+  if (!choix.length) choix = Object.keys(TOUS);
+  var CFG = window.REBOND_CONFIG || {};
+  var bloques = null; // null = inconnu → on ne diffuse rien
+
+  // Disposition : 1 = plein écran, 2 = côte à côte, 3-4 = grille 2×2. Cases en 16/9.
+  var grille = document.getElementById('grille');
+  var cols = choix.length === 1 ? 1 : 2, lignes = Math.ceil(choix.length / cols);
+  function taille() {
+    var W = window.innerWidth * 0.98, H = window.innerHeight * 0.97;
+    var w = Math.min(W / cols, (H / lignes) * 16 / 9);
+    document.querySelectorAll('.case').forEach(function (c) { c.style.width = w + 'px'; c.style.height = (w * 9 / 16) + 'px'; });
+  }
+  var terrains = choix.map(function (id) {
+    var t = { id: id, nom: TOUS[id].nom, host: TOUS[id].host };
+    t.el = document.createElement('div'); t.el.className = 'case';
+    t.el.innerHTML = '<div class="cadre"><div class="msg"><b>' + t.nom + '</b><span>Vérification…</span></div></div>' +
+      '<div class="nom"><i></i>' + t.nom + '</div>';
+    grille.appendChild(t.el);
+    return t;
+  });
+  taille(); window.addEventListener('resize', taille);
+
+  function msg(t, texte) { t.el.querySelector('.msg span').textContent = texte; }
+  function arreter(t) {
+    if (t.hls) { try { t.hls.destroy(); } catch (e) {} t.hls = null; }
+    var v = t.el.querySelector('video'); if (v) { v.removeAttribute('src'); v.load(); v.parentNode.removeChild(v); }
+    t.cle = null; t.el.className = 'case';
+  }
+  function lire(t, url) {
+    arreter(t);
+    var v = document.createElement('video');
+    v.muted = true; v.autoplay = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
+    t.el.querySelector('.cadre').insertBefore(v, t.el.querySelector('.msg'));
+    t.el.className = 'case live';
+    if (window.Hls && Hls.isSupported()) {
+      var h = new Hls({ liveSyncDuration: 20, maxBufferLength: 30, backBufferLength: 10 });
+      h.on(Hls.Events.ERROR, function (_, d) {
+        if (!d.fatal) return;
+        if (d.type === Hls.ErrorTypes.MEDIA_ERROR) { h.recoverMediaError(); return; }
+        arreter(t); msg(t, 'Image momentanément indisponible');
+      });
+      h.loadSource(url); h.attachMedia(v); t.hls = h;
+    } else { v.src = url; }
+    var p = v.play && v.play(); if (p && p.catch) p.catch(function () {});
+  }
+
+  function lireBlocages() {
+    if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY) { bloques = null; return Promise.resolve(); }
+    return fetch(CFG.SUPABASE_URL + '/rest/v1/terrains_bloques?select=terrain_id', {
+      headers: { apikey: CFG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CFG.SUPABASE_ANON_KEY }, cache: 'no-store'
+    }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (rows) { var s = {}; rows.forEach(function (r) { s[r.terrain_id] = true; }); bloques = s; })
+      .catch(function () { bloques = null; });
+  }
+
+  function verifier(t) {
+    if (bloques === null || bloques[t.id]) { arreter(t); msg(t, 'Diffusion indisponible'); return; }
+    var fini = false, minuteur = setTimeout(function () { fini = true; }, 8000);
+    fetch('https://' + t.host + '/live.asp?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (html) {
+        clearTimeout(minuteur); if (fini) return;
+        var m = !/Live\s*termin/i.test(html) && html.match(/loadSource\(\s*['"]([^'"]+\.m3u8[^'"]*)['"]/i);
+        if (!m) { arreter(t); msg(t, 'Pas de match filmé en ce moment'); return; }
+        var url = m[1].replace(/^https?:\/\/[^\/]+/i, 'https://' + t.host); // IP locale → tunnel https
+        var cle = url.split('?')[0];
+        if (t.cle !== cle || !t.el.querySelector('video')) { lire(t, url); t.cle = cle; }
+      })
+      .catch(function () { if (!t.el.querySelector('video')) msg(t, 'Caméra injoignable'); });
+  }
+
+  function tour() { lireBlocages().then(function () { terrains.forEach(verifier); }); }
+  tour(); setInterval(tour, 30000);
+})();
+</script>
+</body>
+</html>
