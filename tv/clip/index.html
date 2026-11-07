@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Le Rebond TV · Clip</title>
+<!--
+  Clip du titre qui passe sur le Spotify du club, sans le son (le son reste sur Spotify).
+  Données : webhook n8n /webhook/tv-clip (workflow « 📺 TV — Clip du titre Spotify en cours ») :
+  { playing, track:{id,name,artists,album,image,duration_ms}, progress_ms, videos:[idYouTube…] }.
+  Sans clip intégrable : pochette en grand. Rien en lecture : écran d'attente.
+-->
+<style>
+@font-face { font-family: 'Kanit'; font-weight: 300; src: url(../../fonts/Kanit-Light.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 500; src: url(../../fonts/Kanit-Medium.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 600; src: url(../../fonts/Kanit-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: 'Turret Road'; font-weight: 800; src: url(../../fonts/TurretRoad-ExtraBold.woff2) format('woff2'); }
+:root { --primary: #680920; --accent: #efa707; --cream: #fcf1dd; --display: 'Turret Road', Impact, sans-serif; --body: 'Kanit', Arial, sans-serif; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: var(--cream); font-family: var(--body); }
+.full { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+
+/* Clip */
+#video { opacity: 0; transition: opacity .8s ease; pointer-events: none; }
+#video iframe { width: 100%; height: 100%; border: 0; }
+body[data-vue="clip"] #video { opacity: 1; }
+
+/* Pochette (pas de clip) */
+#pochette { opacity: 0; transition: opacity .8s ease; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+#pochette .fond { position: absolute; top: -10%; right: -10%; bottom: -10%; left: -10%; background-size: cover; background-position: center; filter: blur(60px) brightness(.45) saturate(1.3); }
+#pochette .disque { position: relative; width: 52vh; height: 52vh; border-radius: 14px; background-size: cover; background-position: center; box-shadow: 0 30px 90px rgba(0,0,0,.6); animation: flotte 8s ease-in-out infinite alternate; }
+@keyframes flotte { from { transform: translateY(-1.5vh) rotate(-1.5deg); } to { transform: translateY(1.5vh) rotate(1.5deg); } }
+body[data-vue="pochette"] #pochette { opacity: 1; }
+body[data-vue="pochette"] #titre { left: 50%; transform: translateX(-50%); bottom: 8vh; text-align: center; background: none; box-shadow: none; }
+body[data-vue="pochette"] #titre .mini { display: none; }
+
+/* Bandeau titre */
+#titre {
+  position: absolute; left: 4vw; bottom: 6vh; display: flex; align-items: center; max-width: 70vw;
+  padding: 1.4vh 2.2vw 1.4vh 1.4vh; border-radius: 2vh; background: rgba(26, 6, 12, .72);
+  box-shadow: 0 1vh 4vh rgba(0,0,0,.45); opacity: 0; transition: opacity .6s ease;
+}
+#titre .mini { flex: none; width: 9vh; height: 9vh; border-radius: 1vh; background-size: cover; background-position: center; margin-right: 1.6vw; }
+#titre .txt { min-width: 0; }
+#titre .k { font-family: var(--display); font-weight: 800; font-size: 1.9vh; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); }
+#titre .n { font-weight: 600; font-size: 4.4vh; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#titre .a { font-weight: 300; font-size: 3vh; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-vue="clip"] #titre, body[data-vue="pochette"] #titre { opacity: 1; }
+body.discret #titre { opacity: 0 !important; }
+
+/* Marque */
+#marque { position: absolute; right: 3vw; top: 4vh; font-family: var(--display); font-weight: 800; font-size: 3vh; letter-spacing: .08em; text-transform: uppercase; color: var(--cream); opacity: .8; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+
+/* Attente */
+#attente { display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at 70% 20%, rgba(239,167,7,.18), transparent 55%), var(--primary); opacity: 0; transition: opacity .8s ease; }
+#attente .b { font-family: var(--display); font-weight: 800; font-size: 13vh; letter-spacing: .06em; text-transform: uppercase; line-height: .9; }
+#attente .s { font-weight: 300; font-size: 3vh; letter-spacing: .4em; text-transform: uppercase; opacity: .75; margin-top: 3vh; }
+body[data-vue="attente"] #attente { opacity: 1; }
+body[data-vue="attente"] #marque { display: none; }
+</style>
+</head>
+<body data-vue="attente">
+<div id="attente" class="full"><div class="b">Le Rebond</div><div class="s">Bar &bull; Padel &amp; Five</div></div>
+<div id="pochette" class="full"><div class="fond" id="pFond"></div><div class="disque" id="pDisque"></div></div>
+<div id="video" class="full"><div id="yt"></div></div>
+<div id="titre"><div class="mini" id="tMini"></div><div class="txt"><div class="k">En ce moment</div><div class="n" id="tNom"></div><div class="a" id="tArt"></div></div></div>
+<div id="marque">Le Rebond</div>
+
+<script>
+(function () {
+  var API = new URLSearchParams(location.search).get('api') || 'https://n8n.wepe.fr/webhook/tv-clip'; // ?api= pour tester
+  var POLL = 10000;
+  var player = null, pret = false;
+  var piste = null;        // id du titre affiché
+  var videos = [], vi = 0; // clips candidats
+  var etat = null;         // dernière réponse + heure de réception
+  var attenteDepuis = 0, minuteur = null, bandeau = null;
+
+  function vue(v) { document.body.setAttribute('data-vue', v); }
+  function posMs() { // position Spotify estimée maintenant
+    if (!etat) return 0;
+    return etat.d.progress_ms + (etat.d.playing ? Date.now() - etat.t : 0);
+  }
+  function fond(el, url) { el.style.backgroundImage = url ? 'url("' + url + '")' : 'none'; }
+
+  function montrerBandeau() { // titre visible 12 s au changement, puis discret jusqu'au suivant (rappel toutes les 60 s)
+    document.body.classList.remove('discret');
+    clearTimeout(bandeau);
+    bandeau = setTimeout(function () { if (document.body.getAttribute('data-vue') === 'clip') document.body.classList.add('discret'); }, 12000);
+  }
+  setInterval(montrerBandeau, 60000);
+
+  function pochette() { if (player && pret) { try { player.stopVideo(); } catch (e) {} } vue('pochette'); }
+
+  function jouer() {
+    if (vi >= videos.length) { pochette(); return; }
+    if (!pret) return; // onReady relancera
+    var debut = Math.max(0, Math.floor(posMs() / 1000));
+    player.loadVideoById({ videoId: videos[vi], startSeconds: debut });
+    player.mute();
+  }
+
+  function appliquer(d) {
+    var prev = etat;
+    etat = { d: d, t: Date.now() };
+    if (!d.track || (!d.playing && (!prev || !prev.d.playing))) {
+      if (!attenteDepuis) attenteDepuis = Date.now();
+      if (player && pret) { try { player.pauseVideo(); } catch (e) {} }
+      if (Date.now() - attenteDepuis > 30000 || !piste) vue('attente');
+      return;
+    }
+    attenteDepuis = 0;
+    var t = d.track;
+    if (t.id !== piste) {
+      piste = t.id; videos = d.videos || []; vi = 0;
+      document.getElementById('tNom').textContent = t.name;
+      document.getElementById('tArt').textContent = t.artists;
+      fond(document.getElementById('tMini'), t.image);
+      fond(document.getElementById('pFond'), t.image);
+      fond(document.getElementById('pDisque'), t.image);
+      if (videos.length) { vue('clip'); jouer(); } else pochette();
+      montrerBandeau();
+      return;
+    }
+    if (!player || !pret || document.body.getAttribute('data-vue') !== 'clip') return;
+    if (!d.playing) { try { player.pauseVideo(); } catch (e) {} return; }
+    // Saut dans le morceau (avance rapide côté Spotify) : on recale le clip.
+    var attendu = prev ? prev.d.progress_ms + (prev.d.playing ? etat.t - prev.t : 0) : d.progress_ms;
+    if (Math.abs(d.progress_ms - attendu) > 6000) player.seekTo(Math.floor(d.progress_ms / 1000), true);
+    else if (player.getPlayerState && player.getPlayerState() === 2) player.playVideo();
+  }
+
+  function interroger() {
+    clearTimeout(minuteur);
+    var x = new XMLHttpRequest();
+    x.open('GET', API + '?t=' + Date.now());
+    x.timeout = 15000;
+    x.onload = function () {
+      var d = null;
+      try { d = JSON.parse(x.responseText); } catch (e) {}
+      if (d) appliquer(d);
+      planifier();
+    };
+    x.onerror = x.ontimeout = planifier;
+    x.send();
+  }
+  function planifier() { // prochain appel : toutes les 10 s, ou juste après la fin prévue du titre
+    var att = POLL;
+    if (etat && etat.d.playing && etat.d.track) {
+      var reste = etat.d.track.duration_ms - posMs();
+      if (reste > 0 && reste + 1500 < att) att = reste + 1500;
+    }
+    minuteur = setTimeout(interroger, att);
+  }
+
+  window.onYouTubeIframeAPIReady = function () {
+    player = new YT.Player('yt', {
+      width: '100%', height: '100%',
+      playerVars: { autoplay: 1, mute: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3, cc_load_policy: 0 },
+      events: {
+        onReady: function () { pret = true; player.mute(); if (videos.length && document.body.getAttribute('data-vue') === 'clip') jouer(); },
+        onError: function () { vi++; jouer(); },              // clip non lisible ici : candidat suivant, sinon pochette
+        onStateChange: function (e) { if (e.data === 0) pochette(); } // clip plus court que le morceau
+      }
+    });
+  };
+  var s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+
+  interroger();
+})();
+</script>
+</body>
+</html>
