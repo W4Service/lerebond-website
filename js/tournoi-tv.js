@@ -35,12 +35,18 @@
         get('/tournois?status=eq.actif&order=created_at.desc&limit=1', function (err, tournois) {
             if (err) return showError(err);
             if (!tournois || tournois.length === 0) {
-                document.getElementById('t-title').textContent = 'Aucun tournoi en cours';
-                document.getElementById('t-subtitle').textContent = '';
-                document.getElementById('live-matchs').innerHTML = '<div class="tv-empty">Pas de tournoi actif.</div>';
-                document.getElementById('poules-list').innerHTML = '';
+                // Pas de tournoi en cours : l'écran annonce les prochains (au lieu de rester vide).
+                document.body.setAttribute('data-etat', 'idle');
+                document.body.setAttribute('data-has-live', 'no');
+                document.getElementById('t-kicker').textContent = 'Le Rebond · Padel';
+                document.getElementById('t-title').textContent = 'Prochains tournois';
+                document.getElementById('t-subtitle').textContent = 'Homologués FFT et tournois loisirs · inscrivez votre paire';
+                document.getElementById('results-section').style.display = 'none';
+                renderIdle();
                 return;
             }
+            document.body.setAttribute('data-etat', 'actif');
+            document.getElementById('t-kicker').textContent = 'Tournoi en cours';
             var tournoi = tournois[0];
 
             // Tirage au sort : dès qu'un tirage est en cours, la roue prend l'écran.
@@ -62,6 +68,81 @@
                 });
             });
         });
+    }
+
+    var JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+    var JOURS_LONGS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    var MOIS_LONGS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    function isoJour(d) {
+        return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+    function dateFr(iso) {
+        var p = String(iso || '').split('-');
+        if (p.length !== 3) return iso || '';
+        var d = new Date(+p[0], +p[1] - 1, +p[2]);
+        return JOURS_LONGS[d.getDay()] + ' ' + d.getDate() + ' ' + MOIS_LONGS[d.getMonth()];
+    }
+    function heureFr(h) {
+        if (!h) return '';
+        var p = String(h).split(':');
+        return parseInt(p[0], 10) + 'h' + (p[1] && p[1] !== '00' ? p[1] : '');
+    }
+
+    // === Écran d'attente : prochains tournois du calendrier ===
+    var idleCache = null, idleCacheAt = 0, qrFait = false;
+    function renderIdle() {
+        if (!qrFait && window.QRCode) {
+            qrFait = true;
+            try {
+                new QRCode(document.getElementById('idle-qr'), {
+                    text: 'https://le-rebond.fr/tournois/', width: 300, height: 300,
+                    colorDark: '#2a030c', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch (e) { /* QR facultatif */ }
+        }
+        // Le calendrier change rarement : relu toutes les 5 minutes au plus.
+        if (idleCache && Date.now() - idleCacheAt < 5 * 60 * 1000) return afficherIdle(idleCache);
+        get('/tournois_calendrier?date=gte.' + isoJour(new Date()) + '&status=eq.planifie' +
+            '&order=date.asc,heure_debut.asc&limit=6' +
+            '&select=id,nom,date,heure_debut,categorie,genre,homologue,nb_equipes_max,inscrits,complet,prix_par_joueur',
+        function (err, rows) {
+            if (err) return showError(err);
+            idleCache = rows || []; idleCacheAt = Date.now();
+            afficherIdle(idleCache);
+        });
+    }
+    function afficherIdle(rows) {
+        var zone = document.getElementById('idle-liste');
+        if (!rows.length) {
+            zone.innerHTML = '<div class="idle-vide">Le prochain tournoi sera bientôt annoncé.<br>Restez connectés !</div>';
+            return;
+        }
+        var auj = isoJour(new Date());
+        var html = '';
+        rows.forEach(function (t) {
+            var p = String(t.date).split('-');
+            var d = new Date(+p[0], +p[1] - 1, +p[2]);
+            var meta = [];
+            if (t.heure_debut) meta.push((t.date === auj ? "Aujourd'hui · " : '') + heureFr(t.heure_debut));
+            if (t.homologue) meta.push('Homologué FFT');
+            if (t.prix_par_joueur) meta.push(String(t.prix_par_joueur).replace('.0', '').replace('.', ',') + ' € / joueur');
+            var past = '', cls = 'idle-pastille';
+            if (t.complet) { past = 'Complet'; cls += ' idle-pastille--complet'; }
+            else if (t.nb_equipes_max) {
+                var reste = t.nb_equipes_max - (t.inscrits || 0);
+                past = reste + ' place' + (reste > 1 ? 's' : '');
+                cls += ' idle-pastille--ok';
+            }
+            html += '<div class="idle-ligne' + (t.date === auj ? ' idle-ligne--auj' : '') + '">' +
+                '<div class="idle-date"><span class="j">' + JOURS[d.getDay()] + '</span><span class="n">' + d.getDate() +
+                '</span><span class="m">' + MOIS[d.getMonth()] + '</span></div>' +
+                '<div class="idle-infos"><div class="idle-nom">' + escape(t.nom || 'Tournoi') + '</div>' +
+                '<div class="idle-meta">' + escape(meta.join(' · ')) + '</div></div>' +
+                (past ? '<div class="' + cls + '">' + past + '</div>' : '') +
+                '</div>';
+        });
+        zone.innerHTML = html;
     }
 
     function showError(err) {
@@ -376,7 +457,7 @@
         // Header
         document.getElementById('t-title').textContent = tournoi.nom || 'Tournoi';
         var subParts = [];
-        if (tournoi.date) subParts.push('📅 ' + tournoi.date);
+        if (tournoi.date) subParts.push(dateFr(tournoi.date));
         var fmt = formatLabel(tournoi.format_score);
         if (fmt) subParts.push('🎾 ' + fmt);
         if (tournoi.no_ad) subParts.push('No-ad');
@@ -403,6 +484,7 @@
     // === MODE POULE : classement (gauche) + matchs en cours + prochains (droite) ===
     function renderModePoule(tournoi, poules, equipes, matchs, joueurs, enCours, hasSets) {
         document.body.setAttribute('data-mode', 'poule');
+        document.body.setAttribute('data-nb-poules', String(poules.length));
 
         // Section live
         var liveHtml = '';
@@ -456,6 +538,7 @@
             }
         }
         document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
+        document.body.setAttribute('data-droite', (enCours.length || prochains.length) ? 'oui' : 'non');
 
         // Classements
         document.getElementById('poules-list').innerHTML = renderPoulesGrid(poules, equipes, matchs, joueurs, hasSets, tournoi.homologue);
@@ -514,6 +597,8 @@
             }
         }
         document.getElementById('upcoming-matchs').innerHTML = prochainsHtml;
+        // Rien en cours ni à venir : le tableau prend toute la largeur.
+        document.body.setAttribute('data-droite', (enCours.length || prochains.length) ? 'oui' : 'non');
 
         // Bloc principal : matchs de phase finale groupés par bracket
         document.getElementById('poules-section-title').textContent = 'Tableau final';

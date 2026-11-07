@@ -1,9 +1,9 @@
 {
-  "rev": 2,
+  "rev": 3,
   "ecrans": {
-    "salle":      { "nom": "Salle à manger", "contenu": "evenements" },
-    "cuisine":    { "nom": "Mur cuisine",    "contenu": "menu" },
-    "bureau":     { "nom": "Mur bureau",     "contenu": "menu" },
-    "vestiaires": { "nom": "Mur vestiaires", "contenu": "regles" }
+    "salle":      { "nom": "Salle à manger", "contenu": "tournoi" },
+    "cuisine":    { "nom": "Mur cuisine",    "contenu": "menu-diapo" },
+    "bureau":     { "nom": "Mur bureau",     "contenu": "boissons-diapo" },
+    "vestiaires": { "nom": "Mur vestiaires", "contenu": "evenements" }
   }
 }
