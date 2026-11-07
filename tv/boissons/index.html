@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Le Rebond TV · Boissons</title>
+<!--
+  Carte des boissons pour les écrans du club (même gabarit que tv/menu/).
+  Prix repris de menu/index.html (sections Boissons et Bières & Vins) :
+  tout changement de carte doit aussi être reporté ici.
+  ?mode=slides = diaporama (sinon plein cadre).
+-->
+<style>
+@font-face { font-family: 'Kanit'; font-weight: 300; src: url(../../fonts/Kanit-Light.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 400; src: url(../../fonts/Kanit-Regular.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 500; src: url(../../fonts/Kanit-Medium.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 600; src: url(../../fonts/Kanit-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: 'Turret Road'; font-weight: 800; src: url(../../fonts/TurretRoad-ExtraBold.woff2) format('woff2'); }
+:root {
+  --primary: #680920; --accent: #efa707; --cream: #fcf1dd; --ink: #1a1a1a;
+  --display: 'Turret Road', Impact, sans-serif; --body: 'Kanit', Arial, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #2a0a12; }
+.stage {
+  position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+  background: var(--cream); color: var(--ink); font-family: var(--body);
+  overflow: hidden; display: flex; flex-direction: column; padding: 30px 44px 0;
+}
+.stage::before, .stage::after { content: ''; position: absolute; pointer-events: none; }
+.stage::before { top: -34%; right: -10%; width: 48%; height: 120%; background: radial-gradient(circle, rgba(239,167,7,.22) 0%, transparent 68%); }
+.stage::after { bottom: -40%; left: -12%; width: 44%; height: 120%; background: radial-gradient(circle, rgba(104,9,32,.07) 0%, transparent 70%); }
+.stage > * { position: relative; z-index: 1; }
+
+/* En-tête */
+.top { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 12px; border-bottom: 3px solid var(--accent); flex: none; }
+.brand { font-family: var(--display); font-weight: 800; font-size: 50px; line-height: .9; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); }
+.brand small { display: block; font-family: var(--body); font-weight: 300; font-size: 14px; letter-spacing: .36em; opacity: .72; margin-top: 6px; }
+.badge {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%) rotate(-2deg);
+  display: flex; align-items: center; gap: 14px; padding: 9px 30px 7px; border-radius: 999px;
+  background: var(--primary); color: var(--cream); font-family: var(--display); font-weight: 800; font-size: 34px;
+  letter-spacing: .12em; text-transform: uppercase; line-height: 1;
+  box-shadow: 0 0 0 3px var(--cream), 0 0 0 6px var(--accent), 0 6px 18px rgba(104,9,32,.28);
+}
+.badge i { color: var(--accent); font-size: .7em; font-style: normal; }
+.top-note { text-align: right; font-weight: 300; font-size: 15px; line-height: 1.45; opacity: .8; }
+.top-note b { display: block; font-family: var(--display); font-weight: 800; font-size: 22px; color: var(--primary); letter-spacing: .05em; }
+
+/* Blocs */
+.block { display: flex; flex-direction: column; gap: 9px; }
+.block h2 { font-family: var(--display); font-weight: 800; line-height: 1; letter-spacing: .05em; text-transform: uppercase; color: var(--primary); display: flex; align-items: center; gap: 13px; }
+.block h2::after { content: ''; flex: 1; height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--accent), transparent); }
+.block h2 .vol { font-family: var(--body); font-weight: 300; letter-spacing: 0; text-transform: none; font-size: .5em; color: var(--ink); opacity: .7; }
+
+.row { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 3px 16px; padding: 0 16px; }
+.row .n { font-weight: 500; line-height: 1.2; text-transform: uppercase; letter-spacing: .02em; }
+.row .n small { display: block; font-weight: 400; font-size: .72em; text-transform: none; letter-spacing: 0; opacity: .75; font-style: italic; margin-top: 2px; }
+.p, .v { font-family: var(--display); font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Carte blanche « au choix » : prix + liste des parfums */
+.pick { background: #fff; border: 1px solid rgba(26,26,26,.09); border-radius: 14px; padding: 10px 18px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 16px; }
+.pick .n { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.pick .f { grid-column: 1 / -1; font-weight: 300; line-height: 1.35; opacity: .8; }
+.pick--hi { background: rgba(239,167,7,.16); border-color: rgba(239,167,7,.55); }
+
+/* Tableaux à deux prix (pression 25/50 cl, vin verre/bouteille) */
+.tab { display: grid; grid-template-columns: 1fr var(--cw, 110px) var(--cw, 110px); align-items: baseline; gap: 6px 14px; padding: 0 16px; }
+.tab .h { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; opacity: .6; text-align: right; white-space: nowrap; padding-bottom: 5px; border-bottom: 2px solid rgba(26,26,26,.16); }
+.tab .h:first-child { text-align: left; }
+.tab .l { font-weight: 500; text-transform: uppercase; letter-spacing: .02em; }
+.tab .l em { font-style: normal; font-size: .62em; font-weight: 600; color: var(--cream); background: var(--primary); border-radius: 999px; padding: .2em .7em .12em; margin-left: 8px; vertical-align: .25em; letter-spacing: .06em; }
+.tab .v { text-align: right; }
+.note { font-weight: 300; font-style: italic; opacity: .72; padding: 0 16px; }
+
+/* Visuel bière maison */
+.hero { display: flex; align-items: center; gap: 26px; }
+.hero img { flex: none; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(104,9,32,.25)); }
+.hero .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+
+/* Pied */
+.foot { flex: none; margin-top: auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 0 14px; border-top: 2px solid rgba(26,26,26,.14); font-weight: 300; font-size: 15px; opacity: .7; }
+.foot .site { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: .14em; color: var(--primary); opacity: 1; }
+
+/* ═══ Plein cadre : 3 colonnes ═══ */
+.cols { flex: 1; display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 0 28px; padding: 14px 0 8px; min-height: 0; }
+.col { display: flex; flex-direction: column; justify-content: space-evenly; gap: 16px; min-height: 0; }
+.col + .col { padding-left: 28px; border-left: 2px solid rgba(26,26,26,.12); }
+.cols .block h2 { font-size: 32px; }
+.cols .row .n, .cols .tab .l, .cols .pick .n { font-size: 22px; }
+.cols .row .p, .cols .tab .v, .cols .pick .p { font-size: 25px; }
+.cols .tab .h { font-size: 15px; }
+.cols .pick .f { font-size: 17px; }
+.cols .note { font-size: 16px; }
+.cols .hero img { width: 92px; height: 190px; }
+
+/* ═══ Diaporama ═══ */
+.slides { flex: 1; position: relative; min-height: 0; display: none; }
+.slide { position: absolute; inset: 0; padding: 12px 0 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 44px; align-content: center;
+  opacity: 0; visibility: hidden; transform: translateY(14px); transition: opacity .5s ease, transform .5s ease, visibility .5s; }
+.slide.on { opacity: 1; visibility: visible; transform: none; }
+.pane { display: flex; flex-direction: column; justify-content: center; gap: 30px; min-height: 0; }
+.pane + .pane { padding-left: 44px; border-left: 2px solid rgba(26,26,26,.12); }
+.slides .block { gap: 14px; }
+.slides .block h2 { font-size: 46px; }
+.slides .row .n, .slides .tab .l, .slides .pick .n { font-size: 31px; }
+.slides .row .p, .slides .tab .v, .slides .pick .p { font-size: 35px; }
+.slides .tab { --cw: 150px; gap: 10px 16px; }
+.slides .tab .h { font-size: 19px; }
+.slides .pick { padding: 14px 22px; border-radius: 16px; }
+.slides .pick .f { font-size: 23px; }
+.slides .note { font-size: 22px; }
+.slides .hero img { width: 150px; height: 310px; }
+.ticks { position: absolute; left: 44px; right: 44px; bottom: 60px; display: none; gap: 8px; z-index: 2; }
+.tick { flex: 1; height: 4px; border-radius: 2px; background: rgba(26,26,26,.14); overflow: hidden; }
+.tick span { display: block; height: 100%; width: 0; background: var(--accent); }
+.tick.run span { animation: fill var(--dur, 10s) linear forwards; }
+.tick.done span { width: 100%; }
+@keyframes fill { from { width: 0 } to { width: 100% } }
+
+.mode-slides .cols { display: none; }
+.mode-slides .slides { display: block; }
+.mode-slides .ticks { display: flex; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+  <div class="top">
+    <div class="brand">Le Rebond<small>Bar &bull; Restauration &bull; Padel &amp; Five</small></div>
+    <div class="badge"><i>&#9733;</i>Boissons<i>&#9733;</i></div>
+    <div class="top-note"><b>Ouvert 7j/7</b>L'abus d'alcool est dangereux pour la santé</div>
+  </div>
+
+  <!-- ══════ PLEIN CADRE ══════ -->
+  <div class="cols">
+    <div class="col">
+      <div class="block">
+        <h2>Bières Pression</h2>
+        <div class="hero">
+          <img src="biere.png" alt="">
+          <div class="body">
+            <div class="tab">
+              <span class="h">Pression</span><span class="h">25 cl</span><span class="h">50 cl</span>
+              <span class="l">Le Rebond Blonde<em>MAISON</em></span><span class="v">3,50 €</span><span class="v">6 €</span>
+              <span class="l">Anosteké Blonde</span><span class="v">4,50 €</span><span class="v">8 €</span>
+              <span class="l">IPA</span><span class="v">4,50 €</span><span class="v">8 €</span>
+              <span class="l">Rouge</span><span class="v">4 €</span><span class="v">7,50 €</span>
+              <span class="l">Triple</span><span class="v">4,50 €</span><span class="v">8 €</span>
+            </div>
+          </div>
+        </div>
+        <p class="note">Suppléments : Picon + 1 € &bull; Sirop + 0,50 €</p>
+      </div>
+      <div class="block">
+        <h2>Girafes</h2>
+        <div class="row"><span class="n">Le Rebond Blonde</span><span class="p">30 €</span></div>
+        <div class="row"><span class="n">Anosteké Blonde</span><span class="p">45 €</span></div>
+        <div class="row"><span class="n">IPA</span><span class="p">45 €</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="block">
+        <h2>Bouteilles</h2>
+        <div class="row"><span class="n">Hoegaarden Blanche</span><span class="p">5 €</span></div>
+        <div class="row"><span class="n">Chouffe sans alcool</span><span class="p">5 €</span></div>
+        <div class="row"><span class="n">Desperados</span><span class="p">6 €</span></div>
+      </div>
+      <div class="block">
+        <h2>Vins</h2>
+        <div class="tab">
+          <span class="h">Sélection</span><span class="h">Verre</span><span class="h">Bouteille</span>
+          <span class="l">Uby N°3</span><span class="v">4 €</span><span class="v">16 €</span>
+          <span class="l">Uby N°4</span><span class="v">5 €</span><span class="v">22 €</span>
+          <span class="l">Côtes du Rhône</span><span class="v">4 €</span><span class="v">6 €</span>
+          <span class="l">Lussac St-Émilion</span><span class="v">16 €</span><span class="v">27 €</span>
+          <span class="l">Rosé</span><span class="v">4 €</span><span class="v">14 €</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="block">
+        <h2>Softs</h2>
+        <div class="pick"><span class="n">Au choix</span><span class="p">2,50 €</span><span class="f">Coca-Cola &bull; Coca Zéro &bull; Coca Cherry &bull; Oasis &bull; Fuze Tea &bull; Sprite</span></div>
+      </div>
+      <div class="block">
+        <h2>Jus Granini <span class="vol">25 cl</span></h2>
+        <div class="pick"><span class="n">Au choix</span><span class="p">3,50 €</span><span class="f">ACE &bull; Pomme bio &bull; Ananas &bull; Mangue &bull; Abricot &bull; Litchi &bull; Orange bio &bull; Multifruit &bull; Fraise</span></div>
+      </div>
+      <div class="block">
+        <h2>Énergie &amp; Sport</h2>
+        <div class="pick"><span class="n">Red Bull <small style="font-weight:300;text-transform:none">25 cl</small></span><span class="p">3,50 €</span><span class="f">Classique &bull; Zéro &bull; Abricot-Fraise &bull; Pêche Blanche</span></div>
+        <div class="pick"><span class="n">Powerade <small style="font-weight:300;text-transform:none">50 cl</small></span><span class="p">3,50 €</span><span class="f">Bleu &bull; Cerise</span></div>
+      </div>
+      <div class="block">
+        <h2>Café &amp; Eaux</h2>
+        <div class="row"><span class="n">Café capsule</span><span class="p">1 €</span></div>
+        <div class="row"><span class="n">Eau 50 cl</span><span class="p">1 €</span></div>
+        <div class="row"><span class="n">Eau 1,5 L</span><span class="p">2 €</span></div>
+        <div class="row"><span class="n">Eau en bouteille verre</span><span class="p">3,50 €</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ DIAPORAMA ══════ -->
+  <div class="slides" id="slides">
+    <div class="slide on">
+      <div class="pane">
+        <div class="block">
+          <h2>Bières Pression</h2>
+          <div class="hero">
+            <img src="biere.png" alt="">
+            <div class="body">
+              <div class="tab">
+                <span class="h">Pression</span><span class="h">25 cl</span><span class="h">50 cl</span>
+                <span class="l">Le Rebond Blonde<em>MAISON</em></span><span class="v">3,50 €</span><span class="v">6 €</span>
+                <span class="l">Anosteké Blonde</span><span class="v">4,50 €</span><span class="v">8 €</span>
+                <span class="l">IPA</span><span class="v">4,50 €</span><span class="v">8 €</span>
+                <span class="l">Rouge</span><span class="v">4 €</span><span class="v">7,50 €</span>
+                <span class="l">Triple</span><span class="v">4,50 €</span><span class="v">8 €</span>
+              </div>
+            </div>
+          </div>
+          <p class="note">Suppléments : Picon + 1 € &bull; Sirop + 0,50 €</p>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="block">
+          <h2>Girafes</h2>
+          <div class="row"><span class="n">Le Rebond Blonde</span><span class="p">30 €</span></div>
+          <div class="row"><span class="n">Anosteké Blonde</span><span class="p">45 €</span></div>
+          <div class="row"><span class="n">IPA</span><span class="p">45 €</span></div>
+        </div>
+        <div class="block">
+          <h2>Bouteilles</h2>
+          <div class="row"><span class="n">Hoegaarden Blanche</span><span class="p">5 €</span></div>
+          <div class="row"><span class="n">Chouffe sans alcool</span><span class="p">5 €</span></div>
+          <div class="row"><span class="n">Desperados</span><span class="p">6 €</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="pane">
+        <div class="block">
+          <h2>Vins</h2>
+          <div class="tab">
+            <span class="h">Sélection</span><span class="h">Verre</span><span class="h">Bouteille</span>
+            <span class="l">Uby N°3</span><span class="v">4 €</span><span class="v">16 €</span>
+            <span class="l">Uby N°4</span><span class="v">5 €</span><span class="v">22 €</span>
+            <span class="l">Côtes du Rhône</span><span class="v">4 €</span><span class="v">6 €</span>
+            <span class="l">Lussac St-Émilion</span><span class="v">16 €</span><span class="v">27 €</span>
+            <span class="l">Rosé</span><span class="v">4 €</span><span class="v">14 €</span>
+          </div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="block">
+          <h2>Café &amp; Eaux</h2>
+          <div class="row"><span class="n">Café capsule</span><span class="p">1 €</span></div>
+          <div class="row"><span class="n">Eau 50 cl</span><span class="p">1 €</span></div>
+          <div class="row"><span class="n">Eau 1,5 L</span><span class="p">2 €</span></div>
+          <div class="row"><span class="n">Eau en bouteille verre</span><span class="p">3,50 €</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="pane">
+        <div class="block">
+          <h2>Softs</h2>
+          <div class="pick"><span class="n">Au choix</span><span class="p">2,50 €</span><span class="f">Coca-Cola &bull; Coca Zéro &bull; Coca Cherry &bull; Oasis &bull; Fuze Tea &bull; Sprite</span></div>
+        </div>
+        <div class="block">
+          <h2>Jus Granini <span class="vol">25 cl</span></h2>
+          <div class="pick"><span class="n">Au choix</span><span class="p">3,50 €</span><span class="f">ACE &bull; Pomme bio &bull; Ananas &bull; Mangue &bull; Abricot &bull; Litchi &bull; Orange bio &bull; Multifruit &bull; Fraise</span></div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="block">
+          <h2>Énergie &amp; Sport</h2>
+          <div class="pick pick--hi"><span class="n">Red Bull <small style="font-weight:300;text-transform:none">25 cl</small></span><span class="p">3,50 €</span><span class="f">Classique &bull; Zéro &bull; Abricot-Fraise &bull; Pêche Blanche</span></div>
+          <div class="pick pick--hi"><span class="n">Powerade <small style="font-weight:300;text-transform:none">50 cl</small></span><span class="p">3,50 €</span><span class="f">Bleu &bull; Cerise</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticks" id="ticks"></div>
+
+  <div class="foot">
+    <span>403 rue de l'Europe, 60400 Noyon &nbsp;&bull;&nbsp; 09 60 35 42 05</span>
+    <span class="site">le-rebond.fr</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var DUR = 10000;
+  var stage = document.getElementById('stage');
+  function fit() {
+    var d = document.documentElement, w = d.clientWidth || innerWidth, h = d.clientHeight || innerHeight;
+    stage.style.setProperty('--s', Math.min(w / 1920, h / 1080));
+  }
+  addEventListener('resize', fit); setInterval(fit, 5000); fit();
+
+  if (new URLSearchParams(location.search).get('mode') !== 'slides') return;
+  stage.classList.add('mode-slides');
+  var items = [].slice.call(document.querySelectorAll('.slide'));
+  var ticks = document.getElementById('ticks');
+  items.forEach(function () { var t = document.createElement('div'); t.className = 'tick'; t.appendChild(document.createElement('span')); ticks.appendChild(t); });
+  var bars = [].slice.call(ticks.children), idx = 0;
+  function show(i) {
+    items.forEach(function (s, k) { s.classList.toggle('on', k === i); });
+    bars.forEach(function (b, k) { b.classList.remove('run', 'done'); if (k < i) b.classList.add('done'); });
+    bars[i].style.setProperty('--dur', DUR + 'ms'); void bars[i].offsetWidth; bars[i].classList.add('run');
+  }
+  show(0);
+  setInterval(function () { idx = (idx + 1) % items.length; show(idx); }, DUR);
+})();
+</script>
+</body>
+</html>

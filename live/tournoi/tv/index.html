@@ -8,424 +8,256 @@
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="refresh" content="60">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
+<!-- Styles de la roue du tirage au sort (.tirage-tv-*) -->
+<link rel="stylesheet" href="css/tournoi.css">
 
 <style>
+/*
+ * Écran TV du tournoi, dans la charte du club (affiches : Kanit, dégradé bordeaux,
+ * balle jaune, lignes de terrain). Scène fixe 1920×1080 mise à l'échelle :
+ * les tailles sont les mêmes sur toutes les télés, quelle que soit leur résolution.
+ */
+@font-face { font-family: 'Kanit'; font-weight: 400; src: url(fonts/Kanit-Regular.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 500; src: url(fonts/Kanit-Medium.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 600; src: url(fonts/Kanit-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 800; src: url(fonts/Kanit-ExtraBold.woff2) format('woff2'); }
+@font-face { font-family: 'Kanit'; font-weight: 900; src: url(fonts/Kanit-Black.woff2) format('woff2'); }
+:root {
+    --jaune: #f4c941; --orange: #efa707; --creme: #f4f0e6; --nuit: #2a030c;
+    --rouge: #ea1a15; --vert: #6ee7a7;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-    height: 100%;
-    width: 100%;
-    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background: linear-gradient(135deg, #680920 0%, #4d061a 100%);
-    color: #f4f0e6;
-    overflow: hidden;
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--nuit); }
+
+.stage {
+    position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--s, 1));
+    background: linear-gradient(155deg, #8a1030 0%, #680920 42%, #2a030c 100%);
+    font-family: 'Kanit', system-ui, sans-serif; color: var(--creme); overflow: hidden;
+}
+/* Décor : lignes de terrain + balle */
+.deco-lignes {
+    position: absolute; inset: 70px -200px -120px auto; width: 900px; pointer-events: none;
+    border: 3px solid rgba(244,240,230,.05); border-right: 0;
+}
+.deco-lignes::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 3px solid rgba(244,240,230,.05); }
+.deco-lignes::after { content: ''; position: absolute; top: 0; bottom: 0; left: 40%; border-left: 3px solid rgba(244,240,230,.05); }
+.deco-balle {
+    position: absolute; width: 170px; height: 170px; right: -55px; top: -60px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 35% 35%, #ffe27a, var(--jaune) 55%, #c99a1c);
 }
 
 .tv-app {
-    height: 100%;
-    width: 100%;
-    padding: 8px 12px 6px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    position: absolute; inset: 0; padding: 26px 40px 18px;
+    display: flex; flex-direction: column; overflow: hidden;
 }
 
-/* === Header === */
+/* === En-tête === */
 .tv-header {
-    flex: 0 0 auto;
-    text-align: center;
-    padding-bottom: 6px;
-    border-bottom: 2px solid rgba(244, 201, 65, 0.35);
-    margin-bottom: 8px;
+    flex: none; display: flex; align-items: center; gap: 30px;
+    padding-bottom: 16px; margin-bottom: 18px; border-bottom: 3px solid rgba(244,201,65,.45);
 }
+.tv-logo { height: 74px; flex: none; }
+.tv-header-txt { flex: 1; min-width: 0; }
+.tv-kicker { font-weight: 500; font-size: 20px; letter-spacing: .45em; text-transform: uppercase; color: var(--jaune); }
 .tv-title {
-    font-size: 26px;
-    font-weight: 800;
-    color: #f4c941;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    line-height: 1.1;
+    font-weight: 900; font-size: 58px; line-height: 1; text-transform: uppercase; color: var(--creme);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px;
 }
-.tv-subtitle {
-    font-size: 13px;
-    color: rgba(244, 240, 230, 0.75);
-    margin-top: 2px;
+.tv-subtitle { font-size: 22px; color: rgba(244,240,230,.75); margin-top: 6px; }
+.tv-badge-live {
+    flex: none; display: none; align-items: center; gap: 12px; margin-right: 110px;
+    padding: 10px 24px; border-radius: 999px; background: var(--rouge);
+    font-weight: 800; font-size: 26px; letter-spacing: .12em;
+    box-shadow: 0 6px 24px rgba(234,26,21,.45);
 }
+body[data-has-live="yes"] .tv-badge-live { display: flex; }
 
-/* === Corps principal : 2 colonnes : classements à gauche, live+prochains à droite === */
-.tv-main {
-    flex: 1 1 auto;
-    display: flex;
-    gap: 10px;
-    min-height: 0;
-    overflow: hidden;
-    margin-bottom: 8px;
-}
+/* === Corps : classements à gauche, en direct + prochains à droite === */
+.tv-main { flex: 1 1 auto; display: flex; gap: 26px; min-height: 0; overflow: hidden; margin-bottom: 14px; }
+.tv-main-left { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.tv-main-right { flex: 0 0 36%; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; gap: 18px; }
 
-.tv-main-left {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-}
-.tv-main-right {
-    flex: 0 0 33%;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    gap: 8px;
-}
-
-/* === Section live (matchs en cours) === */
-.tv-live-section {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-}
-/* Quand il y a des matchs en cours, la section live prend la moitié */
-body[data-has-live="yes"] .tv-live-section { flex: 1 1 50%; }
-body[data-has-live="yes"] .tv-upcoming-section { flex: 1 1 50%; }
-/* Quand il n'y en a pas, on masque complètement la section live */
+.tv-live-section, .tv-upcoming-section { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+body[data-has-live="yes"] .tv-live-section { flex: 1 1 55%; }
+body[data-has-live="yes"] .tv-upcoming-section { flex: 1 1 45%; }
 body[data-has-live="no"] .tv-live-section { display: none; }
 body[data-has-live="no"] .tv-upcoming-section { flex: 1 1 auto; }
 
-.tv-upcoming-section {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-}
 .tv-section-title {
-    flex: 0 0 auto;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 800;
-    padding-bottom: 3px;
-    margin-bottom: 5px;
-    border-bottom: 1px solid rgba(244, 201, 65, 0.25);
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    flex: none; display: flex; align-items: center; gap: 12px;
+    font-weight: 800; font-size: 26px; letter-spacing: .08em; text-transform: uppercase;
+    padding-bottom: 6px; margin-bottom: 12px; border-bottom: 2px solid rgba(244,201,65,.3);
 }
-.tv-section-title.tv-section-title--live {
-    color: #ea1a15;
-    border-bottom-color: rgba(234, 26, 21, 0.35);
-}
-.tv-section-title.tv-section-title--upcoming { color: #efa707; }
-.tv-section-title.tv-section-title--main { color: #f4c941; font-size: 16px; }
-.tv-section-title.tv-section-title--results { color: #6ee7a7; font-size: 13px; border-bottom-color: rgba(110, 231, 167, 0.25); }
+.tv-section-title--main { color: var(--jaune); font-size: 30px; }
+.tv-section-title--live { color: #ff6b5e; border-bottom-color: rgba(234,26,21,.45); }
+.tv-section-title--upcoming { color: var(--orange); }
+.tv-section-title--results { color: var(--vert); border-bottom-color: rgba(110,231,167,.3); font-size: 22px; margin-bottom: 10px; }
 .tv-live-pulse {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #ea1a15;
-    box-shadow: 0 0 10px #ea1a15;
-    animation: pulse-live 1.5s ease-in-out infinite;
+    display: inline-block; width: 16px; height: 16px; border-radius: 50%; background: var(--rouge);
+    box-shadow: 0 0 14px var(--rouge); animation: pulse-live 1.5s ease-in-out infinite;
 }
-@keyframes pulse-live {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.55; transform: scale(0.8); }
-}
+.tv-badge-live .tv-live-pulse { background: #fff; box-shadow: 0 0 12px #fff; }
+@keyframes pulse-live { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.8); } }
 
-.tv-matchs-list {
-    flex: 1 1 auto;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
+/* === Cartes de match === */
+.tv-matchs-list { flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
 .tv-match {
-    background: rgba(244, 240, 230, 0.05);
-    border: 1px solid rgba(244, 240, 230, 0.15);
-    border-radius: 6px;
-    padding: 4px 8px;
+    background: rgba(244,240,230,.07); border: 1px solid rgba(244,240,230,.16);
+    border-radius: 14px; padding: 10px 18px;
 }
-.tv-match--upcoming {
-    background: rgba(239, 167, 7, 0.08);
-    border-color: rgba(239, 167, 7, 0.3);
-}
-.tv-match--done {
-    background: rgba(110, 231, 167, 0.06);
-    border-color: rgba(110, 231, 167, 0.25);
-    opacity: 0.85;
-}
+.tv-match--upcoming { background: rgba(239,167,7,.09); border-color: rgba(239,167,7,.35); }
+.tv-match--done { background: rgba(110,231,167,.07); border-color: rgba(110,231,167,.3); }
 .tv-live-section .tv-match {
-    background: rgba(234, 26, 21, 0.18);
-    border: 2px solid #ea1a15;
-    box-shadow: 0 4px 16px rgba(234, 26, 21, 0.25);
-    padding: 8px 12px;
+    background: rgba(234,26,21,.2); border: 3px solid var(--rouge);
+    box-shadow: 0 8px 28px rgba(234,26,21,.3); padding: 14px 22px;
 }
 .tv-match-meta {
-    font-size: 9px;
-    color: rgba(244, 240, 230, 0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 700;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.1;
+    font-size: 17px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: rgba(244,240,230,.65); margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1;
 }
-.tv-live-section .tv-match-meta { font-size: 11px; }
-.tv-match-body {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    min-width: 0;
-}
-.tv-match-equipe {
-    flex: 1 1 0;
-    font-size: 12px;
-    font-weight: 700;
-    color: #f4f0e6;
-    min-width: 0;
-    line-height: 1.1;
-}
-.tv-live-section .tv-match-equipe { font-size: 14px; line-height: 1.2; }
-/* Affichage sur 2 lignes : "Nom1" / "Nom2" */
-.tv-match-equipe .tv-eq-line {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.1;
-}
-.tv-match-equipe .tv-eq-line--2 {
-    color: rgba(244, 240, 230, 0.75);
-    font-weight: 500;
-    font-size: 0.78em;
-}
-.tv-live-section .tv-match-equipe .tv-eq-line--2 { font-size: 0.85em; }
-.tv-match-equipe.tv-eq-b { text-align: right; }
-.tv-match-equipe.tv-eq-b .tv-eq-line { text-align: right; }
-/* Gagnant en vert */
-.tv-match-equipe.tv-eq-winner { color: #6ee7a7; }
-.tv-match-equipe.tv-eq-winner .tv-eq-line--2 { color: rgba(110, 231, 167, 0.85); }
-/* Placeholder : équipe pas encore résolue (en attente d'un résultat) */
-.tv-match-equipe.tv-eq-placeholder { color: rgba(244, 240, 230, 0.55); font-style: italic; font-weight: 600; }
+.tv-live-section .tv-match-meta { font-size: 20px; color: rgba(255,255,255,.85); }
+.tv-match-body { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; }
+.tv-match-equipe { flex: 1 1 0; font-size: 24px; font-weight: 600; min-width: 0; line-height: 1.15; }
+.tv-live-section .tv-match-equipe { font-size: 29px; }
+.tv-match-equipe .tv-eq-line { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-match-equipe .tv-eq-line--2 { color: rgba(244,240,230,.7); font-weight: 400; font-size: .76em; }
+.tv-match-equipe.tv-eq-b, .tv-match-equipe.tv-eq-b .tv-eq-line { text-align: right; }
+.tv-match-equipe.tv-eq-winner { color: var(--vert); }
+.tv-match-equipe.tv-eq-winner .tv-eq-line--2 { color: rgba(110,231,167,.85); }
+.tv-match-equipe.tv-eq-placeholder { color: rgba(244,240,230,.5); font-style: italic; }
+.tv-match-score { flex: none; font-weight: 900; font-size: 30px; color: var(--jaune); white-space: nowrap; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.tv-live-section .tv-match-score { font-size: 46px; }
+.tv-match-score--vs { color: rgba(244,240,230,.4); font-size: 20px; font-weight: 600; }
+.tv-live-section .tv-match-score--vs { font-size: 24px; }
+.tv-live-empty, .tv-empty { color: rgba(244,240,230,.45); font-style: italic; font-size: 24px; text-align: center; padding: 24px; }
 
-.tv-match-score {
-    flex: 0 0 auto;
-    font-size: 14px;
-    font-weight: 800;
-    color: #f4c941;
-    white-space: nowrap;
-    padding: 0 4px;
-}
-.tv-live-section .tv-match-score { font-size: 22px; padding: 0 6px; }
-.tv-match-score--vs {
-    color: rgba(244, 240, 230, 0.45);
-    font-size: 11px;
-    font-weight: 600;
-}
-.tv-live-section .tv-match-score--vs { font-size: 13px; }
-.tv-live-empty,
-.tv-empty {
-    color: rgba(244, 240, 230, 0.4);
-    font-style: italic;
-    font-size: 13px;
-    text-align: center;
-    padding: 12px;
-}
-
-/* === Section principale gauche (classements ou brackets finale) === */
-.tv-main-block {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-}
-.tv-main-content {
-    flex: 1 1 auto;
-    display: flex;
-    gap: 8px;
-    min-height: 0;
-    overflow: hidden;
-}
-
-/* Mode poule : N poules en colonnes */
-body[data-mode="poule"] #poules-list { flex-direction: row; }
+/* === Bloc gauche : poules ou tableau final === */
+.tv-main-block { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.tv-main-content { flex: 1 1 auto; display: flex; gap: 16px; min-height: 0; overflow: hidden; }
+body[data-mode="poule"] #poules-list { flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
 .tv-poule {
-    flex: 1 1 0;
-    background: rgba(244, 240, 230, 0.06);
-    border: 1px solid rgba(239, 167, 7, 0.35);
-    border-radius: 8px;
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    min-width: 0;
-    overflow: hidden;
+    flex: 1 1 calc(50% - 8px); max-height: 100%;
+    background: rgba(244,240,230,.07); border: 1px solid rgba(239,167,7,.4); border-radius: 16px;
+    padding: 12px 18px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden;
 }
+/* Jusqu'à 2 poules : côte à côte sur toute la hauteur ; 3-4 : grille 2×2 ; plus : 3 par ligne */
+body[data-nb-poules="3"] .tv-poule, body[data-nb-poules="4"] .tv-poule { flex-basis: calc(50% - 8px); max-height: calc(50% - 8px); }
+body[data-nb-poules="5"] .tv-poule, body[data-nb-poules="6"] .tv-poule { flex-basis: calc(33.33% - 11px); max-height: calc(50% - 8px); }
 .tv-poule-nom {
-    flex: 0 0 auto;
-    font-size: 16px;
-    font-weight: 800;
-    color: #f4c941;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 6px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(244, 240, 230, 0.15);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: none; font-weight: 800; font-size: 26px; color: var(--jaune); text-transform: uppercase; letter-spacing: .06em;
+    padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid rgba(244,240,230,.15);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tv-poule-table {
-    flex: 1 1 auto;
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
+.tv-poule-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .tv-poule-table th {
-    font-size: 10px;
-    color: rgba(244, 240, 230, 0.5);
-    text-transform: uppercase;
-    text-align: center;
-    padding: 3px 3px;
-    font-weight: 700;
-    border-bottom: 1px solid rgba(244, 240, 230, 0.08);
+    font-size: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: rgba(244,240,230,.5); text-align: center; padding: 4px 2px; border-bottom: 1px solid rgba(244,240,230,.1);
 }
-.tv-poule-table th.left { text-align: left; padding-left: 6px; }
+.tv-poule-table th.left { text-align: left; padding-left: 8px; }
 .tv-poule-table td {
-    padding: 2px 3px;
-    color: #f4f0e6;
-    text-align: center;
-    font-size: 13px;
-    border-bottom: 1px solid rgba(244, 240, 230, 0.06);
-    line-height: 1.1;
+    padding: 5px 2px; text-align: center; font-size: 23px; line-height: 1.1;
+    border-bottom: 1px solid rgba(244,240,230,.07); font-variant-numeric: tabular-nums;
 }
 .tv-poule-table tr:last-child td { border-bottom: none; }
-.tv-poule-table td.equipe {
-    text-align: left;
-    font-weight: 600;
-    padding-left: 6px;
-    line-height: 1.05;
-}
-.tv-poule-table td.equipe .tv-eq-line {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.1;
-}
-.tv-poule-table td.equipe .tv-eq-line--1 {
-    font-size: 1em;
-}
-.tv-poule-table td.equipe .tv-eq-line--2 {
-    color: rgba(244, 240, 230, 0.85);
-    font-weight: 600;
-    font-size: 0.95em;
-}
-.tv-poule-table td.pos {
-    color: #efa707;
-    font-weight: 800;
-    width: 22px;
-    font-size: 13px;
-    padding-right: 1px;
-}
-.tv-poule-table td.v {
-    color: #f4c941;
-    font-weight: 800;
-}
-.tv-poule-table th.col-mj, .tv-poule-table td.col-mj { width: 22px; padding: 2px 0; }
-.tv-poule-table th.col-v, .tv-poule-table td.col-v { width: 22px; padding: 2px 0; }
-.tv-poule-table th.col-s, .tv-poule-table td.col-s,
-.tv-poule-table th.col-j, .tv-poule-table td.col-j { width: 28px; padding: 2px 0; }
+.tv-poule-table td.equipe { text-align: left; font-weight: 600; padding-left: 8px; }
+.tv-poule-table td.equipe .tv-eq-line { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-poule-table td.equipe .tv-eq-line--2 { color: rgba(244,240,230,.8); }
+.tv-poule-table td.pos { color: var(--orange); font-weight: 800; }
+.tv-poule-table td.v, .tv-poule-table td.pts { color: var(--jaune); font-weight: 800; }
+.tv-poule-table .col-pos { width: 48px; }
+.tv-poule-table .col-mj, .tv-poule-table .col-v, .tv-poule-table .col-pts { width: 50px; }
+.tv-poule-table .col-s, .tv-poule-table .col-j { width: 58px; }
 
-/* Mode finale : brackets verticalement */
-body[data-mode="finale"] #poules-list { flex-direction: column; gap: 10px; }
+/* Colonne de droite vide (rien en cours ni à venir) : on la retire */
+body[data-droite="non"] .tv-main-right { display: none; }
+
+/* Tableau final : les tableaux en colonnes (2, ou 3 quand la colonne de droite est retirée),
+   cartes compactes sur une ligne de noms pour que tout tienne. */
+body[data-mode="finale"] #poules-list { display: block; column-count: 2; column-gap: 16px; }
+body[data-mode="finale"][data-droite="non"] #poules-list { column-count: 3; }
 .tv-bracket {
-    background: rgba(244, 201, 65, 0.06);
-    border: 1px solid rgba(244, 201, 65, 0.35);
-    border-radius: 8px;
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+    break-inside: avoid; -webkit-column-break-inside: avoid; display: block; margin-bottom: 14px;
+    background: rgba(244,201,65,.07); border: 1px solid rgba(244,201,65,.4); border-radius: 16px; padding: 10px 14px;
 }
-.tv-bracket-title {
-    flex: 0 0 auto;
-    font-size: 14px;
-    font-weight: 800;
-    color: #f4c941;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 4px;
-}
-.tv-bracket-matchs {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    overflow: hidden;
-}
+.tv-bracket-title { font-weight: 800; font-size: 22px; color: var(--jaune); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.tv-bracket-matchs { display: flex; flex-direction: column; gap: 6px; }
+.tv-bracket .tv-match { padding: 6px 12px; border-radius: 10px; }
+.tv-bracket .tv-match-meta { font-size: 14px; margin-bottom: 2px; }
+.tv-bracket .tv-match-equipe { font-size: 21px; }
+.tv-bracket .tv-eq-line--2 { display: none !important; }
+.tv-bracket .tv-match-score { font-size: 24px; }
 
-/* === Bandeau "Derniers résultats" en bas === */
-.tv-results-section {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    max-height: 145px;
-    overflow: hidden;
-}
-.tv-results-grid {
-    display: flex;
-    gap: 8px;
-    overflow: hidden;
-}
+/* === Derniers résultats (bas) === */
+.tv-results-section { flex: none; display: flex; flex-direction: column; overflow: hidden; }
+.tv-results-grid { display: flex; gap: 14px; overflow: hidden; }
 .tv-result-card {
-    flex: 1 1 0;
-    background: rgba(110, 231, 167, 0.06);
-    border: 1px solid rgba(110, 231, 167, 0.3);
-    border-radius: 8px;
-    padding: 5px 10px;
-    min-width: 0;
+    flex: 1 1 0; min-width: 0; background: rgba(110,231,167,.07); border: 1px solid rgba(110,231,167,.32);
+    border-radius: 14px; padding: 8px 16px;
 }
-.tv-result-card .tv-match-meta {
-    color: rgba(110, 231, 167, 0.7);
-}
+.tv-result-card .tv-match-meta { color: rgba(110,231,167,.75); font-size: 15px; }
+.tv-result-card .tv-match-equipe { font-size: 20px; }
+.tv-result-card .tv-match-score { font-size: 26px; }
 
-/* === Footer === */
+/* === Pied === */
 .tv-footer {
-    flex: 0 0 auto;
-    font-size: 10px;
-    color: rgba(244, 240, 230, 0.35);
-    text-align: right;
-    padding-top: 4px;
+    flex: none; display: flex; justify-content: space-between; align-items: center;
+    font-size: 19px; color: rgba(244,240,230,.55); padding-top: 10px;
 }
-.tv-loading {
-    text-align: center;
-    font-size: 16px;
-    color: rgba(244, 240, 230, 0.6);
-    padding: 20px;
+.tv-footer b { color: var(--jaune); font-weight: 600; }
+
+/* === Aucun tournoi en cours : prochains tournois === */
+#idle { display: none; flex: 1 1 auto; min-height: 0; gap: 50px; }
+body[data-etat="idle"] #idle { display: flex; }
+body[data-etat="idle"] .tv-main, body[data-etat="idle"] .tv-results-section { display: none !important; }
+.idle-liste { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.idle-ligne {
+    display: flex; align-items: center; gap: 26px;
+    background: rgba(244,240,230,.07); border: 1px solid rgba(244,240,230,.14); border-radius: 18px; padding: 14px 24px;
 }
-.tv-error {
-    background: rgba(234, 26, 21, 0.2);
-    border: 1px solid #ea1a15;
-    border-radius: 8px;
-    padding: 12px;
-    text-align: center;
-    margin: 12px;
+.idle-ligne--auj { background: rgba(244,201,65,.14); border: 2px solid var(--jaune); }
+.idle-date { flex: none; width: 110px; text-align: center; line-height: 1; }
+.idle-date .j { display: block; font-size: 17px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--jaune); }
+.idle-date .n { display: block; font-size: 56px; font-weight: 900; margin: 2px 0; }
+.idle-date .m { display: block; font-size: 17px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.idle-infos { flex: 1; min-width: 0; }
+.idle-nom { font-size: 34px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.idle-meta { font-size: 22px; color: rgba(244,240,230,.75); margin-top: 2px; }
+.idle-pastille {
+    flex: none; font-size: 20px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    padding: 8px 18px; border-radius: 999px; background: rgba(244,240,230,.12); white-space: nowrap;
 }
+.idle-pastille--ok { background: var(--jaune); color: var(--nuit); }
+.idle-pastille--complet { background: rgba(234,26,21,.75); }
+.idle-cote {
+    flex: 0 0 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 22px;
+}
+.idle-qr { background: #fff; padding: 18px; border-radius: 20px; box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+.idle-qr img, .idle-qr canvas { display: block; width: 300px !important; height: 300px !important; }
+.idle-cote p { font-size: 26px; line-height: 1.35; }
+.idle-cote b { color: var(--jaune); font-weight: 800; }
+.idle-vide { font-size: 30px; color: rgba(244,240,230,.6); padding: 40px 0; }
+
+.tv-error { background: rgba(234,26,21,.2); border: 2px solid var(--rouge); border-radius: 14px; padding: 18px; text-align: center; margin: 12px; font-size: 22px; }
+.tv-loading { text-align: center; font-size: 24px; color: rgba(244,240,230,.6); padding: 24px; }
 </style>
 </head>
-<body data-has-live="no">
+<body data-has-live="no" data-etat="chargement">
 <div id="tirage-overlay" class="tirage-tv-overlay" style="display:none"></div>
 
+<div class="stage" id="stage">
+<div class="deco-lignes"></div>
+<div class="deco-balle"></div>
 <div class="tv-app">
     <header class="tv-header">
-        <div class="tv-title" id="t-title">Tournoi en direct</div>
-        <div class="tv-subtitle" id="t-subtitle">Chargement…</div>
+        <img class="tv-logo" src="img/signature-1.svg" alt="Le Rebond">
+        <div class="tv-header-txt">
+            <div class="tv-kicker" id="t-kicker">Le Rebond · Padel</div>
+            <div class="tv-title" id="t-title">Tournoi en direct</div>
+            <div class="tv-subtitle" id="t-subtitle">Chargement…</div>
+        </div>
+        <div class="tv-badge-live"><span class="tv-live-pulse"></span> EN DIRECT</div>
     </header>
 
     <div class="tv-main">
@@ -441,7 +273,7 @@ body[data-mode="finale"] #poules-list { flex-direction: column; gap: 10px; }
         <div class="tv-main-right">
             <div class="tv-live-section">
                 <div class="tv-section-title tv-section-title--live">
-                    <span class="tv-live-pulse"></span> En direct
+                    <span class="tv-live-pulse"></span> Sur les terrains
                 </div>
                 <div class="tv-matchs-list" id="live-matchs">
                     <div class="tv-loading">…</div>
@@ -456,16 +288,46 @@ body[data-mode="finale"] #poules-list { flex-direction: column; gap: 10px; }
         </div>
     </div>
 
+    <!-- Aucun tournoi en cours : calendrier des prochains -->
+    <div id="idle">
+        <div class="idle-liste" id="idle-liste"></div>
+        <div class="idle-cote">
+            <div class="idle-qr" id="idle-qr"></div>
+            <p>Inscriptions sur l'<b>appli Le Rebond</b><br>› Événements<br>ou au <b>06 59 48 24 17</b></p>
+        </div>
+    </div>
+
     <!-- Bandeau "Derniers résultats" en bas -->
     <section class="tv-results-section" id="results-section" style="display:none">
         <div class="tv-section-title tv-section-title--results">✓ Derniers résultats</div>
         <div class="tv-results-grid" id="results-list"></div>
     </section>
 
-    <div class="tv-footer">le-rebond.fr/live/tournoi/tv/</div>
+    <div class="tv-footer">
+        <span>Suivez le tournoi sur votre téléphone : <b>le-rebond.fr/live/tournoi</b></span>
+        <span id="t-heure"></span>
+    </div>
+</div>
 </div>
 
+<script>
+(function () {
+    // Mise à l'échelle de la scène 1920×1080 (clientWidth : innerWidth est faux sur les WebView TCL).
+    var stage = document.getElementById('stage');
+    function fit() {
+        var d = document.documentElement, w = d.clientWidth || innerWidth, h = d.clientHeight || innerHeight;
+        stage.style.setProperty('--s', Math.min(w / 1920, h / 1080));
+    }
+    addEventListener('resize', fit); setInterval(fit, 5000); fit();
+    function heure() {
+        var d = new Date();
+        document.getElementById('t-heure').textContent = d.getHours() + 'h' + ('0' + d.getMinutes()).slice(-2);
+    }
+    heure(); setInterval(heure, 15000);
+})();
+</script>
 <script src="js/resa-config.min.js"></script>
+<script src="js/vendor/qrcode.min.js"></script>
 <script src="js/tournoi-classement.js"></script>
 <script src="js/tournoi-tirage-tv.js"></script>
 <script src="js/tournoi-tv.js"></script>

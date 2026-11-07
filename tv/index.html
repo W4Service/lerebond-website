@@ -23,12 +23,17 @@
 /*
  * Lecteur des écrans du Rebond. L'appli Android ouvre /tv/?ecran=<id>.
  * Le contenu de chaque écran se règle dans tv/config.json (relu chaque minute).
- * Contenus connus : menu, evenements, regles — ou n'importe quelle URL.
+ * Contenus connus : clés de CONTENUS ci-dessous — ou n'importe quelle URL.
  */
 (function () {
   var params = new URLSearchParams(location.search);
   var ECRAN = (params.get('ecran') || '').toLowerCase();
-  var CONTENUS = { menu: 'menu/', 'menu-diapo': 'menu/?mode=slides', evenements: 'evenements/', regles: 'regles/', 'regles-son': 'regles/?son=1' };
+  var CONTENUS = {
+    menu: 'menu/', 'menu-diapo': 'menu/?mode=slides',
+    boissons: 'boissons/', 'boissons-diapo': 'boissons/?mode=slides',
+    evenements: 'evenements/', tournoi: '../live/tournoi/tv/',
+    regles: 'regles/', 'regles-son': 'regles/?son=1'
+  };
   var FORCE = params.get('contenu'); // choisi depuis la régie, prioritaire sur config.json
   var cadre = document.getElementById('cadre');
   var msg = document.getElementById('msg');
