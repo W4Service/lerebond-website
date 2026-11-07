@@ -168,7 +168,10 @@ body[data-vue="attente"] #marque { display: none; }
       events: {
         onReady: function () { pret = true; player.mute(); if (videos.length && document.body.getAttribute('data-vue') === 'clip') jouer(); },
         onError: function () { vi++; jouer(); },              // clip non lisible ici : candidat suivant, sinon pochette
-        onStateChange: function (e) { if (e.data === 0) pochette(); } // clip plus court que le morceau
+        onStateChange: function (e) {
+          if (e.data === 0) pochette(); // clip plus court que le morceau
+          if (e.data === 1) { try { player.unloadModule('captions'); player.unloadModule('cc'); } catch (x) {} } // pas de sous-titres
+        }
       }
     });
   };
