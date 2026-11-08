@@ -91,6 +91,11 @@ function fauxSupa(lignes, echec) {
     await F.rechercherPartout(fauxSupa([]), 'poujol', {});
     check('un seul mot → jamais d\'appel Ten\'Up', appels.length === 0);
 
+    console.log('\n=== Mise en ligne d\'un classement : Ten\'Up répond « personne » ===');
+    var verif = fs.readFileSync('../supabase/functions/fft-verification/index.ts', 'utf8');
+    check('joueur témoin introuvable → rien n\'est modifié', /Recherche Ten'Up indisponible/.test(verif) && verif.indexOf('const temoin') < verif.indexOf("rpc('fft_joueurs_a_verifier'"));
+    check('un classé absent garde son rang pendant 48 h', /!trouves\.length && miseEnLigne && classes\.has\(j\.id\)\) continue/.test(verif) && /MISE_EN_LIGNE_MS = 48 \* 3600_000/.test(verif));
+
     console.log(ko ? '\n' + ko + ' échec(s)' : '\nTout est vert.');
     process.exit(ko ? 1 : 0);
 })();
