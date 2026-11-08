@@ -37,6 +37,7 @@ PAGES = [
         ligne("Bolognaise", "9,50 €"),
         ligne("Carbonara", "9,50 €"),
         ligne("Saumon fumé", "9,50 €"),
+        ligne("Sauce du moment", "9,50 €"),
         ligne("Formule Pâtes + Soda", "11,50 €"),
         ("h2", "Frites Maison"),
         ligne("Portion de Frites Maison", "5 €"),
