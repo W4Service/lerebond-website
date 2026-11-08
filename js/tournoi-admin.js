@@ -498,7 +498,7 @@
         // Formats à têtes de série exemptées ("4 TS + 2 poules de 3" et
         // "4 TS + 2 poules de 4") : les têtes de série sont exactement les
         // équipes hors poule, quel que soit leur poids saisi.
-        if (isConfig4ts2p3() || isConfig4ts2p4()) {
+        if (isConfig4ts2p3() || isConfig4ts3p3() || isConfig4ts2p4()) {
             var out4 = {};
             tsHorsPoule().forEach(function (eq, i) {
                 out4[eq.id] = { rang: i + 1, poids: equipePoids(eq) };
@@ -1018,6 +1018,20 @@
                     applicable: isConfig4ts2p3,
                     squelette: genererSquelette4ts2p3,
                     finale: genererPhaseFinale4ts2p3
+                },
+                {
+                    id: 'maison_4ts_3p3',
+                    nom: '4 têtes de série + 3 poules de 3',
+                    detail: 'Les 4 TS entrent en quarts contre les 3 premiers de poule et le '
+                          + 'meilleur 2e. Demies, finale et petite finale (places 1-4), '
+                          + 'consolation des perdants de quart (5-8). Les 2 autres 2es jouent '
+                          + 'les places 9-10, les 3 troisièmes un triangulaire pour les places '
+                          + '11-13. Classement complet de 1 à 13, 16 matchs de phase finale.',
+                    homologable: false,
+                    requis: '3 poules de 3 + 4 équipes hors poule (13 équipes)',
+                    compo: { poules: [3, 3, 3], horsPoule: 4 },
+                    applicable: isConfig4ts3p3,
+                    squelette: genererSquelette4ts3p3
                 },
                 {
                     id: 'maison_4ts_2p4',
@@ -2744,6 +2758,74 @@
         showToast('Quarts (4 TS + 2 poules de 3) générés : ' + res.data.length + ' matchs', 'ok');
     }
 
+    // ===== Format "4 TS + 3 poules de 3" (13 équipes) =====
+    //
+    // 4 têtes de série exemptées de poule, 9 équipes en 3 poules de 3.
+    // Les 3 premiers de poule et le meilleur 2e rejoignent les TS en quarts.
+    // Même logique fédérale que le format à 2 poules : TS1 et TS2 aux deux bouts
+    // du tableau, le qualifié le plus faible (meilleur 2e) contre TS1, les 1ers
+    // contre TS4, TS3 et TS2 :
+    //
+    //   Q1  TS1  vs  meilleur 2e  \  demi 1
+    //   Q2  TS4  vs  1er A        /
+    //   Q3  TS3  vs  1er B        \  demi 2
+    //   Q4  TS2  vs  1er C        /
+    //
+    // Places 1-4 et consolation 5-8 : créées par genererTourSuivant() comme pour
+    // le format à 2 poules. Places 9-10 : les 2 autres 2es. Places 11-13 :
+    // triangulaire des 3es. Tout est posé en placeholders, que propagateRangPoule
+    // résout au fil des résultats de poule.
+    var QUARTS_4TS_3P3 = [
+        { ts: 1, src: 'meilleur_2e' },
+        { ts: 4, poule: 0 },
+        { ts: 3, poule: 1 },
+        { ts: 2, poule: 2 }
+    ];
+
+    async function genererSquelette4ts3p3() {
+        var poulesOrdonnees = poules.slice().sort(function (a, b) { return a.ordre - b.ordre; });
+        var ts = tsHorsPoule();
+        if (poulesOrdonnees.length !== 3 || ts.length !== 4) {
+            showToast('Format 4 TS + 3 poules de 3 : il faut 4 équipes hors poule et 3 poules de 3.', 'error');
+            return false;
+        }
+        var nbT = currentTournoi.nb_terrains || 1;
+        var pickT = function (i) { return ((i % nbT) + 1); };
+        var base = function (bracket, ordre, terrainIdx) {
+            return {
+                tournoi_id: currentTournoi.id, phase: 'finale', bracket: bracket,
+                status: 'en_attente', ordre: ordre, terrain: pickT(terrainIdx),
+                equipe_a_id: null, equipe_b_id: null
+            };
+        };
+        var src = function (m, side, type, pouleId, rang) {
+            m['equipe_' + side + '_source_type'] = type;
+            m['equipe_' + side + '_source_poule_id'] = pouleId || null;
+            m['equipe_' + side + '_source_ordre'] = rang == null ? null : rang;
+            return m;
+        };
+        var newMatchs = QUARTS_4TS_3P3.map(function (q, i) {
+            var m = base('principal', i, i);
+            m.equipe_a_id = ts[q.ts - 1] ? ts[q.ts - 1].id : null;
+            if (q.src === 'meilleur_2e') return src(m, 'b', 'meilleur_2e', null, null);
+            return src(m, 'b', 'rang_poule', poulesOrdonnees[q.poule].id, 1);
+        });
+        // places 9-10 : les 2 autres 2es
+        newMatchs.push(src(src(base('places_9_10', 0, 4), 'a', 'autres_2es', null, 1), 'b', 'autres_2es', null, 2));
+        // places 11-13 : triangulaire des 3es (A-B, A-C, B-C)
+        [[0, 1], [0, 2], [1, 2]].forEach(function (pp, i) {
+            var m = base('places_11_13', i, 5 + i);
+            src(m, 'a', 'rang_poule', poulesOrdonnees[pp[0]].id, 3);
+            newMatchs.push(src(m, 'b', 'rang_poule', poulesOrdonnees[pp[1]].id, 3));
+        });
+
+        var res = await supa.from('matchs').insert(newMatchs).select();
+        if (res.error) { showToast('Erreur squelette : ' + res.error.message, 'error'); console.error('[4ts3p3]', res.error); return false; }
+        matchs = matchs.concat(res.data);
+        await propagateRangPoule();
+        return true;
+    }
+
     // ===== Format "4 TS + 2 poules de 4" (12 équipes) =====
     //
     // 4 têtes de série exemptées de poule, 8 équipes en 2 poules de 4.
@@ -4174,6 +4256,17 @@
         return equipes.filter(function (e) { return !e.poule_id; }).length === 4;
     }
 
+    // Config "4 TS + 3 poules de 3" (13 équipes) : 4 têtes de série hors poule,
+    // 9 équipes en 3 poules de 3.
+    function isConfig4ts3p3() {
+        if (poules.length !== 3) return false;
+        var tailles = poules.map(function (p) {
+            return equipes.filter(function (e) { return e.poule_id === p.id; }).length;
+        });
+        if (!tailles.every(function (n) { return n === 3; })) return false;
+        return equipes.filter(function (e) { return !e.poule_id; }).length === 4;
+    }
+
     // Config "4 TS + 2 poules de 4" (12 équipes) : 4 têtes de série exemptées de
     // poule (poule_id null), et 8 équipes réparties en 2 poules de 4.
     // Les 2 premiers de chaque poule rejoignent les 4 TS en quarts de finale.
@@ -4510,7 +4603,7 @@
             // 6 matchs = 4 quarts + 2 demies : le dernier round est les 2 demies.
             // Vrai pour le tableau direct de 8 comme pour les formats à têtes de
             // série exemptées, dont le bracket principal démarre aux quarts.
-            var sixEstDemies = isConfigTableau8() || isConfig4ts2p4() || isConfig4ts2p3() || isConfig2ts3p4();
+            var sixEstDemies = isConfigTableau8() || isConfig4ts2p4() || isConfig4ts2p3() || isConfig4ts3p3() || isConfig2ts3p4();
             var nbMatchsRoundCourant = bracketMatchs.length === 2 ? 2
                 : (bracketMatchs.length === 4 ? 4
                 : (bracketMatchs.length === 6 && sixEstDemies ? 2 : null));
@@ -4617,8 +4710,8 @@
                     equipe_a_id: perdantQ124(lastRound[2]),
                     equipe_b_id: perdantQ124(lastRound[3])
                 });
-            } else if (lastRound.length === 4 && isConfig4ts2p3()) {
-                // Format 4 TS + 2 poules de 3 : les quarts sont déjà rangés par moitié
+            } else if (lastRound.length === 4 && (isConfig4ts2p3() || isConfig4ts3p3())) {
+                // Formats 4 TS + 2 ou 3 poules de 3 : les quarts sont déjà rangés par moitié
                 // de tableau (Q1+Q2 en haut, Q3+Q4 en bas), donc les demis opposent
                 // Q1/Q2 et Q3/Q4 — et non Q1/Q4 comme dans le seeding générique.
                 nextMatchs.push({
@@ -4879,7 +4972,7 @@
 
         // Format 4 TS + 2 poules de 3 : principal = 8 matchs
         // (4 quarts + 2 demis + finale + petite finale).
-        if (bracket === 'principal' && isConfig4ts2p3()) {
+        if (bracket === 'principal' && (isConfig4ts2p3() || isConfig4ts3p3())) {
             return b.length >= 8 && b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
         }
 
@@ -7514,6 +7607,7 @@
             { key: 'places_5_7', start: 5 },
             { key: 'places_7_9', start: 7 },
             { key: 'places_10_12', start: 10 },
+            { key: 'places_11_13', start: 11 },
             { key: 'places_9_11', start: 9 },
             { key: 'places_12_14', start: 12 }
         ];
@@ -7585,6 +7679,7 @@
         if (b === 'places_5_7') return '🥈 Triangulaire · places 5-7';
         if (b === 'places_7_9') return '🥉 Triangulaire 3èmes · places 7-9';
         if (b === 'places_10_12') return '🎾 Triangulaire 4èmes · places 10-12';
+        if (b === 'places_11_13') return '🎾 Triangulaire 3èmes · places 11-13';
         if (b === 'places_9_11') return '🎾 Triangulaire 3èmes · places 9-11';
         if (b === 'places_12_14') return '🎾 Triangulaire 4èmes · places 12-14';
         if (b === 'places_13_14') return '🎾 Match places 13-14';
