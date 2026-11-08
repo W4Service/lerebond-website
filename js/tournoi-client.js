@@ -298,6 +298,7 @@
             { key: 'places_5_7', start: 5 },
             { key: 'places_7_9', start: 7 },
             { key: 'places_10_12', start: 10 },
+            { key: 'places_11_13', start: 11 },
             { key: 'places_9_11', start: 9 },
             { key: 'places_12_14', start: 12 }
         ];
@@ -606,6 +607,7 @@
                 if (b === 'places_9_10') return '🎾 Places 9-10';
                 if (b === 'places_11_12') return '🎾 Places 11-12';
                 if (b === 'places_9_11') return '🎾 Triangulaire 3èmes · places 9-11';
+                if (b === 'places_11_13') return '🎾 Triangulaire 3èmes · places 11-13';
                 if (b === 'places_12_14') return '🎾 Triangulaire 4èmes · places 12-14';
                 if (b === 'places_13_14') return '🎾 Places 13-14';
                 if (b && b.indexOf('places_') === 0) {

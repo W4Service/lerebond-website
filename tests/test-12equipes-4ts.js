@@ -94,7 +94,7 @@ console.log('\n=== Les 4 points de câblage du format ===');
 // Un format à têtes de série exemptées doit être déclaré à quatre endroits.
 // En oublier un casse le tournoi en silence, à un stade différent à chaque fois.
 check('tetesDeSerie : badges TS1-TS4 sur les équipes hors poule',
-    src.indexOf('isConfig4ts2p3() || isConfig4ts2p4()') > 0);
+    /if \(isConfig4ts2p3\(\)( \|\| isConfig4ts3p3\(\))? \|\| isConfig4ts2p4\(\)\) \{\s*var out4/.test(src));
 check('sixEstDemies : 6 matchs = 4 quarts + 2 demies',
     src.indexOf('isConfig4ts2p4() ||') > 0);
 check('genererTourSuivant : les quarts engendrent demies et consolation',
