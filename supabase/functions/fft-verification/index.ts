@@ -8,12 +8,16 @@
 //      (1 classé → 'classe', plusieurs → 'homonymes', aucun → 'non_classe') ;
 //   4. enregistre le tout (fft_enregistrer_tenup + fft_appliquer_verifications).
 // Une fois par mois, il calcule aussi le rang d'un non classé (fft_nc) pour le poids des paires.
+// Pendant la mise en ligne d'un classement, Ten'Up répond « personne » à toutes les recherches
+// (nuit du 2 au 3/11/2026) : on s'arrête si un joueur témoin est introuvable, et un classé
+// absent garde son rang pendant les 48 h qui suivent la date du classement.
 // Un verrou en base empêche deux exécutions simultanées. Remplace la tâche n8n du Pi.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const API = 'https://tenup.fft.fr/api/back/public/v2/classements/recherche';
 const UA = 'LeRebondNoyon/1.0 (+https://le-rebond.fr)';
 const LOT = 50, PAUSE_MS = 800, BUDGET_MS = 110_000;   // Edge Function : 150 s maximum
+const MISE_EN_LIGNE_MS = 48 * 3600_000;
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type Joueur = Record<string, unknown> & { sexe?: string };
@@ -45,6 +49,12 @@ Deno.serve(async () => {
         const mois = ref.referentiels?.datesClassement?.[0];
         if (!mois) throw new Error("Mois du classement introuvable dans la réponse Ten'Up");
 
+        // Joueur témoin : pris dans la liste, il doit être trouvé par la recherche.
+        const temoin = (ref.joueurs ?? []).find((x) => x.nom && x.prenom);
+        const controle = temoin ? await tenup({ sexe: 'F', nom: temoin.nom, prenom: temoin.prenom }) : null;
+        if (!controle?.joueurs?.some((x) => x.utilisateurRecherche)) throw new Error("Recherche Ten'Up indisponible : rien n'est modifié");
+        await pause(PAUSE_MS);
+
         // Rang d'un non classé pour ce mois (une fois par mois et par genre) :
         // dernier classé + ex aequo à ce rang + 1 (chapitre II). On lit la dernière page.
         const nc: Record<string, number> = {};
@@ -66,6 +76,11 @@ Deno.serve(async () => {
         if (error) throw new Error(error.message);
         if (!joueurs?.length) return json({ mois, verifies: 0, nc });
 
+        const { data: dejaClasses } = await db.from('joueurs').select('id')
+            .in('id', (joueurs as { id: string }[]).map((j) => j.id)).not('fft_rang', 'is', null);
+        const classes = new Set((dejaClasses ?? []).map((j) => j.id));
+        const miseEnLigne = Date.now() < new Date(mois).getTime() + MISE_EN_LIGNE_MS;
+
         const resultats: Record<string, unknown>[] = [];
         const lignes: Joueur[] = [];
         for (const j of joueurs as { id: string; nom: string; prenom: string; genre: string | null; fft_id_crm: number | null }[]) {
@@ -79,6 +94,7 @@ Deno.serve(async () => {
                 trouves = (r.joueurs ?? []).filter((x) => x.utilisateurRecherche && x.nom).map((x) => ({ ...x, sexe }));
                 if (trouves.length) break;
             }
+            if (!trouves.length && miseEnLigne && classes.has(j.id)) continue;   // revu à la prochaine exécution
             lignes.push(...trouves);
             if (trouves.length === 1) {
                 const t = trouves[0];
