@@ -20,6 +20,10 @@
     var archivedTournois = [];
     var closedTournois = [];
     var activeTab = 'matchs'; // 'matchs' | 'pointage'
+    var convocations = []; // [{ joueur1_id, joueur2_id, convocation_heure }]
+    var telephones = {};   // joueur_id → { telephone, source } (admin uniquement)
+    // Avance de la convocation sur le premier match (échauffement, pointage).
+    var AVANCE_CONVOCATION_MIN = 30;
 
     // Elements (sera initialisé après login)
     var els = {};
@@ -105,6 +109,17 @@
         equipes = resE.data || [];
         matchs = resM.data || [];
         joueurs = resJ.data || [];
+        // Heures de convocation envoyées depuis le planning (inscriptions en
+        // ligne). Les paires LiveXperience n'en ont pas : rien ne s'affiche.
+        var resI = await supa.from('inscriptions')
+            .select('joueur1_id, joueur2_id, convocation_heure')
+            .eq('tournoi_id', currentTournoi.id).eq('statut', 'inscrite');
+        convocations = (resI.error ? [] : (resI.data || [])).filter(function (x) { return x.convocation_heure; });
+        // Téléphones (staff seulement, la fonction refuse le public). Avant la
+        // migration 20261118, l'appel échoue : on n'affiche simplement rien.
+        telephones = {};
+        var resT = await supa.rpc('telephones_tournoi', { p_tournoi: currentTournoi.id });
+        (resT.error ? [] : (resT.data || [])).forEach(function (t) { telephones[t.joueur_id] = t; });
         var resNC = await supa.from('fft_nc').select('genre, rang_nc').order('mois', { ascending: false }).limit(4);
         (resNC.data || []).forEach(function (n) { if (rangNC[n.genre] == null) rangNC[n.genre] = n.rang_nc; });
     }
@@ -5848,8 +5863,16 @@
         var nbPaye = equipes.reduce(function (acc, e) {
             return acc + (e.paye_j1 ? 1 : 0) + (e.paye_j2 ? 1 : 0);
         }, 0);
+        // Confirmé = a dit qu'il venait ; un joueur déjà présent compte aussi.
+        var nbConfirme = equipes.reduce(function (acc, e) {
+            return acc + ((e.confirme_j1 || e.present_j1) ? 1 : 0) + ((e.confirme_j2 || e.present_j2) ? 1 : 0);
+        }, 0);
 
         var stats = el('div', { class: 'pointage-stats' });
+        stats.appendChild(el('div', { class: 'pointage-stat' }, [
+            el('span', { class: 'pointage-stat-label' }, 'Confirmés'),
+            el('span', { class: 'pointage-stat-value' }, nbConfirme + ' / ' + nbJoueurs)
+        ]));
         stats.appendChild(el('div', { class: 'pointage-stat' }, [
             el('span', { class: 'pointage-stat-label' }, 'Présents'),
             el('span', { class: 'pointage-stat-value' }, nbPresent + ' / ' + nbJoueurs)
@@ -5866,17 +5889,38 @@
         }
 
         // Liste : équipes triées par nom, avec leur poule, et 2 lignes joueurs par carte
-        var sorted = equipes.slice().sort(function (a, b) { return a.nom.localeCompare(b.nom); });
+        // Par heure du premier match quand on la connaît (on pointe dans l'ordre
+        // où les équipes vont jouer), sinon par nom.
+        var sorted = equipes.slice().sort(function (a, b) {
+            var pa = premierMatchEquipe(a), pb = premierMatchEquipe(b);
+            var ha = pa ? hhmmVersMinutes(pa.h) : 1e9, hb = pb ? hhmmVersMinutes(pb.h) : 1e9;
+            return ha - hb || a.nom.localeCompare(b.nom);
+        });
         var list = el('div', { class: 'pointage-list' });
         sorted.forEach(function (eq) {
             var p = poules.find(function (po) { return po.id === eq.poule_id; });
             var noms = nomsJoueurs(eq);
 
-            var card2 = el('div', { class: 'pointage-equipe' });
+            var complete = eq.present_j1 && eq.present_j2;
+            var card2 = el('div', { class: 'pointage-equipe' + (complete ? ' pointage-equipe--complete' : '') });
             var head = el('div', { class: 'pointage-equipe-head' });
             head.appendChild(el('span', { class: 'pointage-equipe-nom' }, equipeAffichage2L(eq)));
             if (p) head.appendChild(el('span', { class: 'pointage-poule' }, p.nom));
             card2.appendChild(head);
+
+            // Heures : convocation envoyée, premier match estimé, et l'heure à
+            // laquelle il faudrait convoquer pour ce premier match.
+            var conv = convocationEquipe(eq);
+            var prem = premierMatchEquipe(eq);
+            var infos = [];
+            if (conv) infos.push('📣 Convoqués ' + conv);
+            if (prem) {
+                infos.push('🎾 1er match ~' + prem.h + (prem.m.terrain ? ' (T' + prem.m.terrain + ')' : ''));
+                var aConvoquer = minutesVersHHMM(hhmmVersMinutes(prem.h) - AVANCE_CONVOCATION_MIN);
+                if (!conv) infos.push('→ convoquer ' + aConvoquer);
+                else if (hhmmVersMinutes(conv) > hhmmVersMinutes(prem.h)) infos.push('⚠️ convoqués après leur 1er match');
+            }
+            if (infos.length) card2.appendChild(el('div', { class: 'pointage-heures' }, infos.join(' · ')));
 
             card2.appendChild(renderJoueurRow(eq, 'j1', noms[0]));
             card2.appendChild(renderJoueurRow(eq, 'j2', noms[1]));
@@ -5891,12 +5935,25 @@
     function renderJoueurRow(eq, suffix, nomJoueur) {
         var presentFlag = 'present_' + suffix;
         var payeFlag = 'paye_' + suffix;
+        var confirmeFlag = 'confirme_' + suffix;
         var on1 = !!eq[presentFlag];
         var on2 = !!eq[payeFlag];
         var joueurId = suffix === 'j1' ? eq.joueur_j1_id : eq.joueur_j2_id;
 
-        var row = el('div', { class: 'pointage-joueur' + (on1 ? ' pointage-joueur--present' : '') + (on2 ? ' pointage-joueur--paye' : '') });
-        row.appendChild(el('span', { class: 'pointage-joueur-nom' }, nomJoueur));
+        var row = el('div', { class: 'pointage-joueur' + (on1 ? ' pointage-joueur--present' : '')
+            + (on2 ? ' pointage-joueur--paye' : '') + (!on1 && eq[confirmeFlag] ? ' pointage-joueur--confirme' : '') });
+        var tel = joueurId && telephones[joueurId];
+        if (tel) {
+            var nomBloc = el('span', { class: 'pointage-joueur-nom' }, nomJoueur);
+            nomBloc.appendChild(el('a', {
+                class: 'pointage-joueur-tel',
+                href: 'tel:' + String(tel.telephone).replace(/[^\d+]/g, ''),
+                title: 'Source : ' + tel.source
+            }, '📱 ' + formaterTelephone(tel.telephone)));
+            row.appendChild(nomBloc);
+        } else {
+            row.appendChild(el('span', { class: 'pointage-joueur-nom' }, nomJoueur));
+        }
 
         var toggles = el('div', { class: 'pointage-toggles' });
         if (joueurId) {
@@ -5909,6 +5966,7 @@
             renameBtn.appendChild(el('span', { class: 'toggle-label' }, 'Renommer'));
             toggles.appendChild(renameBtn);
         }
+        toggles.appendChild(renderJoueurToggle(eq, confirmeFlag, '📞', 'Confirmé'));
         toggles.appendChild(renderJoueurToggle(eq, presentFlag, '✅', 'Présent'));
         toggles.appendChild(renderJoueurToggle(eq, payeFlag, '💰', 'Payé'));
         row.appendChild(toggles);
@@ -6665,6 +6723,71 @@
             currentTournoi.heure_debut,
             currentTournoi.duree_match_minutes || 45
         );
+    }
+
+    // +33612345678 / 0612345678 → 06 12 34 56 78 ; autre format laissé tel quel.
+    function formaterTelephone(t) {
+        var d = String(t || '').replace(/\D/g, '');
+        if (d.length === 11 && d.indexOf('33') === 0) d = '0' + d.slice(2);
+        return d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, '$1 ') : String(t || '');
+    }
+
+    function minutesVersHHMM(total) {
+        var t = ((total % 1440) + 1440) % 1440;
+        var hh = Math.floor(t / 60), mm = t % 60;
+        return (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+    }
+    function hhmmVersMinutes(h) {
+        var r = /^(\d{1,2}):(\d{2})/.exec(String(h || ''));
+        return r ? (+r[1]) * 60 + (+r[2]) : null;
+    }
+
+    // Heure estimée d'un match. Tableau programmé : l'heure de son créneau.
+    // Poules : les matchs d'un même terrain s'enchaînent dans l'ordre, le
+    // n-ième commence donc vers début + n × durée. Une estimation, qui suppose
+    // que les terrains tournent sans trou — suffisant pour convoquer.
+    function heureEstimee(m) {
+        if (!m || !currentTournoi || !currentTournoi.heure_debut) return null;
+        if (m.creneau != null) return heureTheorique(m);
+        if (m.phase !== 'poule' || !m.terrain) return null;
+        var debut = hhmmVersMinutes(currentTournoi.heure_debut);
+        if (debut == null) return null;
+        var rang = matchs.filter(function (x) {
+            return x.phase === 'poule' && x.terrain === m.terrain && x.ordre < m.ordre;
+        }).length;
+        return minutesVersHHMM(debut + rang * (currentTournoi.duree_match_minutes || 45));
+    }
+
+    // Premier match (au planning) d'une équipe, avec son heure estimée.
+    function premierMatchEquipe(eq) {
+        var siens = matchs.filter(function (m) {
+            return (m.equipe_a_id === eq.id || m.equipe_b_id === eq.id);
+        }).map(function (m) { return { m: m, h: heureEstimee(m) }; })
+          .filter(function (x) { return x.h; })
+          .sort(function (a, b) { return hhmmVersMinutes(a.h) - hhmmVersMinutes(b.h); });
+        return siens[0] || null;
+    }
+
+    // Heure de convocation envoyée à la paire (planning des inscriptions).
+    function convocationEquipe(eq) {
+        var a = eq.joueur_j1_id, b = eq.joueur_j2_id;
+        if (!a && !b) return null;
+        var c = convocations.find(function (x) {
+            return (x.joueur1_id === a && x.joueur2_id === b) || (x.joueur1_id === b && x.joueur2_id === a);
+        });
+        if (!c) return null;
+        var d = new Date(c.convocation_heure);
+        return minutesVersHHMM(d.getHours() * 60 + d.getMinutes());
+    }
+
+    // Joueurs pas encore pointés présents, pour une ou plusieurs équipes.
+    function absentsEquipe(eq) {
+        if (!eq) return [];
+        // 📞 = pas encore arrivé mais a confirmé qu'il venait : on peut l'attendre.
+        var noms = nomsJoueurs(eq), out = [];
+        if (!eq.present_j1) out.push(noms[0] + (eq.confirme_j1 ? ' 📞' : ''));
+        if (!eq.present_j2) out.push(noms[1] + (eq.confirme_j2 ? ' 📞' : ''));
+        return out;
     }
 
     async function updateHoraires(heureDebut, dureeMin) {
@@ -7707,7 +7830,7 @@
 
         // Horaires théoriques : un tableau programmé sur des créneaux n'a pas
         // d'heure tant qu'on ne dit pas quand le tournoi commence.
-        if (matchs.some(function (m) { return m.creneau != null; })) {
+        if (matchs.some(function (m) { return m.creneau != null || m.phase === 'poule'; })) {
             var barre = el('div', { class: 'horaires-barre' });
             barre.appendChild(el('span', { class: 'horaires-label' }, '🕐 Heures théoriques'));
 
@@ -7731,7 +7854,7 @@
                 onclick: function () { updateHoraires(inH.value, inD.value); }
             }, 'Appliquer'));
 
-            if (currentTournoi.heure_debut) {
+            if (currentTournoi.heure_debut && matchs.some(function (m) { return m.creneau != null; })) {
                 var dernier = Math.max.apply(null, matchs
                     .filter(function (m) { return m.creneau != null; })
                     .map(function (m) { return m.creneau; }));
@@ -7740,7 +7863,7 @@
                         currentTournoi.heure_debut, currentTournoi.duree_match_minutes || 45)
                     : null;
                 if (fin) barre.appendChild(el('span', { class: 'horaires-fin' }, 'fin prévue ' + fin));
-            } else {
+            } else if (!currentTournoi.heure_debut) {
                 barre.appendChild(el('span', { class: 'horaires-sous' },
                     '— renseigne l\'heure de début pour les afficher'));
             }
@@ -8359,7 +8482,10 @@
         var fmtInputs = scoreInputsForFormat(fmt);
         var isFinale = m.phase === 'finale';
 
-        var card = el('div', { class: 'match-item match-item--' + m.status + (ready ? '' : ' match-item--pending-dep') });
+        // Pointage : un match à venir dont les 4 joueurs sont là peut partir.
+        var absents = (ready && m.status === 'en_attente') ? absentsEquipe(eqA).concat(absentsEquipe(eqB)) : null;
+        var card = el('div', { class: 'match-item match-item--' + m.status + (ready ? '' : ' match-item--pending-dep')
+            + (absents && absents.length === 0 ? ' match-item--prets' : '') });
         // Rendre la carte draggable pour réordonner (uniquement matchs poule non terminés)
         makeMatchCardDraggable(card, m);
 
@@ -8374,7 +8500,7 @@
             ? window.TournoiTableau16.libelleTour(m.ordre) : null;
         // Heure théorique du créneau, quand le tournoi en a une. Un match déjà
         // joué n'en a plus besoin : c'est son vrai horaire qui compte.
-        var heure = (m.status === 'en_attente') ? heureTheorique(m) : null;
+        var heure = (m.status === 'en_attente') ? heureEstimee(m) : null;
         var metaText = (poule ? poule.nom + ' · ' : '')
             + (heure ? '🕐 ' + heure + ' · ' : '')
             + (isFinale && !tour ? bracketLabel(m.bracket) + ' · ' : '')
@@ -8383,6 +8509,12 @@
             + (ready ? '' : ' · ⏸ en attente d\'un match parent');
         var metaSpan = el('span', { class: 'match-meta', html: dragHandle + escapeHtml(metaText) });
         header.appendChild(metaSpan);
+        if (absents) {
+            header.appendChild(absents.length === 0
+                ? el('span', { class: 'match-presence match-presence--ok', title: 'Les 4 joueurs sont pointés présents' }, '✅ Prêt à lancer')
+                : el('span', { class: 'match-presence', title: 'Pas encore pointés : ' + absents.join(', ') },
+                    '⏳ Manque ' + absents.length + ' : ' + absents.join(', ')));
+        }
 
         // Match gagné sans avoir été joué : on le signale, sinon l'absence de score intrigue.
         if (m.issue === 'wo' || m.issue === 'disqualification') {

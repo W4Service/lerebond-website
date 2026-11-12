@@ -262,7 +262,7 @@ check('un creneau absent ne produit rien', T16.heureCreneau(null, '17:00', 45) =
 check('l\'admin n\'affiche l\'heure que si le tournoi en a une',
       /if \(!currentTournoi\.heure_debut \|\| !window\.TournoiTableau16\) return null;/.test(src));
 check('l\'heure n\'encombre plus un match deja joue',
-      /m\.status === 'en_attente'\) \? heureTheorique\(m\)/.test(src));
+      /m\.status === 'en_attente'\) \? heureEstimee\(m\)/.test(src));
 check('l\'heure de debut et la duree sont reglables',
       /async function updateHoraires/.test(src) && /duree_match_minutes/.test(src));
 check('la vue tableau affiche l\'heure', /opts\.heureDe/.test(srcVue) && /heureDe: heureTheorique/.test(src));
