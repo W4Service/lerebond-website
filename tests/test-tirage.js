@@ -123,6 +123,28 @@ check('poule D = 4, 5, 12, 13', grille[3].join() === '4,5,12,13');
 check('serpentin : placement imposé, pas tiré au sort',
       serp.etapes.every(function (e) { return e.tire === false; }));
 
+// Même grille quand les premières paires sont des TS (tournoi homologué) :
+// les TS suivent aussi le zigzag (bug P100 du 10/11/2026 : TS3 et TS4 inversées).
+console.log('\n=== SERPENTIN AVEC TÊTES DE SÉRIE ===');
+function grilleDe(n, nbP, nbTS, tailles) {
+    var r = T.preparerTirage({ equipes: eq(n), nbPoules: nbP, nbTS: nbTS, nbHorsPoule: 0,
+                               taillePoules: tailles, seed: 1, methode: 'serpentin' });
+    var g = tailles.map(function () { return []; });
+    Object.keys(r.placements).forEach(function (id) {
+        g[r.placements[id]].push(parseInt(id.slice(1), 10));
+    });
+    g.forEach(function (x) { x.sort(function (a, b) { return a - b; }); });
+    return g;
+}
+var g8 = grilleDe(8, 2, 4, [4, 4]);
+console.log('  8 paires, 2 poules, 4 TS : A=' + g8[0].join(',') + '  B=' + g8[1].join(','));
+check('2 poules + 4 TS : A = 1, 4, 5, 8', g8[0].join() === '1,4,5,8');
+check('2 poules + 4 TS : B = 2, 3, 6, 7', g8[1].join() === '2,3,6,7');
+var g16 = grilleDe(16, 4, 8, [4, 4, 4, 4]);
+check('4 poules + 8 TS : même grille que sans TS',
+      g16[0].join() === '1,8,9,16' && g16[1].join() === '2,7,10,15'
+      && g16[2].join() === '3,6,11,14' && g16[3].join() === '4,5,12,13');
+
 console.log('\n=== MÉTHODE RÉPARTITION PAR RANG ===');
 console.log('  « les paires 1 à 4 au rang 1 par tirage au sort, 5 à 8 au rang 2... »');
 var rang = T.preparerTirage({ equipes: eq(16), nbPoules: 4, nbTS: 0, nbHorsPoule: 0,

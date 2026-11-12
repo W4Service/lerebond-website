@@ -121,7 +121,10 @@
 
         if (opts.methode === 'serpentin') {
             ts.forEach(function (eq, i) {
-                var pouleIdx = i % nbPoules;
+                // Zigzag comme le reste : A B B A avec 2 poules, A B C C B A avec 3.
+                var rangTS = Math.floor(i / nbPoules);
+                var posTS = i % nbPoules;
+                var pouleIdx = (rangTS % 2 === 0) ? posTS : (nbPoules - 1 - posTS);
                 placements[eq.id] = pouleIdx;
                 restant[pouleIdx]--;
                 etapes.push({

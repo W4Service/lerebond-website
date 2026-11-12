@@ -2734,3 +2734,42 @@ select.tournoi-input option {
 .live-prochains__nom { min-width: 0; }
 .live-prochains__date { font-weight: 400; font-size: .9rem; opacity: .8; }
 .live-prochains__tout { align-self: flex-end; color: #efa707; font-weight: 600; text-decoration: none; }
+
+/* Pointage → matchs : un match dont les 4 joueurs sont pointés présents peut partir. */
+.match-item--prets {
+    border-color: rgba(72, 187, 120, 0.75);
+    background: rgba(72, 187, 120, 0.10);
+    box-shadow: inset 4px 0 0 #48bb78;
+}
+.match-presence {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #f4c941;
+    background: rgba(244, 201, 65, 0.10);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+.match-presence--ok { color: #68d391; background: rgba(72, 187, 120, 0.15); }
+
+.pointage-joueur--confirme { background: rgba(99, 179, 237, 0.06); }
+.pointage-joueur-tel {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: rgba(244, 240, 230, 0.7);
+    text-decoration: none;
+}
+.pointage-joueur-tel:hover { color: #efa707; }
+
+.pointage-equipe--complete { border-color: rgba(72, 187, 120, 0.6); }
+.pointage-equipe--complete .pointage-equipe-head { background: rgba(72, 187, 120, 0.14); }
+.pointage-heures {
+    padding: 0.35rem 0.9rem;
+    font-size: 0.78rem;
+    color: rgba(244, 240, 230, 0.75);
+    border-bottom: 1px solid rgba(244, 240, 230, 0.08);
+}
