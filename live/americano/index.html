@@ -1,8 +1,24 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<base href="https://le-rebond.fr/">
 <meta charset="utf-8">
+<script>
+// L'Americano est aussi un onglet du pilotage (pilotage.le-rebond.fr/#/americano), affiché en mode
+// intégré (?integre=1) aux couleurs du pilotage. Ouvert seul sur le-rebond.fr, il y renvoie.
+// Secours : le-rebond.fr/live/americano/?ancien=1
+(function () {
+    var q = new URLSearchParams(location.search);
+    if (q.has('integre')) {
+        document.documentElement.className += ' integre';
+        document.write('<link rel="stylesheet" href="https://le-rebond.fr/css/admin-pilotage.css?v=1">');
+        return;
+    }
+    if (/^(www\.)?le-rebond\.fr$/.test(location.hostname) && !q.has('ancien')) {
+        location.replace('https://pilotage.le-rebond.fr/#/americano');
+    }
+})();
+</script>
+<base href="https://le-rebond.fr/">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tournoi Americano — Le Rebond</title>
 <meta name="robots" content="noindex, nofollow">

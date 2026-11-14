@@ -287,6 +287,21 @@
     }
 
     async function refuserNonStaff() {
+        // Dans le pilotage (mode intégré), la session est celle du pilotage : on ne déconnecte pas,
+        // on explique seulement que cet onglet est réservé au staff du club.
+        if (document.documentElement.classList.contains('integre')) {
+            loginView.style.display = 'none';
+            adminView.style.display = 'none';
+            var m = document.getElementById('message-non-staff');
+            if (!m) {
+                m = document.createElement('p');
+                m.id = 'message-non-staff';
+                m.style.cssText = 'max-width:560px;margin:60px auto;padding:16px 18px;border-radius:12px;background:#fffdf8;border:1px solid #e6dfd2;color:#2a1a1e;font:500 15px/1.5 Kanit,sans-serif';
+                m.textContent = 'Cet onglet est réservé au staff du club. Demande à la direction de t\'ajouter au staff si tu dois gérer les tournois.';
+                document.body.appendChild(m);
+            }
+            return;
+        }
         await supa.auth.signOut();
         showLogin();
         loginError.textContent = 'Ce compte n\'a pas accès à l\'admin du club.';

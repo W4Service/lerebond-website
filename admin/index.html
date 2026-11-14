@@ -9,7 +9,12 @@
 // Secours si le pilotage est indisponible : le-rebond.fr/admin/?ancien=1
 (function () {
     var q = new URLSearchParams(location.search);
-    if (q.has('integre')) { document.documentElement.className += ' integre'; return; }
+    if (q.has('integre')) {
+        document.documentElement.className += ' integre';
+        // Couleurs du pilotage (feuille générée par scripts/admin-theme/generer.py)
+        document.write('<link rel="stylesheet" href="https://le-rebond.fr/css/admin-pilotage.css?v=1">');
+        return;
+    }
     var surSite = /^(www\.)?le-rebond\.fr$/.test(location.hostname);
     var surPilotage = location.hostname === 'pilotage.le-rebond.fr';
     if ((!surSite && !surPilotage) || q.has('ancien')) return;
