@@ -4,6 +4,7 @@
     "salle":      { "nom": "Salle à manger", "contenu": "tournoi" },
     "cuisine":    { "nom": "Mur cuisine",    "contenu": "menu-diapo" },
     "bureau":     { "nom": "Mur bureau",     "contenu": "boissons-diapo" },
-    "vestiaires": { "nom": "Mur vestiaires", "contenu": "evenements" }
+    "vestiaires": { "nom": "Mur vestiaires", "contenu": "evenements" },
+    "lounge":     { "nom": "Lounge",         "contenu": "clip" }
   }
 }
