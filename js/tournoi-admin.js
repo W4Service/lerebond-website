@@ -7013,7 +7013,8 @@
             class: 'btn-live btn-live--outline btn-live--small',
             onclick: function () {
                 if (window.TournoiQR) {
-                    var url = window.location.origin + '/live/tournoi/';
+                    // Page publique du site, même quand l'admin est servi depuis le pilotage (document.baseURI = le-rebond.fr).
+                    var url = new URL('live/tournoi/', document.baseURI).href;
                     window.TournoiQR.open(url, 'Tournoi : ' + (currentTournoi.nom || ''));
                 }
             },
