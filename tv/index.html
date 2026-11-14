@@ -19,10 +19,12 @@
 <body>
 <iframe id="cadre" allow="autoplay; fullscreen"></iframe>
 <div id="msg"></div>
+<script src="../js/resa-config.min.js"></script>
 <script>
 /*
  * Lecteur des écrans du Rebond. L'appli Android ouvre /tv/?ecran=<id>.
- * Le contenu de chaque écran se règle dans tv/config.json (relu chaque minute).
+ * Le contenu de chaque écran se choisit dans le pilotage (onglet Régie TV, table tv_ecrans), relu
+ * chaque minute ; tv/config.json sert de secours (base injoignable) et porte la version (rev).
  * Contenus connus : clés de CONTENUS ci-dessous — ou n'importe quelle URL.
  */
 (function () {
@@ -50,16 +52,30 @@
         if (rev !== null && cfg.rev !== rev) { location.reload(); return; }
         rev = cfg.rev;
         var e = cfg.ecrans && cfg.ecrans[ECRAN];
-        if (FORCE) e = { contenu: FORCE };
-        if (!e) { message('Écran « ' + (ECRAN || '?') + ' » non configuré<small>Le Rebond TV</small>'); return; }
-        var cible = CONTENUS[e.contenu] || e.contenu;
-        if (e.options) cible += (cible.indexOf('?') < 0 ? '?' : '&') + e.options;
-        // Version dans l'adresse : un changement de rev passe outre le cache des télés
-        // (GitHub Pages autorise 10 min de cache, les box gardaient l'ancienne page).
-        if (!/^https?:/.test(cible)) cible += (cible.indexOf('?') < 0 ? '?' : '&') + 'v=' + rev;
-        if (cible !== courant) { courant = cible; msg.style.display = 'none'; cadre.src = cible; }
+        if (FORCE) return afficher({ contenu: FORCE });
+        // Choix fait dans le pilotage : prioritaire sur config.json
+        return choixPilotage().then(function (p) { afficher(p || e); }, function () { afficher(e); });
       })
       .catch(function () { /* hors ligne : on garde l'affichage en cours */ });
+  }
+
+  function choixPilotage() {
+    var C = window.REBOND_CONFIG;
+    if (!C || !C.SUPABASE_URL || !window.fetch) return Promise.resolve(null);
+    return fetch(C.SUPABASE_URL + '/rest/v1/tv_ecrans?select=contenu,options&ecran=eq.' + encodeURIComponent(ECRAN), {
+      headers: { apikey: C.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + C.SUPABASE_ANON_KEY }, cache: 'no-store'
+    }).then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (l) { return l && l[0] && l[0].contenu ? l[0] : null; });
+  }
+
+  function afficher(e) {
+    if (!e) { message('Écran « ' + (ECRAN || '?') + ' » non configuré<small>Le Rebond TV</small>'); return; }
+    var cible = CONTENUS[e.contenu] || e.contenu;
+    if (e.options) cible += (cible.indexOf('?') < 0 ? '?' : '&') + e.options;
+    // Version dans l'adresse : un changement de rev passe outre le cache des télés
+    // (GitHub Pages autorise 10 min de cache, les box gardaient l'ancienne page).
+    if (!/^https?:/.test(cible)) cible += (cible.indexOf('?') < 0 ? '?' : '&') + 'v=' + rev;
+    if (cible !== courant) { courant = cible; msg.style.display = 'none'; cadre.src = cible; }
   }
 
   // Rechargement complet une fois par jour (évite les fuites mémoire des vieilles box).

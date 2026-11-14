@@ -1,0 +1,377 @@
+/* Généré par scripts/admin-theme/generer.py : ne pas modifier à la main. */
+/* Admin du site affiché dans le pilotage (html.integre) aux couleurs du pilotage. */
+
+/* ---- d'après css/live.css ---- */
+html.integre .live-body { background: linear-gradient(135deg, #fffdf8 0%, #fffdf8 100%) !important; color: #2a1a1e !important; }
+html.integre .live-body::before { background: radial-gradient(circle, rgba(138,16,48,0.09) 0%, transparent 70%) !important; }
+html.integre .live-body::after { background: radial-gradient(circle, rgba(104,9,32,0.0275) 0%, transparent 70%) !important; }
+html.integre .live-title { color: #8a1030 !important; }
+html.integre .live-subtitle { color: #2a1a1e !important; }
+html.integre #chrono-nom { color: #8a1030 !important; }
+html.integre #status { color: #2a1a1e !important; }
+html.integre .display { color: #2a1a1e !important; }
+html.integre .display.idle { color: #2a1a1e !important; }
+html.integre .display.warning { color: #8a1030 !important; }
+html.integre .display.danger { color: #b3261e !important; }
+html.integre .display.finished { color: #8a1030 !important; }
+html.integre .progress-container { background: rgba(104,9,32,0.0825) !important; }
+html.integre .progress-bar { background: linear-gradient(90deg, #8a1030, #f4c941) !important; color: #fff !important; }
+html.integre .progress-bar.danger { background: linear-gradient(90deg, #ea1a15, #fffdf8) !important; }
+html.integre .fullscreen-btn { background: rgba(104,9,32,0.044) !important; border: 1px solid rgba(104,9,32,0.314) !important; color: #2a1a1e !important; }
+html.integre .fullscreen-btn:hover { background: rgba(138,16,48,0.12) !important; border-color: #8a1030 !important; color: #8a1030 !important; }
+html.integre .footer-tag { color: #2a1a1e !important; }
+html.integre .admin-topbar { background: rgba(42,26,30,0.05) !important; border-bottom: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .topbar-label { color: #8a1030 !important; }
+html.integre .topbar-status { color: rgba(42,26,30,0.85) !important; }
+html.integre .admin-chrono, html.integre .admin-controls { background: rgba(104,9,32,0.044) !important; border: 1px solid rgba(104,9,32,0.34) !important; }
+html.integre .admin-link { color: rgba(42,26,30,0.75) !important; }
+html.integre .admin-link a { color: #8a1030 !important; }
+html.integre .control-label { color: rgba(42,26,30,0.75) !important; }
+html.integre .admin-header { color: rgba(42,26,30,0.85) !important; }
+html.integre .admin-header .user-pill { background: rgba(104,9,32,0.055) !important; border: 1px solid rgba(104,9,32,0.34) !important; }
+html.integre .btn-logout { border: 1px solid rgba(104,9,32,0.47) !important; color: rgba(42,26,30,0.85) !important; }
+html.integre .btn-logout:hover { color: #b3261e !important; }
+html.integre .admin-panel { background: rgba(104,9,32,0.055) !important; border: 1px solid rgba(104,9,32,0.405) !important; }
+html.integre .admin-panel h2 { color: #8a1030 !important; }
+html.integre .input-group { background: rgba(104,9,32,0.077) !important; border: 1px solid rgba(104,9,32,0.47) !important; }
+html.integre .input-group:focus-within { border-color: #8a1030 !important; background: rgba(104,9,32,0.099) !important; }
+html.integre .input-group input { color: #2a1a1e !important; }
+html.integre .input-group input:focus { color: #8a1030 !important; }
+html.integre .input-group label { color: rgba(42,26,30,0.75) !important; }
+html.integre .preset-btn { background: rgba(104,9,32,0.077) !important; color: #2a1a1e !important; border: 1px solid rgba(104,9,32,0.47) !important; }
+html.integre .preset-btn:hover { background: rgba(138,16,48,0.09) !important; border-color: #8a1030 !important; color: #8a1030 !important; }
+html.integre .btn-live--primary { background: #8a1030 !important; color: #ffffff !important; }
+html.integre .btn-live--outline { color: #2a1a1e !important; border-color: rgba(104,9,32,0.6) !important; }
+html.integre .btn-live--outline:hover:not(:disabled) { background: rgba(104,9,32,0.055) !important; border-color: #680920 !important; }
+html.integre .btn-live--danger { color: #2a1a1e !important; }
+html.integre .btn-live--danger:hover:not(:disabled) { color: #b3261e !important; }
+html.integre #login-form { background: rgba(104,9,32,0.033) !important; border: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre #login-form h2 { color: #8a1030 !important; }
+html.integre .field label { color: rgba(42,26,30,0.85) !important; }
+html.integre .field input { background: rgba(104,9,32,0.044) !important; border: 1px solid rgba(104,9,32,0.34) !important; color: #2a1a1e !important; }
+html.integre .field input:focus { border-color: #8a1030 !important; }
+html.integre #login-error { color: #b3261e !important; }
+
+/* ---- d'après css/tournoi.css ---- */
+html.integre .tournoi-card { background: rgba(104,9,32,0.044) !important; border: 1px solid rgba(104,9,32,0.34) !important; }
+html.integre .tournoi-title { color: #8a1030 !important; }
+html.integre .tournoi-subtitle { color: rgba(42,26,30,0.85) !important; }
+html.integre .tournoi-section-title { color: #8a1030 !important; border-bottom: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre .add-equipe-label { color: #8a1030 !important; }
+html.integre .tournoi-terrain-edit { color: #2a1a1e !important; }
+html.integre .tournoi-terrain-edit-label { color: rgba(42,26,30,0.75) !important; }
+html.integre .tournoi-tabs { border-bottom: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .tournoi-tab { border: 1px solid rgba(104,9,32,0.275) !important; color: rgba(42,26,30,0.85) !important; }
+html.integre .tournoi-tab:hover { color: #2a1a1e !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .tournoi-tab--active { background: rgba(244,201,65,0.192) !important; border-color: rgba(138,16,48,0.5) !important; color: #8a1030 !important; }
+html.integre .pointage-stat { background: rgba(244,201,65,0.128) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .pointage-stat-label { color: rgba(42,26,30,0.75) !important; }
+html.integre .pointage-stat-value { color: #8a1030 !important; }
+html.integre .pointage-equipe { background: rgba(104,9,32,0.022) !important; border: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .pointage-equipe-head { background: rgba(104,9,32,0.0275) !important; border-bottom: 1px solid rgba(104,9,32,0.184) !important; }
+html.integre .pointage-equipe-nom { color: #2a1a1e !important; }
+html.integre .pointage-poule { color: rgba(138,16,48,0.85) !important; }
+html.integre .pointage-joueur { border-top: 1px dashed rgba(104,9,32,0.158) !important; }
+html.integre .pointage-joueur--present { background: rgba(244,201,65,0.064) !important; }
+html.integre .pointage-joueur-nom { color: #2a1a1e !important; }
+html.integre .toggle-btn { border: 1px solid rgba(104,9,32,0.314) !important; background: rgba(104,9,32,0.022) !important; color: rgba(42,26,30,0.65) !important; }
+html.integre .toggle-btn:hover { background: rgba(104,9,32,0.044) !important; color: #2a1a1e !important; }
+html.integre .toggle-btn--on { color: #1e7d4f !important; }
+html.integre .checkbox-row { background: rgba(104,9,32,0.022) !important; border: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .checkbox-row:hover { background: rgba(104,9,32,0.0385) !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .checkbox-text { color: #2a1a1e !important; }
+html.integre .checkbox-hint { color: rgba(42,26,30,0.7) !important; }
+html.integre .tournoi-card--archived { background: rgba(104,9,32,0.022) !important; border-color: rgba(104,9,32,0.236) !important; }
+html.integre .archived-item { background: rgba(104,9,32,0.022) !important; border: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .archived-nom { color: #2a1a1e !important; }
+html.integre .archived-meta { color: rgba(42,26,30,0.7) !important; }
+html.integre .format-hint { color: rgba(42,26,30,0.8) !important; background: rgba(244,201,65,0.096) !important; border-left: 3px solid rgba(138,16,48,0.5) !important; }
+html.integre .tournoi-input { color: #2a1a1e !important; }
+html.integre .tournoi-input::placeholder { color: rgba(42,26,30,0.55) !important; }
+html.integre select.tournoi-input { background: rgba(104,9,32,0.0275) !important; border: 1px solid rgba(104,9,32,0.34) !important; }
+html.integre select.tournoi-input option { background: #fffdf8 !important; color: #2a1a1e !important; }
+html.integre .control-label { color: rgba(42,26,30,0.85) !important; }
+html.integre .tournoi-hint { color: rgba(42,26,30,0.75) !important; }
+html.integre .equipes-sub-head { color: rgba(42,26,30,0.65) !important; }
+html.integre .equipes-list--dropzone.drop-target, html.integre .poule-equipes--dropzone.drop-target { background: rgba(244,201,65,0.128) !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .equipe-item { background: rgba(104,9,32,0.0275) !important; border: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .equipe-item .fft-points-wrap, html.integre .poule-equipe-item .fft-points-wrap { border-top: 1px solid rgba(104,9,32,0.184) !important; }
+html.integre .equipe-item--draggable:hover { border-color: rgba(138,16,48,0.5) !important; background: rgba(104,9,32,0.044) !important; }
+html.integre .drag-handle { color: rgba(42,26,30,0.5) !important; }
+html.integre .equipe-nom { color: #2a1a1e !important; }
+html.integre .icon-btn { background: rgba(104,9,32,0.033) !important; border: 1px solid rgba(104,9,32,0.314) !important; color: rgba(42,26,30,0.95) !important; }
+html.integre .icon-btn:hover { color: #b3261e !important; }
+html.integre .poule-card { background: rgba(104,9,32,0.0275) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .poule-head { border-bottom: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .poule-nom { color: #8a1030 !important; }
+html.integre .poule-terrain { color: rgba(42,26,30,0.85) !important; }
+html.integre .poule-equipe-item { background: rgba(104,9,32,0.022) !important; border: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .poule-empty { color: rgba(42,26,30,0.55) !important; }
+html.integre .phase-section-title { color: #8a1030 !important; border-bottom: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .phase-section--finale .phase-section-title { color: #8a1030 !important; border-bottom-color: rgba(138,16,48,0.5) !important; }
+html.integre .bracket-card { background: rgba(104,9,32,0.022) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .bracket-title { color: #8a1030 !important; border-bottom: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .bracket-done { color: #8a1030 !important; }
+html.integre .match-item--draggable.drop-target { border-color: rgba(138,16,48,0.7) !important; }
+html.integre .match-drag-handle { color: rgba(42,26,30,0.5) !important; }
+html.integre .match-duree { color: rgba(42,26,30,0.85) !important; background: rgba(104,9,32,0.044) !important; border: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre .match-duree--live { color: #b3261e !important; }
+html.integre .durees-stat { background: rgba(244,201,65,0.128) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .durees-stat-label { color: rgba(42,26,30,0.7) !important; }
+html.integre .durees-stat-value { color: #8a1030 !important; }
+html.integre .classement-poule-card { background: rgba(104,9,32,0.0275) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .classement-poule-title { color: #8a1030 !important; border-bottom: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .format-banner { background: rgba(244,201,65,0.128) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .format-banner-label { color: #8a1030 !important; }
+html.integre .format-banner-example { color: rgba(42,26,30,0.85) !important; }
+html.integre .terrain-title { color: #2a1a1e !important; border-bottom: 1px dashed rgba(104,9,32,0.275) !important; }
+html.integre .match-item { background: rgba(104,9,32,0.0275) !important; border: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .match-equipe--placeholder { color: rgba(138,16,48,0.85) !important; }
+html.integre .match-dep-hint { color: rgba(42,26,30,0.65) !important; }
+html.integre .match-meta { color: rgba(42,26,30,0.7) !important; }
+html.integre .match-format-tag { color: #8a1030 !important; background: rgba(244,201,65,0.16) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .match-equipe--draggable:hover { background: rgba(244,201,65,0.128) !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .match-equipe--draggable.drop-target { background: rgba(244,201,65,0.288) !important; border-color: rgba(138,16,48,0.7) !important; }
+html.integre .match-equipe { color: #2a1a1e !important; }
+html.integre .match-vs { color: rgba(42,26,30,0.65) !important; }
+html.integre .score-input { background: rgba(104,9,32,0.077) !important; border: 1px solid rgba(104,9,32,0.47) !important; color: #8a1030 !important; }
+html.integre .set-label { color: rgba(42,26,30,0.7) !important; }
+html.integre .set-sep { color: rgba(42,26,30,0.55) !important; }
+html.integre .tournoi-empty { color: rgba(42,26,30,0.65) !important; }
+html.integre .tournoi-live-title { color: #8a1030 !important; }
+html.integre .tournoi-live-subtitle { color: rgba(42,26,30,0.85) !important; }
+html.integre .live-section-title { color: #8a1030 !important; }
+html.integre .live-section-title--live { color: #b3261e !important; }
+html.integre .live-match-meta { color: rgba(42,26,30,0.85) !important; }
+html.integre .live-match-equipe { color: #2a1a1e !important; }
+html.integre .live-match-equipe--placeholder, html.integre .match-mini-equipe--placeholder { color: rgba(138,16,48,0.85) !important; }
+html.integre .live-match-score { color: #8a1030 !important; }
+html.integre .live-match-score .score-sep { color: rgba(42,26,30,0.55) !important; }
+html.integre .live-badge { color: #2a1a1e !important; }
+html.integre .live-pulse { background: #fffdf8 !important; }
+html.integre .terrain-card { background: rgba(104,9,32,0.033) !important; border: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre .terrain-card-title { color: #8a1030 !important; border-bottom: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .terrain-card-title--link:hover { color: #8a1030 !important; border-bottom-color: rgba(138,16,48,0.5) !important; }
+html.integre .terrain-subtitle { color: rgba(42,26,30,0.7) !important; }
+html.integre .match-mini { background: rgba(104,9,32,0.0275) !important; }
+html.integre .match-mini-equipe { color: #2a1a1e !important; }
+html.integre .match-mini-equipe.vainqueur { color: #8a1030 !important; }
+html.integre .match-mini-vs { color: rgba(42,26,30,0.55) !important; }
+html.integre .match-mini-score { color: #8a1030 !important; }
+html.integre .live-empty-mini { color: rgba(42,26,30,0.6) !important; }
+html.integre .classement-final-card, html.integre .classement-final-live { background: rgba(244,201,65,0.096) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .classement-final-table td { border-bottom: 1px solid rgba(104,9,32,0.184) !important; }
+html.integre .place-rank { color: #8a1030 !important; }
+html.integre .place-row:nth-child(1) .place-rank, html.integre .place-row:nth-child(2) .place-rank, html.integre .place-row:nth-child(3) .place-rank { color: #8a1030 !important; }
+html.integre .place-equipe { color: #2a1a1e !important; }
+html.integre .place-row--pending .place-equipe { color: rgba(42,26,30,0.55) !important; }
+html.integre .tournoi-live-share { background: rgba(244,201,65,0.24) !important; border: 1px solid rgba(138,16,48,0.5) !important; color: #8a1030 !important; }
+html.integre .tournoi-live-share:hover { background: rgba(244,201,65,0.4) !important; border-color: #8a1030 !important; }
+html.integre .historique-section { border-top: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .historique-card { background: rgba(104,9,32,0.0275) !important; border: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .historique-card:hover { background: rgba(244,201,65,0.128) !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .historique-card-nom { color: #2a1a1e !important; }
+html.integre .historique-card-meta { color: rgba(42,26,30,0.75) !important; }
+html.integre .historique-back { color: rgba(42,26,30,0.85) !important; border: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre .historique-back:hover { color: #8a1030 !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .readonly-badge { color: #8a1030 !important; background: rgba(244,201,65,0.192) !important; }
+html.integre .bracket-live-card { background: rgba(138,16,48,0.036) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .bracket-live-title { color: #8a1030 !important; border-bottom: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .poule-live-card { background: rgba(104,9,32,0.033) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .poule-live-head { border-bottom: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .poule-live-nom { color: #8a1030 !important; }
+html.integre .poule-live-terrain { color: rgba(42,26,30,0.75) !important; }
+html.integre .poule-live-table th, html.integre .poule-live-table td { color: #2a1a1e !important; }
+html.integre .poule-live-thead th { color: rgba(42,26,30,0.6) !important; border-bottom: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .poule-pos { color: #8a1030 !important; }
+html.integre .poule-stat { color: #2a1a1e !important; }
+html.integre .poule-stat--v { color: #8a1030 !important; }
+html.integre .poule-qualif { color: #8a1030 !important; }
+html.integre .poule-pos-badge { color: #8a1030 !important; background: rgba(138,16,48,0.072) !important; }
+html.integre .poule-stats { color: rgba(42,26,30,0.7) !important; }
+html.integre .fft-joueur-nom { color: #8a1030 !important; }
+html.integre .fft-joueur-nom--vide { color: rgba(42,26,30,0.55) !important; }
+html.integre .fft-poids-badge { color: #8a1030 !important; background: rgba(244,201,65,0.192) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .niveau-input { color: #8a1030 !important; background: rgba(244,201,65,0.128) !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .niveau-input:focus { border-color: #8a1030 !important; }
+html.integre .live-empty-title { color: #8a1030 !important; }
+html.integre .live-empty-text { color: rgba(42,26,30,0.75) !important; }
+html.integre .admin-switcher { background: rgba(104,9,32,0.033) !important; border: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre .admin-switcher button { color: rgba(42,26,30,0.75) !important; }
+html.integre .admin-switcher button:hover { color: #2a1a1e !important; }
+html.integre .admin-switcher button.active { background: #8a1030 !important; color: #ffffff !important; }
+html.integre .poule-stat--pts { color: #2a1a1e !important; }
+html.integre .ts-badge { color: #2a1a1e !important; background: rgba(104,9,32,0.055) !important; border: 1px solid rgba(104,9,32,0.366) !important; }
+html.integre .ts-badge--1 { border-color: #8a1030 !important; }
+html.integre .format-picker-overlay { background: #fffdf8 !important; }
+html.integre .format-picker { background: #fffdf8 !important; border: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre .format-picker-titre { color: #2a1a1e !important; }
+html.integre .format-picker-config { color: #8a1030 !important; }
+html.integre .format-picker-vide { color: rgba(42,26,30,0.85) !important; }
+html.integre .format-option { border: 1px solid rgba(104,9,32,0.288) !important; }
+html.integre .format-option:hover:not(.format-option--indispo) { border-color: rgba(138,16,48,0.6) !important; background: rgba(244,201,65,0.096) !important; }
+html.integre .format-option--choisi { border-color: #8a1030 !important; background: rgba(244,201,65,0.192) !important; }
+html.integre .format-option-nom { color: #2a1a1e !important; }
+html.integre .format-option-tag { color: rgba(42,26,30,0.75) !important; border: 1px solid rgba(104,9,32,0.405) !important; }
+html.integre .format-option-detail { color: rgba(42,26,30,0.95) !important; }
+html.integre .format-option-requis { color: rgba(42,26,30,0.7) !important; }
+html.integre .fft-total-label { color: rgba(42,26,30,0.7) !important; }
+html.integre .fft-badge { color: #1e7d4f !important; }
+html.integre .fft-badge--non { color: rgba(42,26,30,0.65) !important; background: rgba(104,9,32,0.033) !important; border-color: rgba(104,9,32,0.34) !important; }
+html.integre .repos-alerte { color: #8a1030 !important; background: rgba(138,16,48,0.072) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .tirage-tv-overlay { background: #fffdf8 !important; }
+html.integre .tirage-tv-titre { color: #8a1030 !important; }
+html.integre .tirage-tv-attente { color: #2a1a1e !important; }
+html.integre .tirage-tv-sous, html.integre .tirage-tv-progression { color: rgba(42,26,30,0.75) !important; }
+html.integre .tirage-tv-roue { border-top: 3px solid rgba(138,16,48,0.5) !important; border-bottom: 3px solid rgba(138,16,48,0.5) !important; background: rgba(244,201,65,0.096) !important; }
+html.integre .tirage-tv-nom { color: #2a1a1e !important; }
+html.integre .tirage-tv-nom--sorti { color: #8a1030 !important; }
+html.integre .tirage-tv-equipe { color: #8a1030 !important; }
+html.integre .tirage-tv-fleche { color: rgba(42,26,30,0.65) !important; }
+html.integre .tirage-tv-poule { color: #1e7d4f !important; }
+html.integre .tirage-tv-motif { color: rgba(42,26,30,0.7) !important; }
+html.integre .tirage-tv-poule-carte { background: rgba(104,9,32,0.0275) !important; border: 1px solid rgba(104,9,32,0.275) !important; }
+html.integre .tirage-tv-poule-nom { color: #8a1030 !important; }
+html.integre .tirage-tv-poule-eq { color: #2a1a1e !important; }
+html.integre .tirage-tv-poule-eq--neuf { color: #1e7d4f !important; }
+html.integre .tirage-suivi-overlay { background: #fffdf8 !important; }
+html.integre .tirage-suivi { background: #fffdf8 !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .tirage-suivi-titre { color: #8a1030 !important; }
+html.integre .tirage-suivi-etat { color: #2a1a1e !important; }
+html.integre .tirage-suivi-barre { background: rgba(104,9,32,0.066) !important; }
+html.integre .tirage-suivi-detail { color: #1e7d4f !important; }
+html.integre .tirage-suivi-aide { color: rgba(42,26,30,0.65) !important; }
+html.integre .annuaire-ligne { background: rgba(104,9,32,0.022) !important; border: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .annuaire-ligne--double { border-color: rgba(138,16,48,0.5) !important; background: rgba(138,16,48,0.048) !important; }
+html.integre .annuaire-nom { color: #2a1a1e !important; }
+html.integre .annuaire-meta { color: rgba(42,26,30,0.7) !important; }
+html.integre .annuaire-alerte { color: #8a1030 !important; }
+html.integre .fft-ac { background: #fffdf8 !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .fft-ac__item--actif { background: rgba(138,16,48,0.108) !important; }
+html.integre .fft-ac__rang { color: #8a1030 !important; }
+html.integre .fft-ac__nom { color: #2a1a1e !important; }
+html.integre .fft-ac__meta { color: rgba(42,26,30,0.7) !important; }
+html.integre .fft-ac__vide { color: rgba(42,26,30,0.75) !important; }
+html.integre .fft-choix { color: #ffffff !important; background: #8a1030 !important; }
+html.integre .planning-modale { background: #fffdf8 !important; }
+html.integre .planning-champ .tournoi-input { background: rgba(104,9,32,0.033) !important; border: 1px solid rgba(104,9,32,0.34) !important; }
+html.integre .planning-champ select.tournoi-input option { background: #fffdf8 !important; }
+html.integre .planning-ligne { background: rgba(104,9,32,0.022) !important; border: 1px solid rgba(104,9,32,0.236) !important; }
+html.integre .planning-meta { color: rgba(42,26,30,0.8) !important; }
+html.integre .planning-badge { background: rgba(104,9,32,0.066) !important; }
+html.integre .planning-badge--publie { color: #1e7d4f !important; }
+html.integre .planning-badge--fft { background: rgba(138,16,48,0.15) !important; color: #8a1030 !important; }
+html.integre .inscr-panneau { background: rgba(42,26,30,0.045) !important; border: 1px solid rgba(138,16,48,0.5) !important; }
+html.integre .inscr-convoc { background: rgba(138,16,48,0.072) !important; }
+html.integre .inscr-heure { background: rgba(104,9,32,0.044) !important; border: 1px solid rgba(104,9,32,0.405) !important; }
+html.integre .inscr-titre { color: #8a1030 !important; }
+html.integre .inscr-ligne { border-top: 1px solid rgba(104,9,32,0.21) !important; }
+html.integre .inscr-num { color: rgba(42,26,30,0.65) !important; }
+html.integre .inscr-contact { color: rgba(42,26,30,0.7) !important; }
+html.integre .inscr-ok { color: #1e7d4f !important; }
+html.integre .inscr-attente { color: rgba(42,26,30,0.7) !important; }
+html.integre .inscr-message { color: #8a1030 !important; }
+html.integre .resultats-ligne { background: rgba(104,9,32,0.022) !important; }
+html.integre .resultats-place { background: rgba(104,9,32,0.044) !important; border: 1px solid rgba(104,9,32,0.405) !important; }
+html.integre .resultats-auto { color: #8a1030 !important; }
+html.integre .resultats-points { color: #1e7d4f !important; }
+html.integre .homonymes-panneau { border-left: 3px solid #8a1030 !important; background: rgba(138,16,48,0.048) !important; }
+html.integre .homonyme-choix { border: 1px solid rgba(104,9,32,0.34) !important; background: rgba(104,9,32,0.0275) !important; color: #2a1a1e !important; }
+html.integre .homonyme-choix:hover { border-color: #8a1030 !important; background: rgba(138,16,48,0.09) !important; }
+html.integre .homonyme-choix strong { color: #8a1030 !important; }
+html.integre .homonyme-choix span { color: rgba(42,26,30,0.75) !important; }
+html.integre .homonyme-choix--aucun { color: rgba(42,26,30,0.85) !important; }
+html.integre .videos-intro { background: #fffdf8 !important; border-left: 3px solid #8a1030 !important; }
+html.integre .videos-select, html.integre .videos-date { border: 1px solid #680920 !important; background: #fffdf8 !important; }
+html.integre .videos-vide { color: #65565a !important; background: #fffdf8 !important; }
+html.integre .videos-erreur { background: #fffdf8 !important; }
+html.integre .video-carte { background: #fffdf8 !important; border: 1px solid #680920 !important; }
+html.integre .video-carte--bloquee { background: #fffdf8 !important; }
+html.integre .video-carte__vignette { background: #fffdf8 !important; }
+html.integre .video-carte__duree { background: #fffdf8 !important; color: #2a1a1e !important; }
+html.integre .video-carte__meta { color: #65565a !important; }
+html.integre .videos-terrains { border-bottom: 1px solid #680920 !important; }
+html.integre .videos-terrains__aide { color: #65565a !important; }
+html.integre .terrain-ligne { background: #fffdf8 !important; border: 1px solid #680920 !important; }
+html.integre .terrain-ligne--coupe { background: #fffdf8 !important; }
+html.integre .ordre16-select { border: 1px solid #680920 !important; background: #fffdf8 !important; }
+html.integre .ordre16-select--double { background: #fffdf8 !important; }
+html.integre .bracket-details { border: 1px solid #680920 !important; background: #fffdf8 !important; }
+html.integre .bracket-bloc + .bracket-bloc { border-top: 1px dashed #680920 !important; }
+html.integre .bracket-colonne-titre { color: #65565a !important; border-bottom: 1px solid #680920 !important; }
+html.integre .bracket-match { border: 1px solid #680920 !important; background: #fffdf8 !important; }
+html.integre .bracket-match--clic:hover { border-color: #e6dfd2 !important; }
+html.integre .bracket-match--en_cours { border-color: #8a1030 !important; }
+html.integre .bracket-match--vide { color: #65565a !important; }
+html.integre .bracket-equipe + .bracket-equipe { border-top: 1px solid #680920 !important; }
+html.integre .bracket-equipe--perdant { color: #65565a !important; }
+html.integre .bracket-equipe--attente { color: #65565a !important; }
+html.integre .bracket-pied { color: #65565a !important; background: #fffdf8 !important; border-top: 1px solid #680920 !important; }
+html.integre .bracket-fleche { color: #65565a !important; }
+html.integre .horaires-barre { background: #fffdf8 !important; border: 1px solid #680920 !important; }
+html.integre .horaires-sous { color: #65565a !important; }
+html.integre .horaires-fin { color: #65565a !important; }
+html.integre .live-prochains__titre { color: #2a1a1e !important; }
+html.integre .live-prochains__ligne { background: #fffdf8 !important; }
+html.integre .live-prochains__ligne:hover, html.integre .live-prochains__ligne:focus-visible { background: #8a1030 !important; color: #fff !important; }
+html.integre .live-prochains__tout { color: #8a1030 !important; }
+html.integre .match-presence { color: #8a1030 !important; background: rgba(244,201,65,0.16) !important; }
+html.integre .match-presence--ok { color: #1e7d4f !important; }
+html.integre .pointage-joueur-tel { color: rgba(42,26,30,0.85) !important; }
+html.integre .pointage-joueur-tel:hover { color: #8a1030 !important; }
+html.integre .pointage-heures { color: rgba(42,26,30,0.9) !important; border-bottom: 1px solid rgba(104,9,32,0.184) !important; }
+
+/* ---- d'après css/americano.css ---- */
+html.integre .am-tab { color: rgba(42,26,30,0.8) !important; }
+html.integre .am-tab--active { background: rgba(42,26,30,0.0375) !important; }
+html.integre .am-card { background: #fffdf8 !important; border: 1px solid #e6dfd2 !important; }
+html.integre .am-input, html.integre .am-select { border: 2px solid #e6dfd2 !important; background: #fffdf8 !important; }
+html.integre .am-segmented button { border: 2px solid #e6dfd2 !important; background: #fffdf8 !important; }
+html.integre .am-btn--outline { background: #fffdf8 !important; }
+html.integre .am-btn--danger { color: #2a1a1e !important; }
+html.integre .am-terrain { background: #fffdf8 !important; border: 2px solid #e6dfd2 !important; }
+html.integre .am-equipe--a { background: rgba(42,26,30,0.0175) !important; border-color: #e6dfd2 !important; }
+html.integre .am-equipe--b { background: rgba(138,16,48,0.078) !important; border-color: rgba(138,16,48,0.5) !important; }
+html.integre .am-score-input { border: 3px solid #e6dfd2 !important; background: #fffdf8 !important; }
+html.integre .am-score-input--vide { background: #fffdf8 !important; }
+html.integre .am-score-pad button { border: 2px solid #e6dfd2 !important; background: #fffdf8 !important; }
+html.integre .am-score-pad button:active { background: rgba(42,26,30,0.025) !important; }
+html.integre .am-repos { background: rgba(42,26,30,0.015) !important; border: 2px dashed #e6dfd2 !important; }
+html.integre .am-table td { border-bottom: 1px solid #e6dfd2 !important; }
+html.integre .am-table tbody tr:nth-child(odd) { background: rgba(42,26,30,0.0075) !important; }
+html.integre .am-note { background: rgba(138,16,48,0.108) !important; }
+html.integre .am-grille-match { border-bottom: 1px solid #e6dfd2 !important; }
+html.integre .am-podium-place { background: #fffdf8 !important; border: 2px solid #e6dfd2 !important; }
+html.integre .am-podium-place--2 { background: #fffdf8 !important; }
+html.integre .am-sticky-bar { background: rgba(255,253,248,0.97) !important; border-top: 2px solid #e6dfd2 !important; }
+@media print {
+  html.integre .americano-wrap { background: #fffdf8 !important; }
+  html.integre .am-grille-tour-head { border-bottom-color: #e6dfd2 !important; }
+  html.integre .am-grille-tour-badge { background: #fffdf8 !important; }
+}
+
+/* Page : fond crème du pilotage, sans les décors du thème sombre */
+html.integre, html.integre body.live-body { background: #f4f0e6 !important; color: #2a1a1e !important; }
+html.integre .live-body::before, html.integre .live-body::after { display: none !important; }
+html.integre .admin-topbar { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+html.integre input:not([type=checkbox]):not([type=radio]), html.integre select, html.integre textarea {
+  background: #fff !important; color: #2a1a1e !important; border: 1px solid #cfc6b6 !important; }
+html.integre ::placeholder { color: #8b7d80 !important; }
+html.integre h1, html.integre h2, html.integre h3 { color: #680920 !important; }
+/* Titres en Kanit, comme le pilotage (l'ancien admin utilisait Turret Road) */
+html.integre h1, html.integre h2, html.integre h3, html.integre .live-title, html.integre .topbar-label,
+html.integre [class*="titre"], html.integre [class*="title"] { font-family: Kanit, sans-serif !important; }
+html.integre table th { color: #65565a !important; }
+html.integre table td, html.integre table th { border-color: #e6dfd2 !important; }
+/* Americano : la déconnexion passe par le pilotage */
+html.integre #am-logout, html.integre #am-user-email { display: none !important; }
+/* Styles écrits directement dans le code JavaScript (les plus fréquents) */
+html.integre [style*="color:#efa707"], html.integre [style*="color: #efa707"] { color: #8a1030 !important; }
+html.integre [style*="background:#efa707"], html.integre [style*="background: #efa707"] { background: #8a1030 !important; color: #fff !important; }
+html.integre [style*="color:#f4f0e6"], html.integre [style*="color: #f4f0e6"],
+html.integre [style*="color:rgba(244,240,230"], html.integre [style*="color:#eee"] { color: #2a1a1e !important; }
+html.integre [style*="background:rgba(244,240,230"] { background: rgba(104,9,32,.05) !important; }
+html.integre [style*="background:rgba(0,0,0"], html.integre [style*="background:#222"] { background: rgba(42,26,30,.05) !important; }
+html.integre [style*="color:#8fd694"], html.integre [style*="color:#7ee06a"] { color: #1e7d4f !important; }
+html.integre [style*="color:#ff9b8f"] { color: #b3261e !important; }
+

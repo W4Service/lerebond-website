@@ -1,8 +1,24 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<base href="https://le-rebond.fr/">
 <meta charset="utf-8">
+<script>
+// L'Americano est aussi un onglet du pilotage (pilotage.le-rebond.fr/#/americano), affiché en mode
+// intégré (?integre=1) aux couleurs du pilotage. Ouvert seul sur le-rebond.fr, il y renvoie.
+// Secours : le-rebond.fr/live/americano/?ancien=1
+(function () {
+    var q = new URLSearchParams(location.search);
+    if (q.has('integre')) {
+        document.documentElement.className += ' integre';
+        document.write('<link rel="stylesheet" href="https://le-rebond.fr/css/admin-pilotage.css?v=1">');
+        return;
+    }
+    if (/^(www\.)?le-rebond\.fr$/.test(location.hostname) && !q.has('ancien')) {
+        location.replace('https://pilotage.le-rebond.fr/#/americano');
+    }
+})();
+</script>
+<base href="https://le-rebond.fr/">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tournoi Americano — Le Rebond</title>
 <meta name="robots" content="noindex, nofollow">
@@ -18,8 +34,8 @@
 @font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
 </style>
-<link rel="stylesheet" href="css/live.css?v=92e809a9">
-<link rel="stylesheet" href="css/americano.css?v=92e809a9">
+<link rel="stylesheet" href="css/live.css?v=1913142b">
+<link rel="stylesheet" href="css/americano.css?v=1913142b">
 
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -67,13 +83,13 @@
 </div>
 </div>
 
-<script src="js/vendor/supabase.min.js?v=92e809a9"></script>
-<script src="js/vendor/qrcode.min.js?v=92e809a9"></script>
-<script src="js/resa-config.min.js?v=92e809a9"></script>
-<script src="js/supabase-client.js?v=92e809a9"></script>
-<script src="js/tournoi-qr.js?v=92e809a9"></script>
-<script src="js/americano-engine.js?v=92e809a9"></script>
-<script src="js/americano-app.js?v=92e809a9"></script>
+<script src="js/vendor/supabase.min.js?v=1913142b"></script>
+<script src="js/vendor/qrcode.min.js?v=1913142b"></script>
+<script src="js/resa-config.min.js?v=1913142b"></script>
+<script src="js/supabase-client.js?v=1913142b"></script>
+<script src="js/tournoi-qr.js?v=1913142b"></script>
+<script src="js/americano-engine.js?v=1913142b"></script>
+<script src="js/americano-app.js?v=1913142b"></script>
 <script>
 (function () {
     var supa = window.LeRebondSupa;
