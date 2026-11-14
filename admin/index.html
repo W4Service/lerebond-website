@@ -1,16 +1,31 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script>
-// L'admin est servi par le pilotage (pilotage.le-rebond.fr/admin/, même page, connexion commune).
-// Sur le-rebond.fr on y renvoie avec les mêmes paramètres (liens fidélité ?client=…, ?onglet=…).
-// Secours si le pilotage est indisponible : le-rebond.fr/admin/?ancien=1
-if (/^(www\.)?le-rebond\.fr$/.test(location.hostname) && !/[?&]ancien=1\b/.test(location.search)) {
-    location.replace('https://pilotage.le-rebond.fr/admin/' + location.search + location.hash);
-}
-</script>
-<base href="https://le-rebond.fr/">
 <meta charset="utf-8">
+<script>
+// L'admin vit dans le pilotage : chacun de ses onglets est un onglet de pilotage.le-rebond.fr,
+// qui affiche cette page en mode intégré (?integre=1, sans l'ancien bandeau).
+// Ouverte seule (le-rebond.fr/admin, lien fidélité ?client=…), elle renvoie vers le bon onglet du pilotage.
+// Secours si le pilotage est indisponible : le-rebond.fr/admin/?ancien=1
+(function () {
+    var q = new URLSearchParams(location.search);
+    if (q.has('integre')) { document.documentElement.className += ' integre'; return; }
+    var surSite = /^(www\.)?le-rebond\.fr$/.test(location.hostname);
+    var surPilotage = location.hostname === 'pilotage.le-rebond.fr';
+    if ((!surSite && !surPilotage) || q.has('ancien')) return;
+    var vers = { chrono: 'chrono', tournoi: 'gestion-tournoi', planning: 'calendrier', videos: 'videos', fidelite: 'fidelite' };
+    var onglet = q.has('client') ? 'fidelite' : (q.get('onglet') || 'chrono');
+    q.delete('onglet');
+    var reste = q.toString();
+    location.replace('https://pilotage.le-rebond.fr/#/' + (vers[onglet] || 'chrono') + (reste ? '?' + reste : ''));
+})();
+</script>
+<style>
+/* Mode intégré au pilotage : le pilotage fournit déjà l'en-tête, les onglets et la déconnexion. */
+.integre .topbar-logo, .integre .admin-switcher, .integre .user-pill, .integre #btn-logout,
+.integre #retour-pilotage { display: none !important; }
+</style>
+<base href="https://le-rebond.fr/">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Live — Le Rebond</title>
 <meta name="robots" content="noindex, nofollow">
@@ -26,8 +41,8 @@ if (/^(www\.)?le-rebond\.fr$/.test(location.hostname) && !/[?&]ancien=1\b/.test(
 @font-face { font-family: 'Kanit'; src: url('fonts/Kanit-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
 </style>
-<link rel="stylesheet" href="css/live.css?v=83657fb6">
-<link rel="stylesheet" href="css/tournoi.css?v=83657fb6">
+<link rel="stylesheet" href="css/live.css?v=92e809a9">
+<link rel="stylesheet" href="css/tournoi.css?v=92e809a9">
 </head>
 <body class="live-body">
 
@@ -173,23 +188,23 @@ Reset
 
 </div>
 
-<script src="js/vendor/supabase.min.js?v=83657fb6"></script>
-<script src="js/vendor/qrcode.min.js?v=83657fb6"></script>
-<script src="js/resa-config.min.js?v=83657fb6"></script>
-<script src="js/supabase-client.js?v=83657fb6"></script>
-<script src="js/chrono-admin.js?v=83657fb6"></script>
-<script src="js/tournoi-qr.js?v=83657fb6"></script>
-<script src="js/tournoi-classement.js?v=83657fb6"></script>
-<script src="js/tournoi-tirage.js?v=83657fb6"></script>
-<script src="js/fft-recherche.js?v=83657fb6"></script>
-<script src="js/fft-bareme.js?v=83657fb6"></script>
-<script src="js/tournoi-admin.js?v=83657fb6"></script>
-<script src="js/tournoi-planning.js?v=83657fb6"></script>
-<script src="js/tournoi-tableau16.js?v=83657fb6"></script>
-<script src="js/tournoi-bracket-vue.js?v=83657fb6"></script>
-<script src="js/videos-source.js?v=83657fb6"></script>
-<script src="js/videos-admin.js?v=83657fb6"></script>
-<script src="js/fidelite-admin.js?v=83657fb6"></script>
+<script src="js/vendor/supabase.min.js?v=92e809a9"></script>
+<script src="js/vendor/qrcode.min.js?v=92e809a9"></script>
+<script src="js/resa-config.min.js?v=92e809a9"></script>
+<script src="js/supabase-client.js?v=92e809a9"></script>
+<script src="js/chrono-admin.js?v=92e809a9"></script>
+<script src="js/tournoi-qr.js?v=92e809a9"></script>
+<script src="js/tournoi-classement.js?v=92e809a9"></script>
+<script src="js/tournoi-tirage.js?v=92e809a9"></script>
+<script src="js/fft-recherche.js?v=92e809a9"></script>
+<script src="js/fft-bareme.js?v=92e809a9"></script>
+<script src="js/tournoi-admin.js?v=92e809a9"></script>
+<script src="js/tournoi-planning.js?v=92e809a9"></script>
+<script src="js/tournoi-tableau16.js?v=92e809a9"></script>
+<script src="js/tournoi-bracket-vue.js?v=92e809a9"></script>
+<script src="js/videos-source.js?v=92e809a9"></script>
+<script src="js/videos-admin.js?v=92e809a9"></script>
+<script src="js/fidelite-admin.js?v=92e809a9"></script>
 <script>
 // Switcher tabs
 window.switchTab = function(tab) {
