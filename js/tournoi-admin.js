@@ -6217,6 +6217,12 @@
             if (meta.length > 0) info.appendChild(el('div', { class: 'archived-meta' }, meta.join(' · ')));
             row.appendChild(info);
             var actions = el('div', { class: 'archived-actions' });
+            var ouvert = classementsClotures[t.id] !== undefined;
+            actions.appendChild(el('button', {
+                class: 'btn-live btn-live--primary btn-live--small',
+                onclick: function () { basculerClassementCloture(t.id); },
+                title: 'Voir le classement final sans rouvrir le tournoi'
+            }, ouvert ? '▾ Masquer le classement' : '🏅 Classement'));
             actions.appendChild(el('button', {
                 class: 'btn-live btn-live--outline btn-live--small',
                 onclick: function () { rouvrirTournoi(t.id); },
@@ -6229,9 +6235,45 @@
             }, '📦 Archiver'));
             row.appendChild(actions);
             list.appendChild(row);
+            if (ouvert) list.appendChild(renderClassementCloture(classementsClotures[t.id]));
         });
         card.appendChild(list);
         return card;
+    }
+
+    // Classement d'un tournoi clôturé, en lecture seule (places finales enregistrées à la clôture).
+    var classementsClotures = {}; // id → null (chargement) | { equipes } | { erreur }
+    async function basculerClassementCloture(id) {
+        if (classementsClotures[id] !== undefined) { delete classementsClotures[id]; render(); return; }
+        classementsClotures[id] = null; render();
+        var res = await supa.from('equipes').select('id, nom, place_finale').eq('tournoi_id', id);
+        classementsClotures[id] = res.error ? { erreur: res.error.message } : { equipes: res.data || [] };
+        render();
+    }
+
+    function renderClassementCloture(etat) {
+        var box = el('div', { class: 'classement-final-card' });
+        if (etat === null) { box.appendChild(el('p', { class: 'tournoi-hint' }, 'Chargement du classement…')); return box; }
+        if (etat.erreur) { box.appendChild(el('p', { class: 'tournoi-hint' }, '⚠️ ' + etat.erreur)); return box; }
+        var placees = etat.equipes.filter(function (e) { return e.place_finale != null; })
+            .sort(function (a, b) { return a.place_finale - b.place_finale || String(a.nom).localeCompare(b.nom); });
+        var autres = etat.equipes.filter(function (e) { return e.place_finale == null; });
+        if (!placees.length) {
+            box.appendChild(el('p', { class: 'tournoi-hint' }, 'Aucune place enregistrée pour ce tournoi (' + etat.equipes.length
+                + ' paires). Rouvre-le et remplis « Résultats officiels » pour avoir le classement.'));
+            return box;
+        }
+        var medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+        var table = el('table', { class: 'classement-final-table' });
+        placees.forEach(function (e) {
+            var row = el('tr', { class: 'place-row' });
+            row.appendChild(el('td', { class: 'place-rank' }, (medals[e.place_finale] || '') + ' ' + e.place_finale + (e.place_finale === 1 ? 'er' : 'e')));
+            row.appendChild(el('td', { class: 'place-equipe' }, e.nom || '—'));
+            table.appendChild(row);
+        });
+        box.appendChild(table);
+        if (autres.length) box.appendChild(el('p', { class: 'tournoi-hint' }, 'Sans place : ' + autres.map(function (e) { return e.nom; }).join(', ')));
+        return box;
     }
 
     function renderArchivedSection() {
