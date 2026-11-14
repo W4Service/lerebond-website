@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script>
+// L'admin est servi par le pilotage (pilotage.le-rebond.fr/admin/, même page, connexion commune).
+// Sur le-rebond.fr on y renvoie avec les mêmes paramètres (liens fidélité ?client=…, ?onglet=…).
+// Secours si le pilotage est indisponible : le-rebond.fr/admin/?ancien=1
+if (/^(www\.)?le-rebond\.fr$/.test(location.hostname) && !/[?&]ancien=1\b/.test(location.search)) {
+    location.replace('https://pilotage.le-rebond.fr/admin/' + location.search + location.hash);
+}
+</script>
 <base href="https://le-rebond.fr/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
