@@ -6235,7 +6235,7 @@
             }, '📦 Archiver'));
             row.appendChild(actions);
             list.appendChild(row);
-            if (ouvert) list.appendChild(renderClassementCloture(classementsClotures[t.id]));
+            if (ouvert) list.appendChild(renderClassementCloture(classementsClotures[t.id], t));
         });
         card.appendChild(list);
         return card;
@@ -6251,7 +6251,15 @@
         render();
     }
 
-    function renderClassementCloture(etat) {
+    // Barème du classement des joueurs du club (le même que l'onglet Résultats du pilotage, pour que les
+    // points d'un tournoi s'additionnent au classement général).
+    var BAREME_CLUB = { P25: 25, P50: 50, P100: 100, P250: 250, P500: 500, P1000: 1000, Loisir: 10, 'Montante-descendante': 10 };
+    function pointsClub(categorie, place) {
+        var part = place === 1 ? 1 : place === 2 ? 0.6 : place <= 4 ? 0.4 : place <= 8 ? 0.25 : 0.1;
+        return Math.round((BAREME_CLUB[categorie] || 10) * part);
+    }
+
+    function renderClassementCloture(etat, t) {
         var box = el('div', { class: 'classement-final-card' });
         if (etat === null) { box.appendChild(el('p', { class: 'tournoi-hint' }, 'Chargement du classement…')); return box; }
         if (etat.erreur) { box.appendChild(el('p', { class: 'tournoi-hint' }, '⚠️ ' + etat.erreur)); return box; }
@@ -6263,16 +6271,29 @@
                 + ' paires). Rouvre-le et remplis « Résultats officiels » pour avoir le classement.'));
             return box;
         }
+        var fft = window.FFTBareme && t.homologue && FFTBareme.CATEGORIES.indexOf(t.categorie) >= 0;
         var medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
         var table = el('table', { class: 'classement-final-table' });
+        var tete = el('tr');
+        ['Place', 'Paire', 'Pts club / joueur'].concat(fft ? ['Pts FFT / joueur'] : []).forEach(function (x) { tete.appendChild(el('th', {}, x)); });
+        table.appendChild(tete);
         placees.forEach(function (e) {
             var row = el('tr', { class: 'place-row' });
             row.appendChild(el('td', { class: 'place-rank' }, (medals[e.place_finale] || '') + ' ' + e.place_finale + (e.place_finale === 1 ? 'er' : 'e')));
             row.appendChild(el('td', { class: 'place-equipe' }, e.nom || '—'));
+            row.appendChild(el('td', { class: 'place-rank' }, String(pointsClub(t.categorie, e.place_finale))));
+            if (fft) {
+                var pf = FFTBareme.points(t.categorie, e.place_finale, etat.equipes.length);
+                row.appendChild(el('td', { class: 'place-rank' }, pf == null ? '—' : String(pf)));
+            }
             table.appendChild(row);
         });
         box.appendChild(table);
         if (autres.length) box.appendChild(el('p', { class: 'tournoi-hint' }, 'Sans place : ' + autres.map(function (e) { return e.nom; }).join(', ')));
+        box.appendChild(el('p', { class: 'tournoi-hint' }, 'Pts club : ' + (BAREME_CLUB[t.categorie] || 10)
+            + ' au vainqueur, 60 % au finaliste, 40 % aux 3e-4e, 25 % aux 5e-8e, 10 % ensuite. Classement général de tous les tournois : onglet Résultats → Joueurs.'));
+        var lien = el('a', { class: 'btn-live btn-live--outline btn-live--small', href: 'https://pilotage.le-rebond.fr/#/resultats', target: '_top' }, '🏆 Classement général des joueurs');
+        box.appendChild(lien);
         return box;
     }
 
