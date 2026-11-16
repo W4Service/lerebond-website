@@ -672,14 +672,19 @@
             '</div>';
         }
 
-        // Actions secondaires
-        html += '<div class="am-btn-row" style="margin-top:1.2rem">' +
+        // Actions secondaires : clôturer avant la fin de la grille (plus de temps, joueurs partis…)
+        html += '<div class="am-btn-row am-actions-tour" style="margin-top:1.2rem">' +
             (t > 1 ? '<button class="am-btn am-btn--outline" id="am-corriger">✏️ Corriger le tour précédent</button>' : '') +
-            '<button class="am-btn am-btn--danger" id="am-reset-tournoi">🗑 Réinitialiser le tournoi</button>' +
+            (!dernierTour ? '<button class="am-btn am-btn--outline" id="am-cloturer">🏁 Clôturer maintenant</button>' : '') +
         '</div>';
 
         // Écrans à diffuser (joueurs + TV)
         html += blocEcrans();
+
+        // Action destructrice : à part, en bas, discrète
+        html += '<div class="am-zone-danger">' +
+            '<button class="am-btn am-btn--danger" id="am-reset-tournoi">🗑 Réinitialiser le tournoi (tout effacer)</button>' +
+        '</div>';
 
         // Barre collée en bas
         html += '<div class="am-sticky-bar">' +
@@ -723,6 +728,8 @@
         var btnCorr = document.getElementById('am-corriger');
         if (btnCorr) btnCorr.addEventListener('click', corrigerTourPrecedent);
         document.getElementById('am-reset-tournoi').addEventListener('click', reinitialiser);
+        var btnClot = document.getElementById('am-cloturer');
+        if (btnClot) btnClot.addEventListener('click', cloturerMaintenant);
         document.getElementById('am-valider').addEventListener('click', validerTour);
 
         majChronoDisplay();
@@ -838,6 +845,54 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
             toast('Tour ' + t + ' validé — place au tour ' + (t + 1), 'ok');
         }
+    }
+
+    /**
+     * Clôture avant la fin de la grille. Le classement ne compte que les matchs validés :
+     * - tour en cours entièrement saisi → il est validé et compte ;
+     * - tour en cours incomplet → il est ignoré (personne n'a d'avantage d'un match à moitié joué).
+     */
+    async function cloturerMaintenant() {
+        var t = tournoi.tour_courant;
+        var lst = matchsDuTour(t);
+        var complet = function (m) { return m.score_a !== null && m.score_a !== undefined && m.score_b !== null && m.score_b !== undefined; };
+        var tourComplet = lst.length > 0 && lst.every(complet);
+        var unScore = lst.some(function (m) { return m.score_a != null || m.score_b != null; });
+        var joues = tourComplet ? t : t - 1;
+
+        var msg = 'Clôturer « ' + tournoi.nom + ' » maintenant ?\n\n' +
+            'Le classement final comptera ' + joues + ' tour' + (joues > 1 ? 's' : '') + ' sur ' + tournoi.nb_tours + '.\n' +
+            (tourComplet ? 'Les scores du tour ' + t + ' sont complets : il est compté.'
+                : unScore ? 'Le tour ' + t + ' n\'est pas complet : ses scores ne seront pas comptés.'
+                : 'Le tour ' + t + ' n\'a pas été joué : il n\'est pas compté.') +
+            '\n\nLes tours suivants sont abandonnés. Le tournoi passe en « terminé » sur les écrans.';
+        if (!confirm(msg)) return;
+
+        var btn = document.getElementById('am-cloturer');
+        if (btn) { btn.disabled = true; btn.textContent = 'Clôture…'; }
+
+        if (tourComplet) {
+            for (var i = 0; i < lst.length; i++) {
+                var m = lst[i];
+                var res = await supa.from('americano_matchs')
+                    .update({ score_a: m.score_a, score_b: m.score_b, valide: true, updated_at: new Date().toISOString() })
+                    .eq('id', m.id).select().single();
+                if (res.error) { toast('Erreur : ' + res.error.message, 'error'); if (btn) btn.disabled = false; return; }
+                m.valide = true;
+            }
+        }
+
+        var resT = await supa.from('americano_tournois')
+            .update({ status: 'termine', updated_at: new Date().toISOString() })
+            .eq('id', tournoi.id).select().single();
+        if (resT.error) { toast('Erreur : ' + resT.error.message, 'error'); if (btn) btn.disabled = false; return; }
+        tournoi = resT.data;
+
+        chronoReset();
+        vue = 'fin';
+        rendre();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast('Tournoi clôturé après ' + joues + ' tour' + (joues > 1 ? 's' : '') + '.', 'ok');
     }
 
     async function corrigerTourPrecedent() {
@@ -1124,14 +1179,22 @@
 
     /* ---------- Vue : fin de tournoi ---------- */
 
+    /** Dernier tour validé (un tournoi clôturé en avance en a moins que nb_tours). */
+    function toursValides() {
+        return matchs.reduce(function (max, m) { return m.valide && m.tour > max ? m.tour : max; }, 0);
+    }
+
     function rendreFin(el) {
         var r = Engine.calculerClassement(joueurs, matchs);
+        var joues = toursValides();
         var surMoyenne = !r.memeNombreDeTours;
         var top = r.lignes.slice(0, 3);
         var medailles = ['🥇', '🥈', '🥉'];
 
         var html = '<div class="am-card">' +
             '<div class="am-card-title">Podium — ' + esc(tournoi.nom) + '</div>' +
+            (joues < tournoi.nb_tours ? '<div class="am-note">Clôturé après ' + joues + ' tour' + (joues > 1 ? 's' : '') +
+                ' sur ' + tournoi.nb_tours + ' : le classement compte les tours joués.</div>' : '') +
             '<div class="am-podium">';
 
         top.forEach(function (l, i) {
@@ -1190,7 +1253,7 @@
         lignes.push('');
         lignes.push('Tournoi' + sep + '"' + String(tournoi.nom).replace(/"/g, '""') + '"');
         lignes.push('Classement etabli sur' + sep + (surMoyenne ? 'moyenne de points par tour' : 'total de points'));
-        lignes.push('Tours' + sep + tournoi.nb_tours);
+        lignes.push('Tours joues' + sep + toursValides() + ' sur ' + tournoi.nb_tours);
         lignes.push('Joueurs' + sep + joueurs.length);
 
         // BOM UTF-8 pour qu'Excel lise correctement les accents.

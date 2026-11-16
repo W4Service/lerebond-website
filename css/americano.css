@@ -549,3 +549,7 @@
     body, .americano-wrap { color: #000; }
 }
 .am-print-title { display: none; }
+
+/* Réinitialiser le tournoi : à part, en bas, discret (action irréversible) */
+.am-zone-danger { margin-top: 1.6rem; padding-top: 1rem; border-top: 1px dashed rgba(104,9,32,0.2); display: flex; }
+.am-zone-danger .am-btn { flex: 0 0 auto; padding: 0.6rem 1rem; font-size: 0.9rem; background: #fff; color: var(--am-rouge); border: 2px solid var(--am-rouge); }
