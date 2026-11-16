@@ -1,0 +1,128 @@
+/* Americano affiché dans le pilotage (html.integre, ?integre=1).
+   Écrit à la main, chargé APRÈS css/admin-pilotage.css (qui ne fait que recolorer) :
+   remet l'appli au gabarit du pilotage. Les onglets et en-têtes de tableau, restés bordeaux foncé
+   sur bordeaux, étaient illisibles. Sans effet hors du pilotage. */
+
+html.integre {
+    --i-encre: #2a1a1e; --i-encre-2: #65565a; --i-trait: #e6dfd2; --i-champ: #cfc6b6;
+    --i-surface: #fffdf8; --i-creme: #f4f0e6; --i-bordeaux: #8a1030; --i-bordeaux-2: #680920;
+    --i-jaune: #f4c941; --i-baisse: #b3261e;
+    -webkit-font-smoothing: antialiased;
+}
+html.integre body, html.integre .americano-wrap { background: var(--i-creme) !important; color: var(--i-encre); }
+
+/* ---------- En-tête : nom du tournoi, sobre (le pilotage a déjà son bandeau) ---------- */
+html.integre .am-topbar {
+    position: static !important; background: none !important; color: var(--i-encre) !important; box-shadow: none !important; border: 0 !important;
+    max-width: 1100px; margin: 0 auto; padding: 18px 16px 4px !important;
+}
+html.integre .am-topbar-title {
+    font: 900 26px/1.1 Kanit, sans-serif !important; text-transform: uppercase !important; letter-spacing: -.01em !important;
+    color: var(--i-bordeaux-2) !important; white-space: normal !important;
+}
+html.integre .am-topbar-sub {
+    display: inline-block; margin-top: 4px; font: 400 14px Kanit, sans-serif !important; text-transform: none !important;
+    letter-spacing: 0 !important; color: var(--i-encre-2) !important; opacity: 1 !important;
+}
+
+/* ---------- Onglets Tour / Classement / Grille / Fin : sélecteur du pilotage ---------- */
+html.integre .am-tabs {
+    position: sticky !important; top: 0 !important; z-index: 39; background: var(--i-creme) !important;
+    max-width: 1100px; margin: 0 auto; padding: 8px 16px !important; gap: 4px; overflow-x: auto;
+}
+html.integre .am-tabs::before { content: none; }
+html.integre .am-tab {
+    flex: 0 0 auto !important; min-width: 0 !important; min-height: 40px; padding: 8px 14px !important;
+    border: 0 !important; border-radius: 8px !important; background: #e9e2d3 !important;
+    color: var(--i-encre-2) !important; font: 600 14px Kanit, sans-serif !important; opacity: 1 !important;
+}
+html.integre .am-tab:hover { background: #ded5c3 !important; color: var(--i-encre) !important; }
+html.integre .am-tab--active, html.integre .am-tab--active:hover { background: var(--i-bordeaux) !important; color: #fff !important; }
+
+/* ---------- Cartes et titres ---------- */
+html.integre .am-panel { padding-top: 8px !important; }
+html.integre .am-card {
+    background: var(--i-surface) !important; border: 1px solid var(--i-trait) !important; border-radius: 12px !important; box-shadow: none !important;
+}
+html.integre .am-card-title {
+    font: 700 18px Kanit, sans-serif !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--i-encre) !important;
+}
+html.integre .am-note {
+    background: #f8f3e8 !important; border-left: 3px solid var(--i-jaune) !important; color: var(--i-encre-2) !important;
+    border-radius: 0 8px 8px 0 !important; font-size: 14px !important;
+}
+html.integre .am-note--alerte { background: #fbefcb !important; border-left-color: #d99a00 !important; color: #8a5a00 !important; }
+
+/* ---------- Boutons ---------- */
+html.integre .am-btn {
+    border-radius: 8px !important; padding: 10px 16px !important; min-height: 44px;
+    font: 600 15px Kanit, sans-serif !important; text-transform: none !important; letter-spacing: 0 !important;
+    box-shadow: none !important; text-decoration: none !important;
+}
+html.integre .am-btn--primary { background: var(--i-bordeaux) !important; color: #fff !important; border: 1px solid var(--i-bordeaux) !important; }
+html.integre .am-btn--primary:hover:not(:disabled) { background: var(--i-bordeaux-2) !important; }
+html.integre .am-btn--or { background: var(--i-jaune) !important; color: #2a030c !important; border: 1px solid var(--i-jaune) !important; }
+html.integre .am-btn--outline { background: var(--i-surface) !important; color: var(--i-encre) !important; border: 1px solid var(--i-champ) !important; }
+html.integre .am-btn--outline:hover:not(:disabled) { background: #f8f3e8 !important; }
+html.integre .am-btn--danger { background: var(--i-surface) !important; color: var(--i-baisse) !important; border: 1px solid #e6b4ae !important; }
+html.integre .am-btn--danger:hover:not(:disabled) { background: #fbe4e2 !important; }
+@media (prefers-reduced-motion: no-preference) {
+    html.integre .am-btn { transition: background-color .14s ease-out, transform .14s ease-out; }
+    html.integre .am-btn:active:not(:disabled) { transform: scale(.97); }
+}
+/* Réinitialiser : à part, en bas, discret (action irréversible) */
+html.integre .am-zone-danger, .am-zone-danger {
+    margin-top: 1.6rem; padding-top: 1rem; border-top: 1px dashed var(--i-trait, rgba(104,9,32,.2)); display: flex;
+}
+html.integre .am-zone-danger .am-btn { flex: 0 0 auto; min-height: 38px; padding: 7px 12px !important; font-size: 14px !important; }
+
+/* ---------- Chrono (le cadre bordeaux reste : c'est la pièce maîtresse) ---------- */
+html.integre .am-chrono-card { border-radius: 12px !important; }
+html.integre .am-chrono-label { font: 500 14px Kanit, sans-serif !important; }
+html.integre .am-chrono-actions .am-btn--outline { background: rgba(255,255,255,.12) !important; color: #fff !important; border-color: rgba(255,255,255,.45) !important; }
+html.integre .am-chrono-actions .am-btn--outline:hover:not(:disabled) { background: rgba(255,255,255,.2) !important; }
+
+/* ---------- Terrains et scores ---------- */
+html.integre .am-terrain { border: 1px solid var(--i-trait) !important; border-radius: 12px !important; overflow: hidden; box-shadow: none !important; }
+html.integre .am-terrain-head {
+    background: var(--i-bordeaux-2) !important; font: 700 15px Kanit, sans-serif !important; text-transform: none !important; letter-spacing: 0 !important;
+}
+html.integre .am-equipe { border-width: 1px !important; border-radius: 10px !important; }
+html.integre .am-equipe-tag { color: var(--i-encre-2) !important; opacity: 1 !important; }
+html.integre .am-equipe-noms { font-family: Kanit, sans-serif !important; }
+html.integre .am-vs { font: 600 13px Kanit, sans-serif !important; letter-spacing: .1em !important; color: var(--i-encre-2) !important; opacity: 1 !important; }
+html.integre .am-score-input {
+    border: 1px solid var(--i-champ) !important; border-radius: 10px !important; background: #fff !important;
+    font-family: Kanit, sans-serif !important; font-variant-numeric: tabular-nums;
+}
+html.integre .am-score-input:focus { outline: none; border-color: var(--i-bordeaux) !important; box-shadow: 0 0 0 3px rgba(138,16,48,.15) !important; }
+html.integre .am-score-input--vide { border-color: var(--i-baisse) !important; background: #fbe4e2 !important; }
+html.integre .am-score-pad button {
+    border: 1px solid var(--i-champ) !important; border-radius: 8px !important; background: var(--i-surface) !important;
+    font: 600 15px Kanit, sans-serif !important; color: var(--i-encre) !important; min-height: 40px;
+}
+html.integre .am-repos { border: 1px dashed var(--i-champ) !important; border-radius: 12px !important; background: none !important; }
+html.integre .am-repos-title { font: 600 13px Kanit, sans-serif !important; color: var(--i-encre-2) !important; text-transform: none !important; letter-spacing: 0 !important; }
+
+/* ---------- Tableaux (classement) : en-têtes lisibles ---------- */
+html.integre .am-table th {
+    background: #f3ede1 !important; color: var(--i-encre-2) !important; font: 600 12.5px Kanit, sans-serif !important;
+    text-transform: none !important; letter-spacing: 0 !important; border-bottom: 1px solid var(--i-trait) !important;
+}
+html.integre .am-table td { font-variant-numeric: tabular-nums; }
+html.integre .am-table tbody tr:nth-child(odd) { background: none !important; }
+html.integre .am-rang { font: 700 15px Kanit, sans-serif !important; color: var(--i-bordeaux) !important; }
+html.integre .am-col-cle { color: var(--i-bordeaux) !important; font-weight: 700; }
+
+/* ---------- Grille, podium ---------- */
+html.integre .am-grille-tour-head { font: 700 15px Kanit, sans-serif !important; text-transform: none !important; letter-spacing: 0 !important; }
+html.integre .am-grille-tour-badge { background: var(--i-bordeaux) !important; color: #fff !important; }
+html.integre .am-podium-place { border: 1px solid var(--i-trait) !important; border-radius: 12px !important; }
+html.integre .am-podium-place--1 { border: 2px solid var(--i-jaune) !important; background: #fbf3d6 !important; }
+
+/* ---------- Barre « Valider le tour » ---------- */
+html.integre .am-sticky-bar { border-top: 1px solid var(--i-trait) !important; }
+html.integre .am-sticky-bar .am-btn { min-height: 48px; font-size: 16px !important; }
+
+/* Ligne « 👤 compte / Déconnexion » sous l'appli : le pilotage s'en charge */
+html.integre #am-app > .am-panel.am-no-print { display: none !important; }
