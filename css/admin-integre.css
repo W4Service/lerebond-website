@@ -146,3 +146,8 @@ html.integre .archived-actions { flex-wrap: wrap; gap: 6px !important; }
     html.integre .archived-actions { justify-content: stretch !important; }
     html.integre .archived-actions .btn-live { flex: 1 1 auto; padding-left: 8px !important; padding-right: 8px !important; }
 }
+
+/* ---------- Création de tournoi : champs alignés à gauche comme les autres ---------- */
+html.integre .input-group--full input:not([type=checkbox]):not([type=radio]) { text-align: left !important; font-weight: 400 !important; font-size: 16px !important; }
+/* Liens dans les textes d'aide : bordeaux (l'orange venait de l'ancien thème sombre) */
+html.integre .tournoi-hint a, html.integre .admin-link a { color: var(--i-bordeaux) !important; }
