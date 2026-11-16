@@ -1,0 +1,148 @@
+/* Admin du club affiché dans le pilotage (html.integre, ?integre=1).
+   Écrit à la main, chargé APRÈS css/admin-pilotage.css (feuille générée qui ne fait que recolorer) :
+   met l'admin au gabarit du pilotage (boutons, champs, cartes) et corrige ce que la recoloration
+   ne couvre pas (styles injectés par les scripts, ex. Fidélité). Sans effet hors du pilotage. */
+
+html.integre {
+    --i-encre: #2a1a1e; --i-encre-2: #65565a; --i-trait: #e6dfd2; --i-champ: #cfc6b6;
+    --i-surface: #fffdf8; --i-creme: #f4f0e6; --i-bordeaux: #8a1030; --i-bordeaux-2: #680920;
+    --i-hausse: #1e7d4f; --i-baisse: #b3261e; --i-attention: #8a5a00; --i-fond-attention: #fbefcb;
+    -webkit-font-smoothing: antialiased;
+}
+html.integre body { background: var(--i-creme) !important; color: var(--i-encre); }
+
+/* ---------- En-tête de l'admin : le pilotage a déjà le titre et les onglets ---------- */
+html.integre .admin-topbar { display: none !important; }
+html.integre .admin-layout { padding-top: 0 !important; }
+html.integre .admin-grid, html.integre .tournoi-admin-wrap { padding-top: 16px !important; }
+/* L'état du chrono (en cours, en pause…) est remonté dans le cadre du chrono par admin/index.html */
+html.integre .admin-chrono #status {
+    align-self: flex-start; display: inline-flex; padding: 3px 10px; border-radius: 99px;
+    background: #efe8da; color: var(--i-encre-2); font: 600 13px Kanit, sans-serif; margin-bottom: 8px;
+}
+
+/* ---------- Titres : comme le pilotage (Kanit, sans majuscules forcées) ---------- */
+html.integre .tournoi-title, html.integre .tournoi-section-title {
+    font-family: Kanit, sans-serif !important; font-weight: 700 !important; text-transform: none !important;
+    letter-spacing: 0 !important; color: var(--i-encre) !important;
+}
+html.integre .tournoi-title { font-size: 20px !important; }
+html.integre .tournoi-section-title { font-size: 17px !important; }
+
+/* ---------- Boutons : ceux du pilotage (rayon 8, pas de majuscules, taille raisonnable) ---------- */
+html.integre .btn-live, html.integre .preset-btn {
+    text-transform: none !important; letter-spacing: 0 !important; border-radius: 8px !important;
+    font: 600 14px/1.2 Kanit, sans-serif !important; padding: 9px 14px !important; min-height: 40px;
+    border-width: 1px !important; box-shadow: none !important; white-space: nowrap;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+html.integre .btn-live--small, html.integre .preset-btn { padding: 6px 11px !important; min-height: 34px; font-size: 13.5px !important; }
+html.integre .btn-live--primary { background: var(--i-bordeaux) !important; border: 1px solid var(--i-bordeaux) !important; color: #fff !important; }
+html.integre .btn-live--primary:hover:not(:disabled) { background: var(--i-bordeaux-2) !important; }
+html.integre .btn-live--outline, html.integre .preset-btn {
+    background: var(--i-surface) !important; border: 1px solid var(--i-champ) !important; color: var(--i-encre) !important;
+}
+html.integre .btn-live--outline:hover:not(:disabled), html.integre .preset-btn:hover { background: #f8f3e8 !important; }
+html.integre .btn-live--danger { background: var(--i-surface) !important; border: 1px solid #e6b4ae !important; color: var(--i-baisse) !important; }
+html.integre .btn-live--danger:hover:not(:disabled) { background: #fbe4e2 !important; color: var(--i-baisse) !important; }
+html.integre .btn-live:disabled { opacity: .5; }
+html.integre .icon-btn { border-radius: 8px !important; width: 34px; height: 34px; }
+@media (prefers-reduced-motion: no-preference) {
+    html.integre .btn-live:active:not(:disabled), html.integre .preset-btn:active { transform: scale(.97); }
+}
+
+/* ---------- Champs : une seule boîte blanche (plus de champ dans un cadre dans un cadre) ---------- */
+html.integre .input-group {
+    background: #fff !important; border: 1px solid var(--i-champ) !important; border-radius: 8px !important;
+    padding: 0 11px !important; min-height: 44px; box-shadow: none !important;
+}
+html.integre .input-group:focus-within { border-color: var(--i-bordeaux) !important; }
+/* :not(...) : plus précis que la règle générique des champs de la feuille générée */
+html.integre .input-group input:not([type=checkbox]):not([type=radio]), html.integre .input-group select:not([multiple]), html.integre .input-group textarea:not([hidden]) {
+    background: transparent !important; border: 0 !important; box-shadow: none !important; outline: none;
+    color: var(--i-encre) !important; font-weight: 400 !important; font-size: 16px !important; min-height: 42px;
+}
+html.integre .input-group--full input, html.integre .input-group--full select { width: 100% !important; text-align: left !important; }
+/* minutes / secondes du chrono : chiffres lisibles, centrés */
+html.integre .input-group input[type="number"] { font-weight: 700 !important; font-size: 20px !important; text-align: center !important; }
+html.integre select, html.integre input[type="date"], html.integre .videos-select, html.integre .videos-date {
+    border-radius: 8px !important; border: 1px solid var(--i-champ) !important; background-color: #fff !important;
+    color: var(--i-encre) !important; min-height: 40px; font: 400 15px Kanit, sans-serif !important; padding: 6px 10px !important;
+}
+html.integre .input-group select:not([multiple]) { border: 0 !important; padding: 0 !important; }
+
+/* ---------- Cartes : une seule épaisseur, au gabarit du pilotage ---------- */
+html.integre .tournoi-card, html.integre .admin-chrono, html.integre .admin-controls {
+    background: var(--i-surface) !important; border: 1px solid var(--i-trait) !important;
+    border-radius: 12px !important; box-shadow: none !important;
+}
+/* Listes (calendrier, archives) : les lignes sont les cartes, pas de grand cadre autour */
+html.integre #planning-section .tournoi-card, html.integre .tournoi-card--archived {
+    background: none !important; border: 0 !important; padding: 0 !important;
+}
+html.integre .planning-ligne, html.integre .archived-item, html.integre .terrain-ligne, html.integre .video-carte {
+    background: var(--i-surface) !important; border: 1px solid var(--i-trait) !important; border-radius: 12px !important; box-shadow: none !important;
+}
+html.integre .planning-ligne--passe { opacity: .6; }
+html.integre .planning-actions { gap: 6px !important; }
+
+/* ---------- Chrono : chiffres nets (le halo était fait pour le fond sombre) ---------- */
+html.integre .admin-chrono .display { text-shadow: none !important; }
+
+/* ---------- Vidéos : « Couper le direct » sur une ligne, Voir / Couper côte à côte ---------- */
+html.integre .video-carte__actions { flex-wrap: nowrap !important; }
+html.integre .video-carte__actions .btn-live { flex: 1 1 0; min-width: 0; }
+html.integre .videos-terrains__liste { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)) !important; }
+html.integre .terrain-ligne { flex-wrap: wrap; }
+html.integre .terrain-ligne__nom { color: var(--i-encre) !important; }
+html.integre .terrain-ligne--coupe { background: #fbe4e2 !important; border-color: #e6b4ae !important; }
+
+/* ---------- Fidélité : son style est injecté par le script, pensé pour fond sombre (texte crème) ---------- */
+html.integre #fidelite-section .fid-wrap { color: var(--i-encre); max-width: 960px; }
+html.integre #fidelite-section .fid-onglets { flex-wrap: wrap; gap: 4px; padding: 4px; background: #e9e2d3; border-radius: 10px; display: inline-flex; }
+html.integre #fidelite-section .fid-onglets button {
+    border: 0; background: none; color: var(--i-encre-2); border-radius: 7px; padding: 8px 12px; min-height: 38px; font: 600 14px Kanit, sans-serif;
+}
+html.integre #fidelite-section .fid-onglets button.actif { background: var(--i-bordeaux); color: #fff; }
+html.integre #fidelite-section .fid-carte { background: var(--i-surface); border: 1px solid var(--i-trait); border-radius: 12px; }
+html.integre #fidelite-section .fid-carte h3 { color: var(--i-bordeaux); }
+html.integre #fidelite-section .fid-recherche {
+    border: 1px solid var(--i-champ); border-radius: 8px; background: #fff; color: var(--i-encre); font-size: 16px; min-height: 44px;
+}
+html.integre #fidelite-section .fid-recherche::placeholder { color: #8b7d80; }
+html.integre #fidelite-section .fid-recherche:focus { outline: none; border-color: var(--i-bordeaux); }
+html.integre #fidelite-section .fid-res { border-bottom-color: var(--i-trait); }
+html.integre #fidelite-section .fid-res:hover { opacity: 1; background: #fbf7ee; }
+html.integre #fidelite-section .fid-aide, html.integre #fidelite-section .fid-meta, html.integre #fidelite-section .fid-petit,
+html.integre #fidelite-section .fid-chiffre span, html.integre #fidelite-section .fid-table th { color: var(--i-encre-2); opacity: 1; }
+html.integre #fidelite-section .fid-chiffre { background: #f3ede1; }
+html.integre #fidelite-section .fid-chiffre b { font-variant-numeric: tabular-nums; }
+html.integre #fidelite-section .fid-offre { border: 2px solid #d99a00; background: var(--i-fond-attention); }
+html.integre #fidelite-section .fid-btn { border-radius: 8px; font: 600 15px Kanit, sans-serif; min-height: 44px; }
+html.integre #fidelite-section .fid-btn--or { background: var(--i-bordeaux); color: #fff; }
+html.integre #fidelite-section .fid-btn--creme { background: var(--i-surface); color: var(--i-bordeaux-2); border: 1px solid var(--i-champ); }
+html.integre #fidelite-section .fid-palier--valide { color: var(--i-hausse); }
+html.integre #fidelite-section .fid-palier--actuel { border-color: #d99a00; background: var(--i-fond-attention); }
+html.integre #fidelite-section .fid-palier--a_debloquer { background: #f3ede1; }
+html.integre #fidelite-section .fid-ligne, html.integre #fidelite-section .fid-table th,
+html.integre #fidelite-section .fid-table td { border-bottom-color: var(--i-trait); }
+html.integre #fidelite-section .fid-etiq { background: #efe8da; color: var(--i-encre-2); }
+html.integre #fidelite-section .fid-etiq--utilise, html.integre #fidelite-section .fid-etiq--envoye { background: #dcefe4; color: var(--i-hausse); }
+html.integre #fidelite-section .fid-etiq--actif, html.integre #fidelite-section .fid-etiq--avenir,
+html.integre #fidelite-section .fid-etiq--simule { background: var(--i-fond-attention); color: var(--i-attention); }
+html.integre #fidelite-section .fid-etiq--bloque, html.integre #fidelite-section .fid-etiq--echec { background: #fbe4e2; color: var(--i-baisse); }
+html.integre #fidelite-section .fid-ok { color: var(--i-hausse); }
+html.integre #fidelite-section .fid-err { color: var(--i-baisse); }
+html.integre #fidelite-section .fid-puce { background: #efe8da; color: var(--i-encre); }
+html.integre #fidelite-section .fid-msg pre { color: var(--i-encre-2); opacity: 1; }
+html.integre #fidelite-section .fid-escalier { border-bottom-color: #d99a00; }
+html.integre #fidelite-section .fid-marche--actuel { outline-color: var(--i-encre); }
+html.integre #fidelite-section .fid-marche.fid-marche--a_debloquer { border-color: var(--i-encre-2); }
+html.integre #fidelite-section .fid-retour { color: var(--i-bordeaux); }
+
+/* ---------- Tournois clôturés : boutons qui tiennent dans la carte sur téléphone ---------- */
+html.integre .archived-actions { flex-wrap: wrap; gap: 6px !important; }
+@media (max-width: 600px) {
+    html.integre .archived-actions { justify-content: stretch !important; }
+    html.integre .archived-actions .btn-live { flex: 1 1 auto; padding-left: 8px !important; padding-right: 8px !important; }
+}
