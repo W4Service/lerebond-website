@@ -97,6 +97,8 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
   var affiche = document.getElementById('affiche');
   var liste = document.getElementById('liste');
   var evs = [], idx = 0, timer = null, signature = '';
+  // ?plus=132,140 : affiches choisies dans la Régie TV, ajoutées au diaporama des prochains événements
+  var PLUS = (new URLSearchParams(location.search).get('plus') || '').replace(/[^0-9,]/g, '');
 
   function fit() {
     var d = document.documentElement, w = d.clientWidth || innerWidth, h = d.clientHeight || innerHeight;
@@ -106,6 +108,7 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
   addEventListener('resize', fit); fit();
 
   function dateFr(iso) {
+    if (!iso) return null;
     var d = new Date(iso + 'T12:00:00');
     var auj = new Date(); auj.setHours(12, 0, 0, 0);
     var diff = Math.round((d - auj) / 86400000);
@@ -123,7 +126,11 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
       if (i < MAX_LISTE) {
         var d = dateFr(e.ref_date), el = document.createElement('div');
         el.className = 'ev';
-        el.innerHTML = '<div class="date"><span>' + esc(d.haut) + '</span><b>' + d.num + '</b><span>' + esc(d.mois) + '</span></div>' +
+        // affiche sans date, ou mois/semaine : pastille avec la catégorie
+        var pastille = d && e.kind !== 'mois' && e.kind !== 'semaine'
+          ? '<span>' + esc(d.haut) + '</span><b>' + d.num + '</b><span>' + esc(d.mois) + '</span>'
+          : '<b style="font-size:30px">★</b><span>' + esc(e.kind === 'mois' ? 'mois' : e.kind === 'semaine' ? 'semaine' : 'à voir') + '</span>';
+        el.innerHTML = '<div class="date">' + pastille + '</div>' +
           '<div class="txt"><div class="titre">' + esc(e.title) + '</div><div class="info">' + esc(e.horaire) + '</div></div>';
         liste.appendChild(el);
       }
@@ -142,11 +149,19 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
     if (evs.length > 1) timer = setInterval(function () { idx = (idx + 1) % evs.length; montrer(idx); }, DUREE);
   }
 
+  function lire(url) {
+    return fetch(url).then(function (r) { return r.json(); })
+      .then(function (d) { return (Array.isArray(d) ? d : []).filter(function (e) { return e && e.id; }); });
+  }
+
   function charger() {
-    fetch(API + '?t=' + Math.floor(Date.now() / 300000))
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        var liste2 = (Array.isArray(data) ? data : []).filter(function (e) { return e && e.id; }).slice(0, MAX_LISTE);
+    var t = Math.floor(Date.now() / 300000);
+    Promise.all([lire(API + '?t=' + t), PLUS ? lire(API + '?ids=' + PLUS + '&t=' + t).catch(function () { return []; }) : Promise.resolve([])])
+      .then(function (r) {
+        // Les affiches choisies passent toujours ; les prochains événements complètent la liste (2 au moins).
+        var plus = r[1].slice(0, MAX_LISTE - 2), ids = plus.map(function (e) { return e.id; });
+        var prochains = r[0].filter(function (e) { return ids.indexOf(e.id) < 0; }).slice(0, MAX_LISTE - plus.length);
+        var liste2 = prochains.concat(plus);
         var sig = liste2.map(function (e) { return e.id; }).join(',');
         if (sig === signature) return;           // rien de neuf : on ne coupe pas le diaporama
         signature = sig; evs = liste2; rendre(); lancer();
