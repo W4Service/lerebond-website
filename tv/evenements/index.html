@@ -123,7 +123,7 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
     if (!evs.length) { liste.innerHTML = '<p class="vide">Le programme arrive bientôt…</p>'; return; }
     evs.forEach(function (e, i) {
       var img = new Image(); img.src = API + '?id=' + e.id; img.alt = e.title; affiche.appendChild(img);
-      if (i < MAX_LISTE) {
+      {
         var d = dateFr(e.ref_date), el = document.createElement('div');
         el.className = 'ev';
         // affiche sans date, ou mois/semaine : pastille avec la catégorie
@@ -140,7 +140,12 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
   function montrer(i) {
     var imgs = affiche.children, items = liste.querySelectorAll('.ev');
     for (var k = 0; k < imgs.length; k++) imgs[k].classList.toggle('on', k === i);
-    for (var j = 0; j < items.length; j++) items[j].classList.toggle('on', j === i);
+    // Plus de 5 lignes : on montre 5 lignes autour de l'affiche en cours
+    var debut = Math.max(0, Math.min(i - 2, items.length - MAX_LISTE));
+    for (var j = 0; j < items.length; j++) {
+      items[j].classList.toggle('on', j === i);
+      items[j].style.display = j >= debut && j < debut + MAX_LISTE ? '' : 'none';
+    }
   }
 
   function lancer() {
@@ -159,8 +164,8 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
     Promise.all([lire(API + '?t=' + t), PLUS ? lire(API + '?ids=' + PLUS + '&t=' + t).catch(function () { return []; }) : Promise.resolve([])])
       .then(function (r) {
         // Les affiches choisies passent toujours ; les prochains événements complètent la liste (2 au moins).
-        var plus = r[1].slice(0, MAX_LISTE - 2), ids = plus.map(function (e) { return e.id; });
-        var prochains = r[0].filter(function (e) { return ids.indexOf(e.id) < 0; }).slice(0, MAX_LISTE - plus.length);
+        var plus = r[1], ids = plus.map(function (e) { return e.id; });
+        var prochains = r[0].filter(function (e) { return ids.indexOf(e.id) < 0; }).slice(0, Math.max(2, MAX_LISTE - plus.length));
         var liste2 = prochains.concat(plus);
         var sig = liste2.map(function (e) { return e.id; }).join(',');
         if (sig === signature) return;           // rien de neuf : on ne coupe pas le diaporama
