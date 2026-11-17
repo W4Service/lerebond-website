@@ -81,7 +81,7 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
   <div class="affiche" id="affiche"></div>
   <div class="droite">
     <div class="surtitre">Le Rebond · Noyon</div>
-    <h1>Prochains événements</h1>
+    <h1 id="titre">Prochains événements</h1>
     <div class="liste" id="liste"></div>
     <div class="pied">
       <p>Inscriptions : <b>appli Le Rebond</b> › Événements · ou au <b>06 59 48 24 17</b></p>
@@ -97,7 +97,7 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
   var affiche = document.getElementById('affiche');
   var liste = document.getElementById('liste');
   var evs = [], idx = 0, timer = null, signature = '';
-  // ?plus=132,140 : affiches choisies dans la Régie TV, ajoutées au diaporama des prochains événements
+  // ?plus=132,140 : affiches choisies dans la Régie TV ; ce sont alors les seules qui défilent
   var PLUS = (new URLSearchParams(location.search).get('plus') || '').replace(/[^0-9,]/g, '');
 
   function fit() {
@@ -161,12 +161,8 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
 
   function charger() {
     var t = Math.floor(Date.now() / 300000);
-    Promise.all([lire(API + '?t=' + t), PLUS ? lire(API + '?ids=' + PLUS + '&t=' + t).catch(function () { return []; }) : Promise.resolve([])])
-      .then(function (r) {
-        // Les affiches choisies passent toujours ; les prochains événements complètent la liste (2 au moins).
-        var plus = r[1], ids = plus.map(function (e) { return e.id; });
-        var prochains = r[0].filter(function (e) { return ids.indexOf(e.id) < 0; }).slice(0, Math.max(2, MAX_LISTE - plus.length));
-        var liste2 = prochains.concat(plus);
+    (PLUS ? lire(API + '?ids=' + PLUS + '&t=' + t) : lire(API + '?t=' + t).then(function (l) { return l.slice(0, MAX_LISTE); }))
+      .then(function (liste2) {
         var sig = liste2.map(function (e) { return e.id; }).join(',');
         if (sig === signature) return;           // rien de neuf : on ne coupe pas le diaporama
         signature = sig; evs = liste2; rendre(); lancer();
@@ -174,6 +170,7 @@ h1 { font-weight: 900; font-size: 84px; line-height: 1; text-transform: uppercas
       .catch(function () { if (!evs.length) setTimeout(charger, 30000); });
   }
 
+  if (PLUS) document.getElementById('titre').textContent = 'À l’affiche';
   charger();
   setInterval(charger, 10 * 60 * 1000);
 })();
