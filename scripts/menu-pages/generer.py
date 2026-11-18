@@ -106,7 +106,7 @@ PAGES = [
         ("h2", "Powerade (50 cl)"),
         ligne("Au choix", "3,50 €", "Bleu • Cerise"),
         ("h2", "Mocktails (sans alcool)"),
-        ligne("Au choix", "5 €", "Virgin Mojito • Virgin Colada • Cranberry Fizz"),
+        ligne("Au choix", "6 €", "Virgin Mojito • Virgin Colada • Cranberry Fizz"),
     ],
     [
         ("h2", "Bières Pression"),
