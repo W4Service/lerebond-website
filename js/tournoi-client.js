@@ -128,7 +128,7 @@
     var FORMAT_HAS_SETS = {
         format_a: true, format_b: true, format_c: true, format_d: true,
         format_e: false,
-        '1set_6jeux': true, '1set_5jeux': true, '1set_4jeux': true,
+        '1set_7jeux': true, '1set_6jeux': true, '1set_5jeux': true, '1set_4jeux': true,
         americano: false, libre: false
     };
     function manche(raw) {
@@ -382,6 +382,7 @@
             case 'format_c': return 'Format C · 2 sets de 4 jeux + super TB';
             case 'format_d': return 'Format D · 1 set de 9 jeux';
             case 'format_e': return 'Format E · super TB à 10';
+            case '1set_7jeux': return '1 set à 7 jeux (TB à 6-6)';
             case '1set_6jeux': return '1 set à 6 jeux (TB à 6-6)';
             case '1set_5jeux': return '1 set à 5 jeux (TB à 5-5)';
             case '1set_4jeux': return '1 set à 4 jeux (TB à 4-4)';

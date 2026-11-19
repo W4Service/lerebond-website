@@ -6122,6 +6122,7 @@
             { v: 'format_c', label: 'C — 2 sets de 4 jeux + super tie-break à 10' },
             { v: 'format_d', label: 'D — 1 set de 9 jeux (TB à 7)' },
             { v: 'format_e', label: 'E — Super tie-break unique à 10 points' },
+            { v: '1set_7jeux', label: '1 set à 7 jeux (TB à 6-6)' },
             { v: '1set_6jeux', label: '1 set à 6 jeux (TB à 6-6, format court)' },
             { v: '1set_5jeux', label: '1 set à 5 jeux (TB à 5-5, format court)' },
             { v: '1set_4jeux', label: '1 set à 4 jeux (TB à 4-4, format ultra-court)' },
@@ -6341,6 +6342,8 @@
                 return 'Format D (FFT) — 1 set unique de 9 jeux, tie-break classique à 7 points si 8-8. Format intermédiaire.';
             case 'format_e':
                 return 'Format E (FFT) — Un seul super tie-break à 10 points (avec 2 d\'écart). Format ultra-rapide pour P25 ou formats club.';
+            case '1set_7jeux':
+                return 'Club — 1 set unique en 7 jeux gagnants, tie-break à 7 points en cas d\'égalité 6-6 (score final 7-6). Environ 26 min/match.';
             case '1set_6jeux':
                 return 'Club — 1 set unique en 6 jeux gagnants, tie-break à 7 points en cas d\'égalité 6-6. Environ 20 min/match.';
             case '1set_5jeux':
@@ -6370,6 +6373,7 @@
         format_d: { sets: 1, jeux: 9, tb: 7,  superTb: false }, // 1 set en 9 jeux, TB à 8-8 jusqu'à 7
         format_e: { superTbOnly: true },
         // Formats club custom (1 set unique)
+        '1set_7jeux': { sets: 1, jeux: 7, tb: 7, superTb: false }, // 1 set en 7 jeux, TB à 6-6, score final 7-6
         '1set_6jeux': { sets: 1, jeux: 6, tb: 7, superTb: false }, // 1 set en 6 jeux, TB à 6-6 jusqu'à 7
         '1set_5jeux': { sets: 1, jeux: 5, tb: 7, superTb: false }, // 1 set en 5 jeux, TB à 5-5 jusqu'à 7
         '1set_4jeux': { sets: 1, jeux: 4, tb: 7, superTb: false }, // 1 set en 4 jeux, TB à 4-4 jusqu'à 7
@@ -6388,6 +6392,7 @@
             case 'format_c': return 'Format C · 2 sets de 4 jeux + super TB à 10';
             case 'format_d': return 'Format D · 1 set de 9 jeux (TB à 7)';
             case 'format_e': return 'Format E · super TB à 10';
+            case '1set_7jeux': return '1 set à 7 jeux (TB à 6-6)';
             case '1set_6jeux': return '1 set à 6 jeux (TB à 6-6)';
             case '1set_5jeux': return '1 set à 5 jeux (TB à 5-5)';
             case '1set_4jeux': return '1 set à 4 jeux (TB à 4-4)';
@@ -6404,6 +6409,7 @@
             case 'format_c': return 'Ex : 4-2 4-1  ·  4-2 2-4 10-8';
             case 'format_d': return 'Ex : 9-5  ·  9-8(7-4)';
             case 'format_e': return 'Ex : 10-7  ·  12-10';
+            case '1set_7jeux': return 'Ex : 7-4  ·  7-6';
             case '1set_6jeux': return 'Ex : 6-3  ·  7-6';
             case '1set_5jeux': return 'Ex : 5-2  ·  6-5';
             case '1set_4jeux': return 'Ex : 4-1  ·  5-4';
@@ -6438,15 +6444,17 @@
         var tbAt;
         // Score final du set quand le TB est gagné
         var winScoreOnTb;
-        if (target === 9) {
-            // Set de 9 : TB joué à 8-8, score final 9-8
-            tbAt = 8;
-            winScoreOnTb = 9;
+        if (target === 9 || target === 7) {
+            // Set de 9 : TB joué à 8-8, score final 9-8 ; set de 7 : TB à 6-6, score final 7-6
+            tbAt = target - 1;
+            winScoreOnTb = target;
         } else {
             // Set classique (4, 5, 6) : TB joué à target-target, score final (target+1)-target
             tbAt = target;
             winScoreOnTb = target + 1;
         }
+        // Set de 7 ou 9 (TB à target-1) : on ne dépasse jamais target jeux
+        if (tbAt === target - 1 && (a > target || b > target)) return null;
         // Victoire classique : atteint target avec 2 d'écart
         if (a >= target && a - b >= 2) return 'a';
         if (b >= target && b - a >= 2) return 'b';
@@ -6741,6 +6749,7 @@
             case 'format_c': base = 25; break;
             case 'format_d': base = 30; break;
             case 'format_e': base = 15; break;
+            case '1set_7jeux': base = 26; break;
             case '1set_6jeux': base = 22; break;
             case '1set_5jeux': base = 18; break;
             case '1set_4jeux': base = 15; break;
@@ -7006,6 +7015,7 @@
             { v: 'format_c', label: 'C · 2 sets 4j + STB' },
             { v: 'format_d', label: 'D · 1 set 9j' },
             { v: 'format_e', label: 'E · STB unique' },
+            { v: '1set_7jeux', label: '1 set 7j' },
             { v: '1set_6jeux', label: '1 set 6j' },
             { v: '1set_5jeux', label: '1 set 5j' },
             { v: '1set_4jeux', label: '1 set 4j' },
@@ -8289,6 +8299,7 @@
                 return { nbSets: 1, labels: ['Set unique'], hasSuperTb: false };
             case 'format_e':
                 return { nbSets: 1, labels: ['Super TB'], hasSuperTb: true };
+            case '1set_7jeux':
             case '1set_6jeux':
             case '1set_5jeux':
             case '1set_4jeux':
