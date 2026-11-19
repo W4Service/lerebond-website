@@ -22,6 +22,7 @@
         { v: 'format_c', label: 'C — 2 sets de 4 jeux + super tie-break à 10' },
         { v: 'format_d', label: 'D — 1 set de 9 jeux (TB à 7)' },
         { v: 'format_e', label: 'E — Super tie-break unique à 10 points' },
+        { v: '1set_7jeux', label: '1 set à 7 jeux (TB à 6-6)' },
         { v: '1set_6jeux', label: '1 set à 6 jeux (TB à 6-6, format court)' },
         { v: '1set_5jeux', label: '1 set à 5 jeux (TB à 5-5, format court)' },
         { v: '1set_4jeux', label: '1 set à 4 jeux (TB à 4-4, format ultra-court)' },
