@@ -4,18 +4,19 @@
 <head>
 <base href="https://le-rebond.fr/"><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>La Carte - Le Rebond | Bar &amp; Restaurant à Noyon (60)</title>
-<meta content="La carte du Rebond à Noyon : pizzas et pâtes fraîches maison, paninis, planches à partager, bières pression, vins et glaces artisanales. Ouvert 7j/7 de 9h à 00h." name="description"/>
+<title>Menu &amp; carte du bar-restaurant à Noyon | Le Rebond</title>
+<meta content="La carte du Rebond à Noyon : pizzas et pâtes fraîches maison, paninis, tenders, planche Tex-Mex, bières pression, cocktails et glaces artisanales. Menu en PDF." name="description"/>
 <link href="https://le-rebond.fr/menu/" rel="canonical"/>
 <meta content="Le Rebond" property="og:site_name"/>
 <meta content="website" property="og:type"/>
-<meta content="La Carte - Le Rebond | Bar &amp; Restaurant à Noyon (60)" property="og:title"/>
-<meta content="Pizzas et pâtes fraîches maison, snacking, bières pression et glaces artisanales. Ouvert 7j/7 de 9h à 00h." property="og:description"/>
+<meta content="fr_FR" property="og:locale"/>
+<meta content="Menu &amp; carte du bar-restaurant à Noyon | Le Rebond" property="og:title"/>
+<meta content="La carte du Rebond à Noyon : pizzas et pâtes fraîches maison, paninis, tenders, planche Tex-Mex, bières pression, cocktails et glaces artisanales. Menu en PDF." property="og:description"/>
 <meta content="https://le-rebond.fr/menu/" property="og:url"/>
 <meta content="https://le-rebond.fr/img/og-cover.png" property="og:image"/>
 <meta content="summary" name="twitter:card"/>
-<meta content="La Carte - Le Rebond | Bar &amp; Restaurant à Noyon (60)" name="twitter:title"/>
-<meta content="Pizzas et pâtes fraîches maison, snacking, bières pression et glaces artisanales." name="twitter:description"/>
+<meta content="Menu &amp; carte du bar-restaurant à Noyon | Le Rebond" name="twitter:title"/>
+<meta content="La carte du Rebond à Noyon : pizzas et pâtes fraîches maison, paninis, tenders, planche Tex-Mex, bières pression, cocktails et glaces artisanales. Menu en PDF." name="twitter:description"/>
 <meta content="https://le-rebond.fr/img/og-cover.png" name="twitter:image"/>
 <meta content="#680920" name="theme-color"/>
 <link rel="icon" type="image/x-icon" href="favicon.ico"/>
@@ -23,8 +24,8 @@
 <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png"/>
 <link rel="manifest" href="manifest.json"/>
-<link href="css/bundle.min.css?v=ac13bcb0" rel="stylesheet"/>
-<link href="css/dropdown.css?v=ac13bcb0" rel="stylesheet"/>
+<link href="css/bundle.min.css?v=4dd45298" rel="stylesheet"/>
+<link href="css/dropdown.css?v=4dd45298" rel="stylesheet"/>
 <style>
 /* ============================================
    LE REBOND — Carte / Menu (page menu/)
@@ -374,6 +375,8 @@
 }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://le-rebond.fr/"},{"@type":"ListItem","position":2,"name":"La Carte","item":"https://le-rebond.fr/menu/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Menu","@id":"https://le-rebond.fr/menu/#menu","name":"La carte du Rebond","url":"https://le-rebond.fr/menu/","inLanguage":"fr","hasMenuSection":[{"@type":"MenuSection","name":"Pizzas maison"},{"@type":"MenuSection","name":"Pâtes fraîches & sauces maison"},{"@type":"MenuSection","name":"Frites maison"},{"@type":"MenuSection","name":"Paninis & croque"},{"@type":"MenuSection","name":"Tenders de poulet"},{"@type":"MenuSection","name":"À partager"},{"@type":"MenuSection","name":"Boissons"},{"@type":"MenuSection","name":"Bières pression & vins"},{"@type":"MenuSection","name":"Cocktails"},{"@type":"MenuSection","name":"Desserts"},{"@type":"MenuSection","name":"Glaces artisanales"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":["Restaurant","BarOrPub"],"@id":"https://le-rebond.fr/bar-restaurant/#restaurant","name":"Bar-restaurant Le Rebond","url":"https://le-rebond.fr/bar-restaurant/","telephone":"+33960354205","priceRange":"€","servesCuisine":["Pizza","Italienne","Pâtes fraîches","Snacking"],"hasMenu":{"@id":"https://le-rebond.fr/menu/#menu"},"acceptsReservations":"https://le-rebond.fr/reserver-restaurant/","address":{"@type":"PostalAddress","streetAddress":"403 Rue de l'Europe","postalCode":"60400","addressLocality":"Noyon","addressRegion":"Hauts-de-France","addressCountry":"FR"}}</script>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -414,7 +417,15 @@
 <a href="reserver-restaurant/">Réserver une table</a>
 </div>
 </li>
-<li><a class="nav__link active" href="tarifs/">Tarifs</a></li>
+<li class="nav__dropdown">
+<a class="nav__link nav__dropdown-toggle" href="padel/">Padel &amp; Five <svg class="nav__dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></a>
+<div class="nav__dropdown-menu">
+<a href="padel/">Padel 🎾</a>
+<a href="five/">Five ⚽</a>
+<a href="tarifs/">Tarifs</a>
+<a href="tournois/">Tournois de padel</a>
+</div>
+</li>
 <li class="nav__dropdown">
 <a class="nav__link nav__dropdown-toggle" href="videos/">Vidéos <svg class="nav__dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></a>
 <div class="nav__dropdown-menu">
@@ -721,6 +732,8 @@
 <a class="footer__link" href="evenements/">Événements</a>
 <a class="footer__link" href="diffusions-sportives/">Diffusions sportives</a>
 <a class="footer__link" href="bar-restaurant/">Bar &amp; Restaurant</a>
+<a class="footer__link" href="padel/">Padel à Noyon</a>
+<a class="footer__link" href="five/">Five à Noyon</a>
 <a class="footer__link" href="tarifs/">Tarifs</a>
 <a class="footer__link" href="videos/">Vidéos</a>
 </div>
@@ -808,9 +821,9 @@
         }
     </style>
 <!-- Scripts -->
-<script defer src="js/main.min.js?v=ac13bcb0"></script>
-<script src="js/resa-config.min.js?v=ac13bcb0"></script>
-<script src="js/resa-popup.min.js?v=ac13bcb0"></script>
+<script defer src="js/main.min.js?v=4dd45298"></script>
+<script src="js/resa-config.min.js?v=4dd45298"></script>
+<script src="js/resa-popup.min.js?v=4dd45298"></script>
 <script>
         function showToast(message) {
             var toast = document.getElementById('toast');
