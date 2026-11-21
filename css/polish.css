@@ -138,3 +138,8 @@ summary:focus-visible,
 /* ---------- Typo : titres équilibrés ---------- */
 .page-hero__title,
 .section-header__title { text-wrap: balance; }
+
+/* ---------- Barre de défilement : propriétés standard ----------
+   (Chrome 121+, Firefox, Safari 26.2+ ; les ::-webkit-scrollbar de
+   styles.css restent en secours pour les navigateurs plus anciens) */
+html { scrollbar-color: var(--secondary) var(--light); }

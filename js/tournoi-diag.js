@@ -26,8 +26,7 @@
     }
 
     function getParam(name) {
-        var m = (window.location.search || '').match(new RegExp('[?&]' + name + '=([^&]+)'));
-        return m ? decodeURIComponent(m[1]) : null;
+        return new URLSearchParams(window.location.search).get(name);
     }
 
     function table(entetes, lignes) {

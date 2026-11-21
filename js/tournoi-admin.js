@@ -7245,7 +7245,7 @@
         brancherSuggestionsFFT('j2', inpNom2, inpPrenom2, rowJ2);
 
         // Submit on Enter dans le dernier champ
-        inpPrenom2.addEventListener('keydown', function (e) { if (e.key === 'Enter') addEquipe(); });
+        inpPrenom2.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) addEquipe(); });
 
         var btnAdd = el('button', { class: 'btn-live btn-live--primary btn-live--small', onclick: addEquipe, style: 'width:100%;margin-top:0.5rem' }, '+ Ajouter l\'équipe');
         addForm.appendChild(btnAdd);
@@ -7374,7 +7374,7 @@
         // Form ajout poule
         var addForm = el('div', { class: 'setup-row' });
         var inputNomP = el('input', { type: 'text', class: 'tournoi-input', placeholder: 'Nom poule (ex: Poule A)', value: 'Poule ' + String.fromCharCode(65 + poules.length) });
-        inputNomP.addEventListener('keydown', function (e) { if (e.key === 'Enter') addPoule(); });
+        inputNomP.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) addPoule(); });
         addForm.appendChild(el('div', { class: 'input-group' }, inputNomP));
 
         var inputTer = el('input', { type: 'number', min: '1', max: currentTournoi.nb_terrains, value: (poules.length % currentTournoi.nb_terrains) + 1, class: 'tournoi-input', style: 'width:5rem' });
