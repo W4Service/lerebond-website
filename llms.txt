@@ -22,7 +22,8 @@ Dernière mise à jour : 2026-11-21. Version détaillée : https://le-rebond.fr/
 - [Bar & restaurant](https://le-rebond.fr/bar-restaurant/): cuisine, bar, horaires, réservation de table
 - [La carte](https://le-rebond.fr/menu/): plats, boissons et prix du bar-restaurant
 - [Diffusions sportives](https://le-rebond.fr/diffusions-sportives/): planning des matchs diffusés au bar
-- [Groupes & entreprises](https://le-rebond.fr/groupes/): séminaires, team building, anniversaires, privatisation sur devis
+- [Groupes & entreprises](https://le-rebond.fr/groupes/): séminaires, team building, afterwork, privatisation sur devis
+- [Anniversaire enfant](https://le-rebond.fr/anniversaire/): 1h30 de foot à 5 ou de padel + 1h de goûter, dès 100 €
 - [Événements](https://le-rebond.fr/evenements/): agenda des tournois loisir, montantes et soirées
 - [Tournois de padel](https://le-rebond.fr/tournois/): calendrier des tournois FFT et loisir
 - [Licence FFT](https://le-rebond.fr/licence/): demande de licence de padel via le club
@@ -44,4 +45,5 @@ Dernière mise à jour : 2026-11-21. Version détaillée : https://le-rebond.fr/
 - Faut-il une licence ? Non pour jouer en loisir. La licence FFT est requise seulement pour les tournois homologués ; le club peut la créer pour vous.
 - Tournoi loisir : 15 € par joueur ; 50 € de crédit jeu à gagner en padel (12 paires max), 100 € pour l'équipe gagnante en five (5 équipes max).
 - Bar-restaurant : ouvert à tous, sans réserver de terrain ; pizzas maison, pâtes fraîches, bières pression, cocktails ; matchs diffusés sur écran géant.
-- Groupes, anniversaires, entreprises : pas de formule fixe, chaque événement est sur devis (formulaire sur https://le-rebond.fr/groupes/, téléphone ou e-mail).
+- Anniversaire enfant : Formule Classique dès 100 € (1h30 de foot à 5 ou de padel, puis 1h de goûter), dès 6-7 ans ; demande sur https://le-rebond.fr/anniversaire/.
+- Groupes et entreprises : pas de formule fixe, chaque événement est sur devis (formulaire sur https://le-rebond.fr/groupes/, téléphone ou e-mail).
