@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://wepe.le-rebond.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <!-- hls.js pour lire les flux HLS sur navigateurs non-Safari -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js" integrity="sha384-w6Gb3fXHb5e1LUYa/hYA5Q41bEDglN5ZPCG7Jvnoo8/X90oGnlPqBlBJCe38mEMm" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -602,10 +602,7 @@
   }
 
   function fetchWithTimeout(url, ms) {
-    var ctrl = new AbortController();
-    var t = setTimeout(function(){ ctrl.abort(); }, ms);
-    return fetch(url, { signal: ctrl.signal, cache: 'no-store' })
-      .finally(function(){ clearTimeout(t); });
+    return fetch(url, { signal: AbortSignal.timeout(ms), cache: 'no-store' });
   }
 
   function checkTerrain(t) {
@@ -624,7 +621,7 @@
         return parseLiveAsp(html, t.host);
       })
       .catch(function(e) {
-        var reason = e.name === 'AbortError' ? 'timeout' : (e.message || 'erreur réseau');
+        var reason = (e.name === 'TimeoutError' || e.name === 'AbortError') ? 'timeout' : (e.message || 'erreur réseau');
         return { status: 'error', error: reason };
       });
   }
@@ -905,8 +902,7 @@
 
   // Lit ?terrain=<id> dans l'URL pour ouvrir auto la modale du bon terrain.
   function getTerrainFromQuery() {
-    var match = window.location.search.match(/[?&]terrain=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
+    return new URLSearchParams(window.location.search).get('terrain');
   }
   var autoOpenTerrain = getTerrainFromQuery();
   var autoOpened = false;
