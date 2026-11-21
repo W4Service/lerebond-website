@@ -64,3 +64,63 @@
     font-size: 0.75rem;
     color: #888;
 }
+
+/* La galerie prend la place de l'iframe : le cadre noir de 600 px prévu pour
+   l'iframe n'a plus lieu d'être. */
+.replay-iframe-wrapper.is-galerie,
+.live-replays-iframe.is-galerie {
+    background: #fff;
+    min-height: 0;
+    padding: 1.25rem;
+    text-align: left;
+}
+
+.video-carte__vignette {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    background: #222;
+}
+
+a.video-carte__titre {
+    color: #1a1a1a;
+    text-decoration: none;
+}
+a.video-carte__titre:hover,
+a.video-carte__titre:focus-visible { color: #680920; text-decoration: underline; }
+
+.videos-filtres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.videos-filtres__champ {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1 1 200px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #444;
+}
+
+.videos-filtres__champ input,
+.videos-filtres__champ select {
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    color: #1a1a1a;
+    font: inherit;
+    font-weight: 400;
+    font-size: 1rem;
+}
+
+.videos-entete {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: #444;
+}
