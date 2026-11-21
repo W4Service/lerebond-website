@@ -1,0 +1,140 @@
+/* ============================================
+   LE REBOND - POLISH UI / ACCESSIBILITÉ (pages publiques)
+   Correctifs ciblés chargés après bundle.min.css / dropdown.css.
+   Origine : le thème [data-theme="bordeaux"] redéfinit --dark,
+   --text-on-light et --btn-*-text en #cec3b6 (beige), ce qui rend
+   illisibles les textes "foncés" posés sur fond crème ou orange.
+   ============================================ */
+
+/* ---------- Focus clavier : double anneau visible sur crème ET sur bordeaux ---------- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role=button]:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid #efa707;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #680920;
+}
+
+/* ---------- Menu mobile : fond bordeaux (était beige, liens crème illisibles) ---------- */
+@media (max-width: 1024px) {
+    .nav { background: #680920; }
+}
+
+/* ---------- Boutons orange : libellé bordeaux (crème sur orange = 1,8:1) ---------- */
+.btn--primary,
+.btn.btn--primary.text-light,
+.cta-buttons .btn--secondary,
+.pricing-card--featured .pricing-card__badge,
+.pricing-card-badge,
+.event-featured-badge,
+.offer-badge,
+.tcal-fft__genre .filter-btn.active,
+.btn.btn--accent-bg.text-light,
+.marquee-v2.bg-primary .marquee-v2__item,
+.marquee-v2.bg-primary .marquee-v2__separator {
+    color: #680920 !important;
+}
+.btn--primary:hover,
+.btn--primary:focus-visible {
+    background: #f4c941;
+    border-color: #f4c941;
+    color: #680920 !important;
+}
+
+/* Bouton beige (--btn-secondary-bg) : libellé bordeaux comme dans les cartes tarifs */
+.btn--secondary { color: #680920; }
+.btn--secondary:hover { color: #f4f0e6; }
+.cta-buttons .btn--secondary:hover { color: #680920 !important; }
+
+/* Bouton crème "Table" (barre mobile) et boutons contour sur fond clair */
+.btn--light { color: #680920; border-color: #680920; }
+.btn--light:hover { background: #680920; color: #f4f0e6; border-color: #680920; }
+.section-light .btn--outline { color: #680920; border-color: #680920; }
+.section-light .btn--outline:hover { background: #680920; color: #f4f0e6; }
+
+/* ---------- Bandeau des petites pages (légales) : dégradé bordeaux au lieu de beige→bleu ---------- */
+.page-hero--small,
+.page-hero-small { background: linear-gradient(135deg, #680920 0, #1a1a1a 100%); }
+
+/* ---------- Titres invisibles ---------- */
+.legal-section h3 { color: #8a1230; }
+.tip-card h3 { color: #1a1a1a; margin-bottom: var(--space-xs); font-size: 1rem; }
+
+/* ---------- Textes beiges sur cartes crème -> brun lisible (5,4:1) ---------- */
+.contact-info__value,
+.contact-card-text,
+.contact-card-note,
+.access-list li,
+.contact-form-subtitle,
+.form-note,
+.form-checkbox label,
+.detail-label,
+.offer-price .text-muted,
+.privatisation-option p,
+.privatisation-option .text-muted,
+.contact-option p,
+.event-share__label,
+.ej-note {
+    color: #6b5f55 !important;
+}
+.form-label,
+.form-input,
+.form-select,
+.form-textarea { color: #1a1a1a; }
+.form-checkbox label a { color: #680920; }
+.event-category.five { color: #8a5a00; }
+.filter-btn { color: #680920; }
+
+/* Notes grises sur fond bordeaux (calendrier tournois) */
+.tcal-fft__note,
+#tcal-liste .events-empty { color: #cec3b6; }
+
+/* Lien flèche posé directement sur fond bordeaux (five : "Découvrir le bar-restaurant") */
+.bar-concept__text .link-arrow { color: #efa707; }
+.bar-concept__text .link-arrow:hover { color: #f4c941; }
+
+/* ---------- Badge "Terminé" : ne recouvre plus la date (en haut à droite) ---------- */
+.event-card--past .event-card-image::after { top: auto; right: auto; bottom: 12px; left: 12px; }
+
+/* ---------- Ancien h1 du widget de réservation (devenu <p>) ---------- */
+.resa-header .resa-header__brand {
+    font-family: 'Turret Road', 'Kanit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(239, 167, 7, 0.85);
+    margin: 0 0 6px;
+}
+
+/* ---------- Zones cliquables trop petites (< 24px de haut) ---------- */
+.footer__contact-item a,
+.footer__legal a,
+.page-hero .breadcrumb a,
+.link-arrow,
+.contact-link,
+.contact-card-link {
+    display: inline-block;
+    padding-block: 4px;
+}
+.footer__legal { flex-wrap: wrap; column-gap: var(--space-md); row-gap: 0; }
+.footer__legal a { opacity: .75; }
+.ins-accord input { width: 18px; height: 18px; flex-shrink: 0; accent-color: #680920; }
+
+/* ---------- Contact : boutons réseaux sociaux qui débordaient de leur carte (desktop) ---------- */
+.social-links-large { flex-wrap: wrap; }
+.social-link-large { flex: 1 1 0; justify-content: center; padding-inline: var(--space-xs); }
+
+/* ---------- Formulaire contact : double carte trop serrée sur mobile ---------- */
+@media (max-width: 640px) {
+    .contact-form-wrapper .contact-form { padding: var(--space-sm); box-shadow: none; }
+}
+
+/* ---------- Typo : titres équilibrés ---------- */
+.page-hero__title,
+.section-header__title { text-wrap: balance; }

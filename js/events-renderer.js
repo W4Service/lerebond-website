@@ -134,7 +134,7 @@
 
         // Registration note
         if (ev.registration_note) {
-            html += '<p style="font-size:.75rem;color:#888;margin:.5rem 0 0;font-style:italic">* ' + escapeHtml(ev.registration_note) + '</p>';
+            html += '<p style="font-size:.75rem;color:#6b5f55;margin:.5rem 0 0;font-style:italic">* ' + escapeHtml(ev.registration_note) + '</p>';
         }
 
         // Share
