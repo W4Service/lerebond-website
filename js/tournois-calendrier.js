@@ -248,6 +248,13 @@
                 if (t.homologue || p.statut === 'liste_attente') li.appendChild(el('span', 'tcal-paires__poids', p.statut === 'liste_attente'
                     ? 'attente n°' + p.rang_attente
                     : (p.poids ? 'poids ' + Number(p.poids).toLocaleString('fr-FR') : 'NC')));
+                // Inscriptions horodatées : l'ordre d'arrivée fait foi pour la liste d'attente.
+                if (p.inscrit_le) {
+                    var d = new Date(p.inscrit_le);
+                    li.appendChild(el('span', 'tcal-paires__heure', 'inscrite le '
+                        + d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' }) + ' à '
+                        + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }).replace(':', ' h ')));
+                }
                 zone.appendChild(li);
             });
             if (!zone.children.length) zone.appendChild(el('li', null, 'La liste des paires sera bientôt à jour.'));

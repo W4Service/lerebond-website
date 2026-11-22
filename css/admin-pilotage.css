@@ -375,3 +375,5 @@ html.integre [style*="background:rgba(0,0,0"], html.integre [style*="background:
 html.integre [style*="color:#8fd694"], html.integre [style*="color:#7ee06a"] { color: #1e7d4f !important; }
 html.integre [style*="color:#ff9b8f"] { color: #b3261e !important; }
 
+html.integre .live-avancement__texte { color: rgba(42,26,30,0.75) !important; }
+html.integre .live-avancement__barre { background: rgba(104,9,32,0.12) !important; }
