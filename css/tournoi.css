@@ -1369,6 +1369,10 @@ select.tournoi-input option {
     font-size: 0.82rem;
     color: rgba(244, 240, 230, 0.6);
 }
+.live-avancement { margin-top: 8px; max-width: 360px; }
+.live-avancement__texte { font-size: 0.82rem; color: rgba(244, 240, 230, 0.75); margin-bottom: 4px; }
+.live-avancement__barre { height: 6px; border-radius: 3px; background: rgba(244, 240, 230, 0.15); overflow: hidden; }
+.live-avancement__plein { height: 100%; background: #f4c941; border-radius: 3px; }
 .historique-back {
     display: inline-block;
     color: rgba(244, 240, 230, 0.7);

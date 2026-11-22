@@ -153,6 +153,7 @@
 .tcal-paires { margin: 0.5rem 0 0; padding-left: 1.4rem; font-size: 0.85rem; color: #1a1a1a; }
 .tcal-paires li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.2rem 0; border-bottom: 1px dashed #e8e0d5; }
 .tcal-paires__poids { color: #8a7f75; white-space: nowrap; }
+.tcal-paires__heure { color: #8a7f75; font-size: 0.8em; white-space: nowrap; margin-left: 8px; }
 .tcal-paires__attente { color: #8a7f75; }
 
 /* ----- Pages sans photo (inscription, espace joueur) ----- */

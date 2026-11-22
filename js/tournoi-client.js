@@ -36,32 +36,45 @@
         return 'videos/live/?terrain=' + id;
     }
 
-    // Si le hash contient #t=<id>, on charge ce tournoi-là (clôturé) au lieu de l'actif.
+    // Lien partageable : live/tournoi/?t=<id> (l'ancien #t=<id> marche toujours).
     function tournoiIdFromHash() {
+        var q = new URLSearchParams(window.location.search).get('t');
+        if (q) return q;
         var h = window.location.hash || '';
         var m = h.match(/[#&]t=([^&]+)/);
         return m ? decodeURIComponent(m[1]) : null;
     }
+    function lienTournoi(id) { return 'live/tournoi/?t=' + encodeURIComponent(id); }
+    var tournoisActifs = [];
+    var avancement = {}; // tournoi_id → { joues, total }
 
     async function loadAll() {
         var [resActif, resCloses] = await Promise.all([
-            supa.from('tournois').select('*').eq('status', 'actif').order('created_at', { ascending: false }).limit(1),
-            supa.from('tournois').select('*').eq('status', 'cloture').order('updated_at', { ascending: false })
+            supa.from('tournois').select('*').eq('status', 'actif').order('created_at', { ascending: false }),
+            supa.from('tournois').select('*').eq('status', 'cloture').order('date', { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false })
         ]);
         closedTournois = resCloses.data || [];
+        tournoisActifs = resActif.data || [];
+        avancement = {};
+        if (tournoisActifs.length) {
+            var resAv = await supa.from('matchs').select('tournoi_id,status').in('tournoi_id', tournoisActifs.map(function (t) { return t.id; }));
+            (resAv.data || []).forEach(function (m) {
+                var a = avancement[m.tournoi_id] || (avancement[m.tournoi_id] = { joues: 0, total: 0 });
+                a.total++; if (m.status === 'termine') a.joues++;
+            });
+        }
 
         var wantedId = tournoiIdFromHash();
         console.log('[tournoi-client] loadAll · hash wantedId =', wantedId, '· tournois cloturés =', closedTournois.length, '· tournoi actif =', resActif.data && resActif.data[0] ? resActif.data[0].nom : '(aucun)');
         var chosen = null;
         if (wantedId) {
             chosen = closedTournois.find(function (t) { return t.id === wantedId; });
-            if (!chosen && resActif.data && resActif.data[0] && resActif.data[0].id === wantedId) {
-                chosen = resActif.data[0];
-            }
+            if (!chosen) chosen = tournoisActifs.find(function (t) { return t.id === wantedId; }) || null;
             console.log('[tournoi-client] wantedId trouvé ?', chosen ? '✓ ' + chosen.nom + ' (' + chosen.status + ')' : '✗ INTROUVABLE');
         }
-        if (!chosen && resActif.data && resActif.data.length > 0) {
-            chosen = resActif.data[0];
+        // Un seul tournoi en cours : on l'affiche directement. Plusieurs : la page d'ensemble les liste.
+        if (!chosen && tournoisActifs.length === 1) {
+            chosen = tournoisActifs[0];
             console.log('[tournoi-client] fallback sur tournoi actif :', chosen.nom);
         }
 
@@ -431,8 +444,22 @@
         if (!root) return;
         root.innerHTML = '';
 
+        if (!currentTournoi && tournoisActifs.length > 1) {
+            var direct = el('div', { class: 'historique-section' });
+            direct.appendChild(el('h2', { class: 'live-section-title live-section-title--live' }, '🔴 En direct'));
+            var listeDirect = el('div', { class: 'historique-list' });
+            tournoisActifs.forEach(function (t) {
+                var c = el('a', { href: lienTournoi(t.id), class: 'historique-card' });
+                c.appendChild(el('div', { class: 'historique-card-nom' }, t.nom));
+                var av = avancement[t.id];
+                if (av && av.total) c.appendChild(barreAvancement(av));
+                listeDirect.appendChild(c);
+            });
+            direct.appendChild(listeDirect);
+            root.appendChild(direct);
+        }
         if (!currentTournoi) {
-            root.appendChild(el('div', { class: 'live-empty' }, [
+            if (tournoisActifs.length <= 1) root.appendChild(el('div', { class: 'live-empty' }, [
                 el('div', { class: 'live-empty-icon' }, '🏆'),
                 el('h2', { class: 'live-empty-title' }, 'Aucun tournoi en cours'),
                 el('p', { class: 'live-empty-text' }, 'Restez connectés, le prochain tournoi sera bientôt annoncé !')
@@ -449,20 +476,8 @@
 
         // Bandeau historique si on visualise un tournoi clôturé
         if (isClosed) {
-            var back = el('a', {
-                href: '#', class: 'historique-back',
-                onclick: function (e) {
-                    e.preventDefault();
-                    // Vide le hash et recharge manuellement (hashchange peut ne pas se déclencher)
-                    if (window.history && window.history.replaceState) {
-                        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-                    } else {
-                        window.location.hash = '';
-                    }
-                    loadAll();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            }, '← Revenir au tournoi en cours');
+            var back = el('a', { href: 'live/tournoi/', class: 'historique-back' },
+                tournoisActifs.length ? '← Revenir au tournoi en cours' : '← Tous les tournois');
             root.appendChild(back);
         }
 
@@ -478,17 +493,21 @@
         if (sub) header.appendChild(el('p', { class: 'tournoi-live-subtitle' }, sub));
 
         // Bouton "📱 Partager" : ouvre une popup avec le QR code de la page
-        if (window.TournoiQR && !isClosed) {
+        if (window.TournoiQR) {
             var btnQR = el('button', {
                 class: 'tournoi-live-share',
                 onclick: function () {
-                    window.TournoiQR.open(window.location.origin + '/live/tournoi/', 'Tournoi : ' + (currentTournoi.nom || ''));
+                    window.TournoiQR.open(window.location.origin + '/' + lienTournoi(currentTournoi.id), 'Tournoi : ' + (currentTournoi.nom || ''));
                 },
                 title: 'QR code à partager pour suivre le tournoi'
             }, '📱 Partager');
             header.appendChild(btnQR);
         }
 
+        if (!isClosed) {
+            var av = avancement[currentTournoi.id];
+            if (av && av.total) header.appendChild(barreAvancement(av));
+        }
         root.appendChild(header);
 
         // Matchs en cours (en haut, mis en avant)
@@ -662,33 +681,29 @@
         }
     }
 
+    function barreAvancement(av) {
+        var pct = Math.round(100 * av.joues / av.total);
+        var w = el('div', { class: 'live-avancement', title: pct + ' %' });
+        w.appendChild(el('div', { class: 'live-avancement__texte' }, av.joues + '/' + av.total + ' matchs joués'));
+        var b = el('div', { class: 'live-avancement__barre' });
+        b.appendChild(el('div', { class: 'live-avancement__plein', style: 'width:' + pct + '%' }));
+        w.appendChild(b);
+        return w;
+    }
+
     function renderHistorique() {
         var others = closedTournois.filter(function (t) {
             return !currentTournoi || t.id !== currentTournoi.id;
         });
         if (others.length === 0) return null;
         var section = el('div', { class: 'historique-section' });
-        section.appendChild(el('h2', { class: 'live-section-title' }, '📚 Tournois précédents'));
+        section.appendChild(el('h2', { class: 'live-section-title' }, '📚 Tournois terminés'));
         var list = el('div', { class: 'historique-list' });
         others.forEach(function (t) {
             // À cause de <base href="https://le-rebond.fr/">, un href relatif "#t=xxx" partirait
             // vers la racine. On force la navigation manuelle via onclick : window.location.hash.
-            var card = el('a', {
-                href: '#t=' + t.id,
-                class: 'historique-card',
-                onclick: function (e) {
-                    e.preventDefault();
-                    var newHash = 't=' + t.id;
-                    // Si on est déjà sur le bon hash : recharger manuellement (hashchange ne se déclenche pas)
-                    if (window.location.hash.replace(/^#/, '') === newHash) {
-                        loadAll();
-                    } else {
-                        window.location.hash = newHash;
-                    }
-                    // Scroll en haut pour voir le tournoi sélectionné
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            });
+            // Vrai lien (live/tournoi/?t=…) : s'ouvre dans un nouvel onglet et se partage.
+            var card = el('a', { href: lienTournoi(t.id), class: 'historique-card' });
             card.appendChild(el('div', { class: 'historique-card-nom' }, t.nom));
             var meta = [];
             if (t.date) meta.push('📅 ' + t.date);
