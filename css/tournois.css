@@ -293,3 +293,76 @@
 .lic-intro p { margin: 0 0 0.6rem; }
 .ins-champ select.ins-input { appearance: auto; }
 .ins-envoyer.btn--primary, .ins-resultat .btn--primary { color: #1a1a1a; }
+
+/* ----- Annuaire des joueurs (/joueurs/) et profil joueur ----- */
+#ann-contenu { display: flex; flex-direction: column; gap: 1.25rem; }
+.ann-bandeau { padding: 0.9rem 1.1rem; border-radius: 12px; background: rgba(239, 167, 7, 0.18); color: #f4f0e6; }
+.ann-bandeau p { margin: 0 0 0.4rem; }
+.ann-bandeau a { color: var(--accent); font-weight: 600; }
+.ann-filtres__grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 0.75rem; }
+.ann-filtres .btn--primary { color: #1a1a1a; }
+.ann-resultats { display: flex; flex-direction: column; gap: 0.9rem; }
+.ann-compte { margin: 0; color: #f4f0e6; font-weight: 600; }
+.ann-carte {
+    background: #f4f0e6; color: #1a1a1a; border-radius: var(--radius-lg, 16px);
+    padding: 1.1rem 1.25rem; box-shadow: var(--shadow-sm, 0 2px 8px rgba(26, 26, 26, 0.1));
+}
+.ann-carte__tete { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.ann-carte__nom { font-size: 1.1rem; color: var(--primary); }
+.ann-carte__niveau { font-weight: 700; color: var(--primary); font-size: 0.9rem; }
+.ann-carte__infos, .ann-carte__tournois { margin: 0.25rem 0; font-size: 0.85rem; color: #8a7f75; }
+.ann-carte__presentation { margin: 0.4rem 0; font-style: italic; color: #5c534b; overflow-wrap: anywhere; }
+.ann-carte .btn { padding: 0.55rem 1.1rem; font-size: 0.85rem; }
+.ann-carte .btn--primary, .ann-message .btn--primary, .ann-profil .btn--primary { color: #1a1a1a; }
+.ann-carte .btn--outline-dark { color: var(--primary); border-color: var(--primary); }
+.ann-carte .btn--outline-dark:hover { background: var(--primary); color: #f4f0e6; }
+.ann-dispos { list-style: none; display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0; padding: 0; }
+.ann-dispos li { font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.6rem; border-radius: 100px; background: rgba(104, 9, 32, 0.1); color: var(--primary); }
+.ann-fiche { margin: 0.75rem 0; padding: 0.9rem 1rem; border-radius: 12px; background: #fff; }
+.ann-fiche h3 { margin: 0 0 0.4rem; font-size: 0.95rem; color: var(--primary); }
+.ann-fiche h3 + p { margin-top: 0; }
+.ann-fiche .ej-historique + h3 { margin-top: 0.9rem; }
+.ann-classement { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.85rem; color: #5c534b; }
+.ann-suite a { color: var(--primary); font-weight: 600; }
+.ann-cases { border: 0; margin: 0 0 0.75rem; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.75rem; }
+.ann-cases legend { margin-bottom: 0.35rem; }
+.ann-case { display: flex; gap: 0.45rem; align-items: center; font-size: 0.9rem; cursor: pointer; }
+.ann-ouvert { font-size: 0.9rem; color: #1a1a1a; font-weight: 600; }
+
+/* ----- Messages (espace joueur) ----- */
+.msg-badge {
+    display: inline-block; min-width: 1.4rem; padding: 0.05rem 0.45rem; border-radius: 100px;
+    background: var(--accent); color: #1a1a1a; font-size: 0.75rem; font-weight: 700; text-align: center; vertical-align: middle;
+}
+.msg-badge[hidden] { display: none; }
+/* .btn (bundle) impose display:inline-flex, qui l'emporte sur [hidden] du navigateur. */
+.ann-carte .btn[hidden], .ann-profil .btn[hidden], .msg-carte .btn[hidden] { display: none; }
+.msg-corps { display: flex; flex-direction: column; gap: 0.5rem; }
+.msg-conv {
+    display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.75rem; width: 100%; text-align: left;
+    padding: 0.75rem 0.9rem; border: 0; border-radius: 12px; background: #fff; color: #1a1a1a; font: inherit; cursor: pointer;
+}
+.msg-conv:hover, .msg-conv:focus-visible { outline: 2px solid var(--accent); }
+.msg-conv--non-lu { box-shadow: inset 4px 0 0 var(--accent); }
+.msg-conv__tete { display: flex; gap: 0.5rem; align-items: center; }
+.msg-conv__extrait { grid-column: 1; font-size: 0.85rem; color: #5c534b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-conv__date { grid-column: 2; grid-row: 1; font-size: 0.75rem; color: #8a7f75; white-space: nowrap; }
+.msg-conv__bloque { font-size: 0.7rem; padding: 0.05rem 0.5rem; border-radius: 100px; background: #e8e0d5; color: #5c534b; }
+.msg-retour { align-self: flex-start; padding: 0; color: var(--primary); }
+.msg-corps h3 { margin: 0.25rem 0; color: var(--primary); }
+.msg-fil { display: flex; flex-direction: column; gap: 0.45rem; max-height: 420px; overflow-y: auto; padding: 0.25rem 0; }
+.msg-bulle { max-width: 80%; padding: 0.55rem 0.8rem; border-radius: 14px; }
+.msg-bulle--autre { align-self: flex-start; background: #fff; border-bottom-left-radius: 4px; }
+.msg-bulle--moi { align-self: flex-end; background: var(--primary); color: #f4f0e6; border-bottom-right-radius: 4px; }
+.msg-bulle__texte { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.msg-bulle__date { display: block; margin-top: 0.2rem; font-size: 0.7rem; opacity: 0.7; }
+.msg-reponse { display: flex; gap: 0.5rem; align-items: flex-end; }
+.msg-reponse .btn--primary { color: #1a1a1a; flex: none; }
+.msg-actions { justify-content: flex-end; }
+
+@media (max-width: 600px) {
+    .ann-filtres__grille, .ann-cases { grid-template-columns: 1fr; }
+    .ann-carte { padding: 1rem; }
+    .msg-reponse { flex-direction: column; align-items: stretch; }
+    .msg-bulle { max-width: 92%; }
+}

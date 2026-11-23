@@ -282,7 +282,8 @@
             return alerte(res.error.message || 'L\'inscription n\'a pas pu être enregistrée.');
         }
         ecrire(CLE_PROFIL, { prenom: a.prenom, nom: a.nom, email: a.email, telephone: a.telephone, fft: choix.j1 });
-        var jeton = new URL(res.data.lien).searchParams.get('j');
+        // Le lien n'est renvoyé que pour un joueur nouveau ; sinon il part seulement par e-mail.
+        var jeton = res.data.lien ? new URL(res.data.lien).searchParams.get('j') : null;
         if (jeton) ecrire(CLE_ESPACE, jeton);
         afficherResultat(res.data, b);
     }
@@ -297,10 +298,14 @@
             ? 'Rendez-vous au ' + tournoi.nom + ' le ' + dateLongue(tournoi.date) + '. Vous recevrez votre convocation (heure de passage) quelques jours avant.'
             : 'Position ' + r.position + ' sur la liste d\'attente. Si une place se libère, vous passez automatiquement aux inscrits et vous êtes prévenus.'));
         carte.appendChild(el('p', null, partenaire.prenom + ' reçoit un message pour confirmer sa participation.'));
-        var lien = el('a', 'btn btn--primary', 'Ouvrir mon espace joueur');
-        lien.href = r.lien;
-        carte.appendChild(lien);
-        carte.appendChild(el('p', 'ins-resultat__note', 'Gardez ce lien : il permet de suivre l\'inscription, de vous désinscrire et de confirmer votre présence. Il vous est aussi envoyé par e-mail et SMS.'));
+        if (r.lien) {
+            var lien = el('a', 'btn btn--primary', 'Ouvrir mon espace joueur');
+            lien.href = r.lien;
+            carte.appendChild(lien);
+            carte.appendChild(el('p', 'ins-resultat__note', 'Gardez ce lien : il permet de suivre l\'inscription, de vous désinscrire et de confirmer votre présence. Il vous est aussi envoyé par e-mail et SMS.'));
+        } else {
+            carte.appendChild(el('p', 'ins-resultat__note', 'Le lien vers votre espace joueur (suivre l\'inscription, vous désinscrire, confirmer votre présence) vous est envoyé par e-mail.'));
+        }
         zone.appendChild(carte);
         carte.scrollIntoView({ block: 'center' });
     }

@@ -47,7 +47,20 @@
         donnees = res.data;
         var rr = await supa.rpc('espace_joueur_recherches', { p_jeton: jeton });
         donnees.recherches = rr.error ? [] : (rr.data || []);
+        await chargerProfil();
         afficher();
+    }
+
+    // Profil + messages (migration 20261121). Tant qu'elle n'est pas appliquée, la RPC
+    // n'existe pas (PGRST202 / 42883) : les deux blocs ne s'affichent pas, le reste marche.
+    async function chargerProfil() {
+        donnees.profil = null;
+        donnees.conversations = [];
+        var rp = await supa.rpc('mon_profil', { p_jeton: jeton });
+        if (rp.error || !rp.data) return;
+        donnees.profil = rp.data;
+        var rc = await supa.rpc('mes_conversations', { p_jeton: jeton });
+        donnees.conversations = rc.error ? [] : (rc.data || []);
     }
 
     // ----- Sans lien : « recevoir mon lien » -----
@@ -88,6 +101,10 @@
         var zone = $('ej-contenu');
         zone.innerHTML = '';
         zone.appendChild(blocClassement());
+        if (donnees.profil) {
+            zone.appendChild(blocProfil());
+            zone.appendChild(blocMessages());
+        }
         zone.appendChild(blocInscriptions());
         if (donnees.recherches && donnees.recherches.length) zone.appendChild(blocRecherches());
         zone.appendChild(blocHistorique());
@@ -295,6 +312,213 @@
             });
             carte.appendChild(grille);
         }
+        return carte;
+    }
+
+    // ----- Profil joueur (annuaire) et messages -----
+
+    var COTES = [['', 'Non précisé'], ['droite', 'Droite'], ['gauche', 'Gauche'], ['les_deux', 'Les deux']];
+    var DISPOS = [['semaine_midi', 'Semaine midi'], ['semaine_soir', 'Semaine soir'],
+                  ['weekend_matin', 'Week-end matin'], ['weekend_apres_midi', 'Week-end après-midi']];
+    var NIVEAUX = ['Débutant', 'Débutant +', 'Initié', 'Intermédiaire', 'Intermédiaire +', 'Confirmé', 'Avancé', 'Expert'];
+
+    function champ(label, input) {
+        var c = el('label', 'ins-champ');
+        c.appendChild(el('span', 'ins-champ__label', label));
+        c.appendChild(input);
+        return c;
+    }
+    function liste(options, valeur) {
+        var s = el('select', 'ins-input');
+        options.forEach(function (o) { var opt = el('option', null, o[1]); opt.value = o[0]; s.appendChild(opt); });
+        s.value = valeur || '';
+        return s;
+    }
+    function quand(iso) {
+        return iso ? new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    }
+
+    function blocProfil(messageOk) {
+        var p = donnees.profil.profil || {};
+        var existe = !!donnees.profil.profil;
+        var carte = el('section', 'ej-carte ann-profil');
+        carte.appendChild(el('h2', null, 'Mon profil joueur'));
+        carte.appendChild(el('p', 'ej-note', 'Pour trouver des partenaires : les joueurs du club qui ont un espace voient votre prénom, '
+            + 'l\'initiale de votre nom, votre classement et ce profil — jamais votre e-mail ni votre téléphone.'));
+        var form = el('form');
+        form.noValidate = true;
+        var cote = liste(COTES, p.cote);
+        form.appendChild(champ('Côté de jeu', cote));
+        var niveau = null;
+        if (!donnees.joueur.fft_rang) {
+            niveau = liste([['', 'Non précisé']].concat(NIVEAUX.map(function (n, i) { return [String(i + 1), (i + 1) + ' — ' + n]; })),
+                           p.niveau_declare ? String(p.niveau_declare) : '');
+            form.appendChild(champ('Mon niveau (vous n\'êtes pas classé·e)', niveau));
+        }
+        var groupe = el('fieldset', 'ann-cases');
+        groupe.appendChild(el('legend', 'ins-champ__label', 'Mes disponibilités'));
+        var cases = DISPOS.map(function (d) {
+            var l = el('label', 'ann-case');
+            var c = el('input'); c.type = 'checkbox'; c.value = d[0];
+            c.checked = (p.dispos || []).indexOf(d[0]) >= 0;
+            l.appendChild(c); l.appendChild(el('span', null, d[1]));
+            groupe.appendChild(l);
+            return c;
+        });
+        form.appendChild(groupe);
+        var pres = el('textarea', 'ins-input'); pres.rows = 3; pres.maxLength = 300; pres.value = p.presentation || '';
+        pres.placeholder = 'Ex. : je joue surtout le mardi soir, revers solide, je cherche un partenaire régulier…';
+        form.appendChild(champ('Présentation (300 caractères au plus)', pres));
+        var accord = el('label', 'ins-accord ann-ouvert');
+        var ouvert = el('input'); ouvert.type = 'checkbox'; ouvert.checked = !!p.ouvert;
+        accord.appendChild(ouvert);
+        accord.appendChild(el('span', null, 'Apparaître dans l\'annuaire des joueurs (ouvert aux propositions)'));
+        form.appendChild(accord);
+        var alerte = el('div', 'ins-alerte part-ok', messageOk || null); alerte.hidden = !messageOk;
+        form.appendChild(alerte);
+        var actions = el('div', 'ej-actions');
+        var enregistrer = el('button', 'btn btn--primary', 'Enregistrer'); enregistrer.type = 'submit';
+        actions.appendChild(enregistrer);
+        if (existe) actions.appendChild(bouton('Supprimer mon profil', 'lien', function () {
+            if (!confirm('Supprimer votre profil joueur ?\n\nVous disparaissez de l\'annuaire. Vos conversations restent dans Messages.')) return null;
+            return supa.rpc('supprimer_profil', { p_jeton: jeton });
+        }));
+        form.appendChild(actions);
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            enregistrer.disabled = true;
+            var res = await supa.rpc('enregistrer_profil', { p_jeton: jeton, p: {
+                cote: cote.value || null,
+                niveau_declare: niveau && niveau.value ? parseInt(niveau.value, 10) : null,
+                dispos: cases.filter(function (c) { return c.checked; }).map(function (c) { return c.value; }),
+                presentation: pres.value,
+                ouvert: ouvert.checked
+            } });
+            enregistrer.disabled = false;
+            if (res.error) {
+                alerte.hidden = false; alerte.className = 'ins-alerte ins-alerte--erreur';
+                alerte.textContent = res.error.message;
+                return;
+            }
+            donnees.profil = res.data;
+            carte.replaceWith(blocProfil(ouvert.checked
+                ? 'Profil enregistré : vous apparaissez dans l\'annuaire des joueurs.'
+                : 'Profil enregistré. Il n\'apparaît pas dans l\'annuaire tant que la case n\'est pas cochée.'));
+        });
+        carte.appendChild(form);
+        var a = el('a', 'btn btn--outline-dark', 'Trouver un partenaire →'); a.href = 'joueurs/';
+        carte.appendChild(a);
+        return carte;
+    }
+
+    function blocMessages() {
+        var carte = el('section', 'ej-carte msg-carte');
+        var titre = el('h2', null, 'Messages ');
+        var badge = el('span', 'msg-badge');
+        titre.appendChild(badge);
+        carte.appendChild(titre);
+        var corps = el('div', 'msg-corps');
+        carte.appendChild(corps);
+        function majBadge() {
+            var n = (donnees.conversations || []).reduce(function (s, c) { return s + (c.non_lus || 0); }, 0);
+            badge.textContent = n ? String(n) : '';
+            badge.hidden = !n;
+        }
+        function afficherListe() {
+            majBadge();
+            corps.innerHTML = '';
+            var l = donnees.conversations || [];
+            if (!l.length) {
+                var vide = el('p', null, 'Aucun message pour l\'instant. ');
+                var a = el('a', null, 'Proposez une partie à un joueur de l\'annuaire →'); a.href = 'joueurs/';
+                vide.appendChild(a);
+                corps.appendChild(vide);
+            }
+            l.forEach(function (c) {
+                var b = el('button', 'msg-conv' + (c.non_lus ? ' msg-conv--non-lu' : ''));
+                b.type = 'button';
+                var tete = el('span', 'msg-conv__tete');
+                tete.appendChild(el('strong', null, c.prenom + ' ' + c.initiale));
+                if (c.non_lus) tete.appendChild(el('span', 'msg-badge', String(c.non_lus)));
+                if (c.bloque) tete.appendChild(el('span', 'msg-conv__bloque', 'bloqué'));
+                b.appendChild(tete);
+                var d = c.dernier || {};
+                b.appendChild(el('span', 'msg-conv__extrait', (d.de_moi ? 'Vous : ' : '') + (d.extrait || '')));
+                b.appendChild(el('span', 'msg-conv__date', quand(d.date)));
+                b.addEventListener('click', function () { ouvrir(c.ref); });
+                corps.appendChild(b);
+            });
+        }
+        async function ouvrir(avec) {
+            var res = await supa.rpc('conversation', { p_jeton: jeton, p_avec: avec });
+            if (res.error) { alert(res.error.message); return; }
+            var c = res.data || {};
+            var qui = c.avec ? c.avec.prenom + ' ' + c.avec.initiale : '';
+            corps.innerHTML = '';
+            var retour = el('button', 'ej-bouton-lien msg-retour', '← Toutes les conversations');
+            retour.type = 'button';
+            retour.addEventListener('click', async function () {
+                var rc = await supa.rpc('mes_conversations', { p_jeton: jeton });
+                if (!rc.error) donnees.conversations = rc.data || [];
+                afficherListe();
+            });
+            corps.appendChild(retour);
+            corps.appendChild(el('h3', null, qui));
+            var fil = el('div', 'msg-fil');
+            (c.messages || []).forEach(function (m) {
+                var bulle = el('div', 'msg-bulle ' + (m.de_moi ? 'msg-bulle--moi' : 'msg-bulle--autre'));
+                bulle.appendChild(el('p', 'msg-bulle__texte', m.texte));
+                bulle.appendChild(el('span', 'msg-bulle__date', quand(m.cree_le)));
+                fil.appendChild(bulle);
+            });
+            if (!(c.messages || []).length) fil.appendChild(el('p', 'ej-note', 'Pas encore de message.'));
+            corps.appendChild(fil);
+            fil.scrollTop = fil.scrollHeight;
+            // Les messages reçus viennent d'être marqués lus.
+            (donnees.conversations || []).forEach(function (x) { if (x.ref === avec) x.non_lus = 0; });
+            majBadge();
+
+            if (c.bloque) {
+                corps.appendChild(el('p', 'ej-alerte', 'Vous avez bloqué ce joueur : il ne peut plus vous écrire. Débloquez-le pour reprendre la conversation.'));
+            } else {
+                var form = el('form', 'msg-reponse');
+                form.noValidate = true;
+                var zone = el('textarea', 'ins-input'); zone.rows = 2; zone.maxLength = 1000; zone.placeholder = 'Votre réponse…';
+                var envoyer = el('button', 'btn btn--primary', 'Envoyer'); envoyer.type = 'submit';
+                form.appendChild(zone); form.appendChild(envoyer);
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    if (!zone.value.trim()) return;
+                    envoyer.disabled = true;
+                    var r = await supa.rpc('envoyer_message', { p_jeton: jeton, p_dest: avec, p_texte: zone.value });
+                    envoyer.disabled = false;
+                    if (r.error) { alert(r.error.message); return; }
+                    ouvrir(avec);
+                });
+                corps.appendChild(form);
+            }
+            var actions = el('div', 'ej-actions msg-actions');
+            var bloquer = el('button', 'ej-bouton-lien', c.bloque ? 'Débloquer' : 'Bloquer');
+            bloquer.type = 'button';
+            bloquer.addEventListener('click', async function () {
+                if (!c.bloque && !confirm('Bloquer ' + qui + ' ?\n\nIl/elle ne pourra plus vous écrire et vous ne vous verrez plus dans l\'annuaire.')) return;
+                var r = await supa.rpc('bloquer_joueur', { p_jeton: jeton, p_joueur: avec, p_bloquer: !c.bloque });
+                if (r.error) { alert(r.error.message); return; }
+                (donnees.conversations || []).forEach(function (x) { if (x.ref === avec) x.bloque = !c.bloque; });
+                ouvrir(avec);
+            });
+            var signaler = el('button', 'ej-bouton-lien', 'Signaler au club');
+            signaler.type = 'button';
+            signaler.addEventListener('click', async function () {
+                var motif = prompt('Pourquoi signalez-vous ' + qui + ' au club ? (messages déplacés, insistance…)');
+                if (!motif || !motif.trim()) return;
+                var r = await supa.rpc('signaler_joueur', { p_jeton: jeton, p_joueur: avec, p_motif: motif });
+                alert(r.error ? r.error.message : 'Merci : le club a été prévenu et va regarder vos échanges.');
+            });
+            actions.appendChild(bloquer); actions.appendChild(signaler);
+            corps.appendChild(actions);
+        }
+        afficherListe();
         return carte;
     }
 

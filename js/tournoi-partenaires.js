@@ -57,6 +57,11 @@
         var a = el('a', null, 'Inscrivez votre paire →'); a.href = 'tournois/inscription/?t=' + tournoi.id;
         lien.appendChild(a);
         zone.appendChild(lien);
+
+        var annuaire = el('p', 'part-deja');
+        var b = el('a', null, 'Voir l\'annuaire des joueurs →'); b.href = 'joueurs/';
+        annuaire.appendChild(b);
+        zone.appendChild(annuaire);
     }
 
     function ligneRecherche(r) {
