@@ -37,6 +37,11 @@
 <link rel="dns-prefetch" href="https://formsubmit.co">
 <link rel="preconnect" href="https://www.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://www.google.com">
+<!-- Lien personnel (?j=) : rangé dans le navigateur et retiré de l'adresse AVANT Google Tag Manager,
+     pour qu'il n'apparaisse jamais dans les statistiques. espace-joueur.js le relit ensuite. -->
+<script>(function(){try{var q=new URLSearchParams(location.search),j=q.get('j');if(!j)return;
+    localStorage.setItem('rebond-espace-joueur',JSON.stringify(j)); /* échoue en navigation privée : on laisse alors l'adresse telle quelle */
+    q.delete('j');var r=q.toString();history.replaceState(null,'',location.pathname+(r?'?'+r:'')+location.hash);}catch(e){}})();</script>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],

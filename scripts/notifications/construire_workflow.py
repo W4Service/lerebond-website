@@ -30,7 +30,7 @@ RETURNING id, canal, destinataire, sujet, corps, type, tentatives"""
 
 MISE_EN_PAGE = r"""// Met le texte brut du message en forme (charte Le Rebond) et prépare l'appel Graph.
 const n = $input.item.json;
-const echapper = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const echapper = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const lienner = s => s.replace(/(https:\/\/le-rebond\.fr\/[^\s<]+)/g,
     '<a href="$1" style="display:inline-block;margin:6px 0;padding:10px 18px;background:#efa707;color:#1a1a1a;border-radius:8px;text-decoration:none;font-weight:600">Ouvrir mon espace joueur</a>');
 const paragraphes = echapper(n.corps).split(/\n{2,}/)
