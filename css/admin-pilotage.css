@@ -172,6 +172,8 @@ html.integre .historique-card { background: rgba(104,9,32,0.0275) !important; bo
 html.integre .historique-card:hover { background: rgba(244,201,65,0.128) !important; border-color: rgba(138,16,48,0.5) !important; }
 html.integre .historique-card-nom { color: #2a1a1e !important; }
 html.integre .historique-card-meta { color: rgba(42,26,30,0.75) !important; }
+html.integre .live-avancement__texte { color: rgba(42,26,30,0.9) !important; }
+html.integre .live-avancement__barre { background: rgba(104,9,32,0.0825) !important; }
 html.integre .historique-back { color: rgba(42,26,30,0.85) !important; border: 1px solid rgba(104,9,32,0.275) !important; }
 html.integre .historique-back:hover { color: #8a1030 !important; border-color: rgba(138,16,48,0.5) !important; }
 html.integre .readonly-badge { color: #8a1030 !important; background: rgba(244,201,65,0.192) !important; }
@@ -308,6 +310,11 @@ html.integre .bracket-equipe--perdant { color: #65565a !important; }
 html.integre .bracket-equipe--attente { color: #65565a !important; }
 html.integre .bracket-pied { color: #65565a !important; background: #fffdf8 !important; border-top: 1px solid #680920 !important; }
 html.integre .bracket-fleche { color: #65565a !important; }
+html.integre .bracket-tete { border-bottom: 1px solid #680920 !important; }
+html.integre .bracket-etat { color: #65565a !important; }
+html.integre .bracket-etat--termine { color: #65565a !important; }
+html.integre .bracket-match--projete { background: #fffdf8 !important; }
+html.integre .bracket-note { color: #65565a !important; }
 html.integre .horaires-barre { background: #fffdf8 !important; border: 1px solid #680920 !important; }
 html.integre .horaires-sous { color: #65565a !important; }
 html.integre .horaires-fin { color: #65565a !important; }
@@ -349,6 +356,8 @@ html.integre .am-sticky-bar { background: rgba(255,253,248,0.97) !important; bor
   html.integre .am-grille-tour-head { border-bottom-color: #e6dfd2 !important; }
   html.integre .am-grille-tour-badge { background: #fffdf8 !important; }
 }
+html.integre .am-zone-danger { border-top: 1px dashed #e6dfd2 !important; }
+html.integre .am-zone-danger .am-btn { background: #fffdf8 !important; }
 
 /* Page : fond crème du pilotage, sans les décors du thème sombre */
 html.integre, html.integre body.live-body { background: #f4f0e6 !important; color: #2a1a1e !important; }
@@ -375,5 +384,3 @@ html.integre [style*="background:rgba(0,0,0"], html.integre [style*="background:
 html.integre [style*="color:#8fd694"], html.integre [style*="color:#7ee06a"] { color: #1e7d4f !important; }
 html.integre [style*="color:#ff9b8f"] { color: #b3261e !important; }
 
-html.integre .live-avancement__texte { color: rgba(42,26,30,0.75) !important; }
-html.integre .live-avancement__barre { background: rgba(104,9,32,0.12) !important; }

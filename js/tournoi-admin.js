@@ -4523,8 +4523,12 @@
     }
 
     // Génère le tour suivant d'un bracket dont tous les matchs du tour courant sont termines.
-    async function genererTourSuivant(bracket) {
-        var bracketMatchs = matchs.filter(function (m) {
+    // Calcule le tour suivant d'un bracket sans rien écrire : renvoie les matchs
+    // à créer, ou null si rien n'est à créer. `liste` = les matchs sur lesquels
+    // raisonner (les vrais, ou une simulation pour la vue tableau) ; `toast` =
+    // showToast pour la vraie génération, une fonction vide pour la simulation.
+    function calculerTourSuivant(bracket, liste, toast) {
+        var bracketMatchs = liste.filter(function (m) {
             return m.phase === 'finale' && m.bracket === bracket;
         }).sort(function (a, b) { return a.ordre - b.ordre; });
 
@@ -4533,7 +4537,7 @@
         // et qui n'a pas de successeur. On regroupe par paire d'ordres consécutifs.
         var nonTermine = bracketMatchs.filter(function (m) { return m.status !== 'termine' || !m.vainqueur_id; });
         if (nonTermine.length > 0) {
-            showToast('Il reste ' + nonTermine.length + ' match(s) non terminés dans ce bracket.', 'error');
+            toast('Il reste ' + nonTermine.length + ' match(s) non terminés dans ce bracket.', 'error');
             return;
         }
 
@@ -4560,7 +4564,7 @@
         // puis le match des places 5-6 (les 2 gagnants) et celui des places 7-8 (les 2 perdants).
         if (bracket === 'consolation_5_8') {
             if (bracketMatchs.length !== 2) {
-                showToast('Tableau de consolation déjà complet.', 'error');
+                toast('Tableau de consolation déjà complet.', 'error');
                 return;
             }
             var perdantC = function (m) {
@@ -4580,12 +4584,7 @@
                 equipe_a_id: perdantC(bracketMatchs[0]),
                 equipe_b_id: perdantC(bracketMatchs[1])
             });
-            var resC = await supa.from('matchs').insert(nextMatchs).select();
-            if (resC.error) { showToast('Erreur : ' + resC.error.message, 'error'); console.error(resC.error); return; }
-            matchs = matchs.concat(resC.data);
-            render();
-            showToast(resC.data.length + ' match(s) suivants générés', 'ok');
-            return;
+            return nextMatchs;
         }
 
         if (bracket === 'principal' || bracket === 'tableau_b') {
@@ -4597,7 +4596,7 @@
                 var classement = computeClassement(pouleId);
                 var premierId = classement[0] ? classement[0].id : null;
                 if (!premierId) {
-                    showToast('Impossible de déterminer le 1er de poule pour la finale.', 'error');
+                    toast('Impossible de déterminer le 1er de poule pour la finale.', 'error');
                     return;
                 }
                 nextMatchs.push({
@@ -4627,9 +4626,9 @@
             if (nbMatchsRoundCourant === null) {
                 // slice(-null) renverrait tout le bracket et produirait des matchs
                 // absurdes : mieux vaut le dire que deviner.
-                showToast('Structure de tableau non reconnue (' + bracketMatchs.length +
+                toast('Structure de tableau non reconnue (' + bracketMatchs.length +
                     ' matchs) : le tour suivant ne peut pas être déduit.', 'error');
-                console.error('[genererTourSuivant] bracket', bracket,
+                if (toast === showToast) console.error('[genererTourSuivant] bracket', bracket,
                     'de', bracketMatchs.length, 'matchs : round courant indéterminé');
                 return;
             }
@@ -4820,7 +4819,7 @@
                     equipe_b_id: lastRound[2].vainqueur_id
                 });
             } else {
-                showToast('Tableau principal complet ou format non supporté pour le tour suivant.', 'error');
+                toast('Tableau principal complet ou format non supporté pour le tour suivant.', 'error');
                 return;
             }
             } // fin du else (cas non 1p×5)
@@ -4851,12 +4850,7 @@
                             equipe_b_id: winB
                         });
                         // Sauter le bloc standard ci-dessous en appelant 'do insert' direct
-                        var resJ = await supa.from('matchs').insert(nextMatchs).select();
-                        if (resJ.error) { showToast('Erreur : ' + resJ.error.message, 'error'); console.error(resJ.error); return; }
-                        matchs = matchs.concat(resJ.data);
-                        render();
-                        showToast(resJ.data.length + ' match(s) suivants générés', 'ok');
-                        return;
+                        return nextMatchs;
                     }
                 }
             }
@@ -4877,18 +4871,18 @@
                     });
                     // (Pas de match supplémentaire pour le 3e place : c'est le perdant du barrage)
                 } else {
-                    showToast('Ce mini-bracket est déjà terminé.', 'error');
+                    toast('Ce mini-bracket est déjà terminé.', 'error');
                     return;
                 }
             } else if (sortedRows.length === 2) {
                 // Match unique déjà joué = pas de tour suivant
-                showToast('Bracket déjà terminé (2 équipes = 1 seul match).', 'error');
+                toast('Bracket déjà terminé (2 équipes = 1 seul match).', 'error');
                 return;
             } else if (sortedRows.length >= 4) {
                 // Même logique que principal mais sans match 3e/4e (on garde simple)
                 var nbCourant = bracketMatchs.length === 2 ? 2 : (bracketMatchs.length === 4 ? 4 : null);
                 if (!nbCourant) {
-                    showToast('Format non supporté pour ce bracket.', 'error');
+                    toast('Format non supporté pour ce bracket.', 'error');
                     return;
                 }
                 var lastRound2 = bracketMatchs.slice(-nbCourant);
@@ -4920,9 +4914,15 @@
         }
 
         if (nextMatchs.length === 0) {
-            showToast('Rien à générer pour ce tour.', 'error');
-            return;
+            toast('Rien à générer pour ce tour.', 'error');
+            return null;
         }
+        return nextMatchs;
+    }
+
+    async function genererTourSuivant(bracket) {
+        var nextMatchs = calculerTourSuivant(bracket, matchs, showToast);
+        if (!nextMatchs) return;
         var res = await supa.from('matchs').insert(nextMatchs).select();
         if (res.error) { showToast('Erreur : ' + res.error.message, 'error'); console.error(res.error); return; }
         matchs = matchs.concat(res.data);
@@ -4931,8 +4931,8 @@
     }
 
     // Le tour courant d'un bracket est-il complet (donc on peut générer la suite) ?
-    function bracketTourComplet(bracket) {
-        var b = matchs.filter(function (m) { return m.phase === 'finale' && m.bracket === bracket; });
+    function bracketTourComplet(bracket, liste) {
+        var b = (liste || matchs).filter(function (m) { return m.phase === 'finale' && m.bracket === bracket; });
         if (b.length === 0) return false;
         // Tous terminés et il reste un round à jouer ?
         var allDone = b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; });
@@ -4940,11 +4940,12 @@
         // Heuristique : si le bracket a pour entrants 4 -> 4 puis 2 puis 2 (finale+3e/4e) = 8 matchs total
         // 2 entrants -> 1 match total. 3 entrants -> 2 matchs total.
         // On évalue si le nb de matchs courants est "complet"
-        return !bracketEstFini(bracket);
+        return !bracketEstFini(bracket, liste);
     }
 
-    function bracketEstFini(bracket) {
-        var b = matchs.filter(function (m) { return m.phase === 'finale' && m.bracket === bracket; });
+    function bracketEstFini(bracket, liste) {
+        var source = liste || matchs;
+        var b = source.filter(function (m) { return m.phase === 'finale' && m.bracket === bracket; });
         if (b.length === 0) return false;
 
         // Poules de classement (format 9 équipes) : triangulaire complet de 3 matchs,
@@ -4958,7 +4959,7 @@
         if (bracket === 'consolation_5_8') {
             if (!b.every(function (m) { return m.status === 'termine' && m.vainqueur_id; })) return false;
             // Fini seulement une fois les matchs 5-6 / 7-8 créés.
-            return matchs.some(function (m) {
+            return source.some(function (m) {
                 return m.phase === 'finale' && (m.bracket === 'places_5_6' || m.bracket === 'places_7_8');
             });
         }
@@ -7890,6 +7891,73 @@
         return '🎾 Places ' + (n * 3 + 1) + '+'; // approximation
     }
 
+    // Ordre d'affichage des brackets : principal d'abord, puis rang_2, rang_3...
+    // (liste des matchs et vue tableau).
+    function ordreBracket(b) {
+        if (!b) return 99;
+        if (b === 'principal') return 0;
+        if (b === 'consolation_5_8') return 5;
+        if (b === 'consolation_9_12') return 9;
+        if (b === 'consolation_13_16') return 13;
+        if (b === 'places_13_14') return 13;
+        if (b === 'places_15_16') return 15;
+        if (b === 'classement_or') return 1;
+        if (b === 'classement_argent') return 4;
+        if (b === 'classement_bronze') return 7;
+        // places_X_Y : on classe sur la première place du match.
+        if (b.indexOf('places_') === 0) {
+            var np = parseInt(b.split('_')[1], 10);
+            if (!isNaN(np)) return np;
+        }
+        if (b.indexOf('rang_') === 0) return parseInt(b.split('_')[1], 10);
+        return 99;
+    }
+
+    // Tours que l'admin créera ensuite, pour la vue tableau. On rejoue la vraie
+    // règle (calculerTourSuivant) sur une copie où chaque match non joué a un
+    // vainqueur symbolique « gagnant:<id> » et un perdant « perdant:<id> ».
+    // Rien n'est écrit en base.
+    function projeterPhaseFinale() {
+        var muet = function () {};
+        var symbolique = function (m) {
+            var c = Object.assign({}, m);
+            if (c.status !== 'termine' || !c.vainqueur_id) {
+                c.equipe_a_id = 'gagnant:' + m.id;
+                c.equipe_b_id = 'perdant:' + m.id;
+                c.vainqueur_id = c.equipe_a_id;
+                c.status = 'termine';
+            }
+            return c;
+        };
+        var sim = matchs.filter(function (m) { return m.phase === 'finale'; }).map(symbolique);
+        var projetes = [];
+        var n = 0;
+        // 6 tours au plus : un tableau de 32 n'en a pas davantage.
+        for (var tour = 0; tour < 6; tour++) {
+            var brackets = [];
+            sim.forEach(function (m) { if (m.bracket && brackets.indexOf(m.bracket) < 0) brackets.push(m.bracket); });
+            var ajout = [];
+            brackets.forEach(function (bk) {
+                var suivants = null;
+                try {
+                    if (bracketTourComplet(bk, sim)) suivants = calculerTourSuivant(bk, sim, muet);
+                } catch (err) {
+                    suivants = null; // format inconnu : on n'annonce rien plutôt que du faux
+                }
+                (suivants || []).forEach(function (m) {
+                    m.id = 'projete:' + (n++);
+                    ajout.push(m);
+                });
+            });
+            if (!ajout.length) break;
+            ajout.forEach(function (m) {
+                projetes.push(Object.assign({}, m));
+                sim.push(symbolique(m));
+            });
+        }
+        return projetes;
+    }
+
     function renderMatchsSection() {
         var card = el('div', { class: 'tournoi-card' });
         card.appendChild(el('h3', { class: 'tournoi-section-title' }, '🎮 Matchs (' + matchs.length + ')'));
@@ -7972,6 +8040,45 @@
                 boite.appendChild(el('summary', { class: 'bracket-summary' }, '🗂 Vue tableau'));
                 boite.appendChild(vue);
                 card.appendChild(boite);
+            }
+        } else if (window.TournoiBracketVue && window.TournoiBracketVue.rendreMultiChances
+                   && matchs.some(function (m) { return m.phase === 'finale'; })) {
+            // Tous les autres formats : vue « multi-chances », un bloc par
+            // ensemble de places, avec les tours que l'admin créera ensuite.
+            var vueMc = null;
+            try {
+                vueMc = window.TournoiBracketVue.rendreMultiChances({
+                    matchs: matchs,
+                    projetes: projeterPhaseFinale(),
+                    ordreBloc: ordreBracket,
+                    heureDe: heureTheorique,
+                    libelleBracket: function (b) {
+                        return b === 'principal' ? '🏆 Tableau principal · places 1-4' : bracketLabel(b);
+                    },
+                    nomEquipe: function (id) {
+                        var e = equipes.find(function (x) { return x.id === id; });
+                        return e ? equipeAffichage(e) : '?';
+                    },
+                    libelleVide: function (m, side) {
+                        var type = m['equipe_' + side + '_source_type'];
+                        var ordre = m['equipe_' + side + '_source_ordre'];
+                        var p = poules.find(function (x) { return x.id === m['equipe_' + side + '_source_poule_id']; });
+                        if (type === 'rang_poule' && p && ordre) return ordre + (ordre === 1 ? 'er ' : 'e ') + p.nom;
+                        if (type === 'meilleur_2e') return 'Meilleur 2e';
+                        if (type === 'autres_2es') return 'Autre 2e';
+                        return 'à venir';
+                    }
+                });
+            } catch (err) {
+                // La vue ne doit jamais empêcher d'afficher les matchs.
+                console.error('[vue multi-chances]', err);
+                vueMc = null;
+            }
+            if (vueMc) {
+                var boiteMc = el('details', { class: 'bracket-details', open: 'open' });
+                boiteMc.appendChild(el('summary', { class: 'bracket-summary' }, '🗂 Vue tableau'));
+                boiteMc.appendChild(vueMc);
+                card.appendChild(boiteMc);
             }
         }
 
@@ -8092,25 +8199,7 @@
                 (byBracket[b] = byBracket[b] || []).push(m);
             });
 
-            // Ordre d'affichage des brackets : principal d'abord, puis rang_2, rang_3...
-            var bracketOrder = function (b) {
-                if (b === 'principal') return 0;
-                if (b === 'consolation_5_8') return 5;
-                if (b === 'consolation_9_12') return 9;
-                if (b === 'consolation_13_16') return 13;
-                if (b === 'places_13_14') return 13;
-                if (b === 'places_15_16') return 15;
-                if (b === 'classement_or') return 1;
-                if (b === 'classement_argent') return 4;
-                if (b === 'classement_bronze') return 7;
-                // places_X_Y : on classe sur la première place du match.
-                if (b.indexOf('places_') === 0) {
-                    var np = parseInt(b.split('_')[1], 10);
-                    if (!isNaN(np)) return np;
-                }
-                if (b.indexOf('rang_') === 0) return parseInt(b.split('_')[1], 10);
-                return 99;
-            };
+            var bracketOrder = ordreBracket;
             Object.keys(byBracket).sort(function (a, b) { return bracketOrder(a) - bracketOrder(b); })
                 .forEach(function (bk) {
                     var bcard = el('div', { class: 'bracket-card' });
