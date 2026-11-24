@@ -487,6 +487,7 @@
                 var form = el('form', 'msg-reponse');
                 form.noValidate = true;
                 var zone = el('textarea', 'ins-input'); zone.rows = 2; zone.maxLength = 1000; zone.placeholder = 'Votre réponse…';
+                zone.setAttribute('aria-label', 'Votre réponse à ' + qui);
                 var envoyer = el('button', 'btn btn--primary', 'Envoyer'); envoyer.type = 'submit';
                 form.appendChild(zone); form.appendChild(envoyer);
                 form.addEventListener('submit', async function (e) {
