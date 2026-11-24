@@ -142,10 +142,13 @@
             if (texte.value.trim()) f.texte = texte.value.trim();
             return f;
         }
+        var demande = 0;   // seule la dernière recherche lancée s'affiche
         async function chercher() {
+            var n = ++demande;
             resultats.innerHTML = '';
             resultats.appendChild(el('p', 'ann-compte', 'Recherche…'));
             var res = await supa.rpc('annuaire_joueurs', { p_jeton: jeton, p_filtres: valeurs() });
+            if (n !== demande) return;
             resultats.innerHTML = '';
             if (res.error) { resultats.appendChild(el('p', 'ins-alerte ins-alerte--erreur', res.error.message)); return; }
             var liste = res.data || [];

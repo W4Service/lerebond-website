@@ -344,7 +344,8 @@
         var carte = el('section', 'ej-carte ann-profil');
         carte.appendChild(el('h2', null, 'Mon profil joueur'));
         carte.appendChild(el('p', 'ej-note', 'Pour trouver des partenaires : les joueurs du club qui ont un espace voient votre prénom, '
-            + 'l\'initiale de votre nom, votre classement et ce profil — jamais votre e-mail ni votre téléphone.'));
+            + 'l\'initiale de votre nom, votre classement et ce profil — jamais votre e-mail ni votre téléphone. '
+            + 'Le classement FFT étant public, votre nom complet peut être retrouvé à partir de ces informations.'));
         var form = el('form');
         form.noValidate = true;
         var cote = liste(COTES, p.cote);
@@ -480,6 +481,8 @@
 
             if (c.bloque) {
                 corps.appendChild(el('p', 'ej-alerte', 'Vous avez bloqué ce joueur : il ne peut plus vous écrire. Débloquez-le pour reprendre la conversation.'));
+            } else if (c.bloque_par_lui) {
+                corps.appendChild(el('p', 'ej-alerte', 'Ce joueur ne reçoit plus vos messages.'));
             } else {
                 var form = el('form', 'msg-reponse');
                 form.noValidate = true;
