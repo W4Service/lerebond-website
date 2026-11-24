@@ -304,7 +304,7 @@
             carte.appendChild(lien);
             carte.appendChild(el('p', 'ins-resultat__note', 'Gardez ce lien : il permet de suivre l\'inscription, de vous désinscrire et de confirmer votre présence. Il vous est aussi envoyé par e-mail et SMS.'));
         } else {
-            carte.appendChild(el('p', 'ins-resultat__note', 'Le lien vers votre espace joueur (suivre l\'inscription, vous désinscrire, confirmer votre présence) vous est envoyé par e-mail.'));
+            carte.appendChild(el('p', 'ins-resultat__note', 'Le lien vers votre espace joueur (suivre l\'inscription, vous désinscrire, confirmer votre présence) vous est envoyé par e-mail. Première inscription en ligne ? Le club vérifie d\'abord votre adresse.'));
         }
         zone.appendChild(carte);
         carte.scrollIntoView({ block: 'center' });

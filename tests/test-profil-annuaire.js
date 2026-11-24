@@ -80,8 +80,13 @@ check('joueurs_contacts n\'est lu que pour résoudre le jeton et dater le lien (
       && /FROM joueurs_contacts WHERE jeton = p_jeton/.test(corps('joueur_du_jeton'))
       && /SELECT created_at FROM joueurs_contacts WHERE joueur_id = p_joueur/.test(corps('exiger_espace_etabli')));
 var etabli = corps('exiger_espace_etabli');
-check('fausses identités : lien de moins de 24 h refusé (54000), sauf joueur inscrit à un tournoi',
-      /> now\(\) - interval '24 hours'/.test(etabli) && /statut = 'inscrite'/.test(etabli) && /ERRCODE = '54000'/.test(etabli));
+check('fausses identités : lien de moins de 24 h refusé (54000), sauf joueur ayant JOUÉ un tournoi au club (pas une simple inscription)',
+      /> now\(\) - interval '24 hours'/.test(etabli)
+      && /NOT EXISTS \(SELECT 1 FROM equipes e JOIN tournois t ON t\.id = e\.tournoi_id\s+WHERE p_joueur IN \(e\.joueur_j1_id, e\.joueur_j2_id\) AND t\.status IN \('actif', 'cloture'\)\)/.test(etabli)
+      && !/inscriptions|'inscrite'/.test(etabli)
+      && /RAISE EXCEPTION 'Votre espace est trop récent : l''annuaire et les nouveaux contacts s''ouvrent 24 h après sa création \(ou dès votre premier tournoi joué au club\)' USING ERRCODE = '54000'/.test(etabli));
+check('… et exigé pour publier un profil ouvert (un profil fermé s\'enregistre toujours)',
+      /IF v_ouvert THEN PERFORM exiger_espace_etabli\(v_moi\); END IF;\s+INSERT INTO joueurs_profils/.test(corps('enregistrer_profil')));
 check('… exigé pour l\'annuaire, et hors conversation pour la fiche, le premier message et le signalement',
       /PERFORM exiger_espace_etabli\(v_moi\);\s+IF jsonb_typeof\(f\)/.test(corps('annuaire_joueurs'))
       && /IF v_j <> v_moi AND NOT conversation_existe\(v_moi, v_j\) THEN PERFORM exiger_espace_etabli\(v_moi\)/.test(corps('fiche_joueur'))
@@ -114,8 +119,15 @@ check('fiche : historique des tournois et du classement', /'tournois'/.test(fich
 
 console.log('\n=== Base : messagerie et anti-abus ===');
 var env = corps('envoyer_message');
-check('dest non ouvert refusé, sauf dans une conversation qui existe déjà',
-      /v_conv := conversation_existe\(v_moi, v_dest\);\s+IF NOT v_conv AND NOT EXISTS \(SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert\)/.test(env));
+check('dest non ouvert refusé, sauf s\'il nous a déjà écrit (une relance sans réponse ne suffit pas)',
+      /IF NOT EXISTS \(SELECT 1 FROM messages WHERE de_joueur = v_dest AND a_joueur = v_moi\)\s+AND NOT EXISTS \(SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert\) THEN\s+RAISE EXCEPTION 'Ce joueur n''est pas ouvert aux propositions'/.test(env)
+      && !/IF NOT v_conv AND NOT EXISTS \(SELECT 1 FROM joueurs_profils/.test(env));
+check('conversation existante (dans un sens ou l\'autre) calculée après ce contrôle, pour les plafonds seulement',
+      env.indexOf('v_conv := conversation_existe(v_moi, v_dest);') > env.indexOf("n''est pas ouvert aux propositions")
+      && env.indexOf('v_conv := conversation_existe(v_moi, v_dest);') < env.indexOf('IF NOT v_conv AND ('));
+check('profil : maj_le ne bouge que sur un vrai changement, au plus une fois par heure',
+      /maj_le = CASE WHEN \(joueurs_profils\.cote, joueurs_profils\.niveau_declare, joueurs_profils\.dispos,\s+joueurs_profils\.presentation, joueurs_profils\.ouvert\)\s+IS DISTINCT FROM \(EXCLUDED\.cote, EXCLUDED\.niveau_declare, EXCLUDED\.dispos,\s+EXCLUDED\.presentation, EXCLUDED\.ouvert\)\s+AND joueurs_profils\.maj_le < now\(\) - interval '1 hour'\s+THEN now\(\) ELSE joueurs_profils\.maj_le END;/.test(corps('enregistrer_profil'))
+      && !/maj_le = now\(\)/.test(corps('enregistrer_profil')));
 check('anti-abus indépendant de l\'expéditeur : 5 nouvelles conversations reçues / 24 h, 50 sur le site / heure',
       /p\.a_joueur = v_dest AND p\.cree_le > now\(\) - interval '24 hours'[\s\S]*\(x\.cree_le, x\.id\) < \(p\.cree_le, p\.id\)\)\) >= 5/.test(env)
       && /p\.cree_le > now\(\) - interval '1 hour'[\s\S]*\(x\.cree_le, x\.id\) < \(p\.cree_le, p\.id\)\)\) >= 50/.test(env)
@@ -127,8 +139,14 @@ check('verrous : un envoi à la fois par expéditeur, une notification à la foi
 check('texte : blancs (retours, tabulations) retirés en tête et en fin', /regexp_replace\(left\(coalesce\(p_texte, ''\), 2000\), '\^\\s\+\|\\s\+\$', '', 'g'\)/.test(env));
 check('e-mail : liens neutralisés dans le prénom et l\'extrait, prénom borné',
       /v_nom := sans_liens\(prenom_initiale\(v_moi\)\)/.test(env) && /v_extrait := sans_liens\(/.test(env)
-      && /left\(trim\(prenom\), 30\)/.test(corps('prenom_initiale')) && /https\?:\/\/\|www/.test(corps('sans_liens'))
-      && /\\m\[\[:alnum:\]-\]\+\(\\\.\[\[:alnum:\]-\]\+\)\*\\\.\[a-z\]\{2,\}/.test(corps('sans_liens')));   // tout nom de domaine
+      && /left\(trim\(prenom\), 30\)/.test(corps('prenom_initiale')));
+var sl = corps('sans_liens');
+check('sans_liens : deux passes imbriquées ; http(s)/www/le-rebond.fr sans casse, puis domaine nu',
+      sl.indexOf("regexp_replace(p, '(https?://|www\\.)\\S*|\\S*le-rebond\\.fr\\S*', '[lien]', 'gi')") >= 0
+      && /SELECT regexp_replace\(\s+regexp_replace\(p, /.test(sl));
+check('sans_liens : domaine nu avec extension en minuscules, ou en CAPITALES suivie de \\M (« samedi.On » intact), sensible à la casse',
+      sl.indexOf("'\\m[[:alnum:]-]+(\\.[[:alnum:]-]+)*\\.([a-z]{2,}|[A-Z]{2,}\\M)(/\\S*)?', '[lien]', 'g')") >= 0
+      && (sl.match(/'gi'/g) || []).length === 1);
 check('anti-abus : 30 messages par heure (54000)', /interval '1 hour'\) >= 30/.test(env) && /ERRCODE = '54000'/.test(env));
 check('anti-abus : 5 nouvelles conversations par 24 h', /interval '24 hours'\) >= 5/.test(env));
 check('notification au plus toutes les 30 min par destinataire',
@@ -162,27 +180,74 @@ function lignesDiff(a, b) {   // lignes de a absentes de b
     var lb = b.split('\n'); return a.split('\n').filter(function (l) { return lb.indexOf(l) < 0; });
 }
 var M = '../supabase/migrations/';
-// Seul ajout de joueur_pour_inscription en plus des lignes corrigées : l'alerte au club.
+// Bloc ajouté à joueur_pour_inscription en plus des lignes corrigées : l'e-mail mis de côté + l'alerte au club.
 var ALERTE_CONTACT = /\n *-- Premier e-mail pour un joueur déjà connu[\s\S]*?\n    END IF;/;
 var jpi = bloc(cor, 'joueur_pour_inscription');
-check('joueur_pour_inscription : premier e-mail pour un joueur déjà connu → alerte au club, avant l\'enregistrement',
-      ALERTE_CONTACT.test(jpi) && /\(SELECT created_at FROM joueurs WHERE id = v_id\) < now\(\)/.test(jpi)
-      && /NOT EXISTS \(SELECT 1 FROM joueurs_contacts WHERE joueur_id = v_id AND email IS NOT NULL\)/.test(jpi)
-      && /PERFORM alerter_staff\('Coordonnées ajoutées à un joueur existant'/.test(jpi)
+var blocAlerte = (jpi.match(ALERTE_CONTACT) || [''])[0];
+check('joueur_pour_inscription : premier e-mail pour un joueur déjà connu → pas enregistré, mis de côté (email_propose), club alerté une fois par adresse',
+      /\(SELECT created_at FROM joueurs WHERE id = v_id\) < now\(\)/.test(blocAlerte)
+      && /NOT EXISTS \(SELECT 1 FROM joueurs_contacts WHERE joueur_id = v_id AND email IS NOT NULL\)/.test(blocAlerte)
+      && /IF NOT EXISTS \(SELECT 1 FROM joueurs_contacts WHERE joueur_id = v_id AND email_propose = v_email\) THEN\s+PERFORM alerter_staff\('Adresse à valider pour un joueur existant'/.test(blocAlerte)
+      && /SELECT staff_valider_email\(''' \|\| v_id \|\| E'''\);/.test(blocAlerte)
+      && /v_propose := v_email;\s+v_email := NULL;\s+END IF;$/.test(blocAlerte)
+      && !/Coordonnées ajoutées à un joueur existant/.test(cor)
       && jpi.indexOf('alerter_staff') < jpi.indexOf('INSERT INTO joueurs_contacts'));
-[['joueur_pour_inscription', '20261021_inscriptions.sql'], ['chercher_partenaire', '20261024_partenaires_licences.sql'],
- ['inscrire_paire', '20261023_resultats_poids_alertes.sql']].forEach(function (f) {
+check('joueur_pour_inscription : adresse e-mail mal formée refusée (22023), avant toute recherche de joueur',
+      /IF v_email IS NOT NULL AND v_email !~ '\^\[\^@\[:space:\]\]\+@\[\^@\[:space:\]\]\+\\\.\[a-z\]\{2,\}\$' THEN\s+RAISE EXCEPTION 'Adresse e-mail invalide : %', left\(v_email, 60\) USING ERRCODE = '22023';/.test(jpi)
+      && jpi.indexOf('Adresse e-mail invalide') < jpi.indexOf('SELECT id INTO v_id'));
+check('joueurs_contacts.email_propose ajoutée si absente (rejouable)',
+      /ALTER TABLE joueurs_contacts ADD COLUMN IF NOT EXISTS email_propose text;/.test(cor));
+// Lignes nouvelles tolérées, une à une (et rien d'autre) : lien_si_nouveau, coalesce sans remplacement,
+// et pour joueur_pour_inscription la validation de l'e-mail et la colonne email_propose.
+var TOLERE = {
+    joueur_pour_inscription: {
+        ajout: [/^    v_email text := nullif\(lower\(trim\(p->>'email'\)\), ''\);$/, /^    v_propose text;$/,
+                /^    IF v_email IS NOT NULL AND v_email !~ '.*' THEN$/,
+                /^        RAISE EXCEPTION 'Adresse e-mail invalide : %', left\(v_email, 60\) USING ERRCODE = '22023';$/,
+                /^    INSERT INTO joueurs_contacts \(joueur_id, email, telephone, email_propose\)$/,
+                /^    VALUES \(v_id, v_email, nullif\(regexp_replace\(coalesce\(p->>'telephone', ''\), '\[\^0-9\+\]', '', 'g'\), ''\), v_propose\)$/,
+                /^        email = coalesce\(joueurs_contacts\.email, EXCLUDED\.email\),$/,
+                /^        telephone = coalesce\(joueurs_contacts\.telephone, EXCLUDED\.telephone\),$/,
+                /^        email_propose = coalesce\(EXCLUDED\.email_propose, joueurs_contacts\.email_propose\),$/],
+        retrait: [/^    INSERT INTO joueurs_contacts \(joueur_id, email, telephone\)$/,
+                  /^    VALUES \(v_id, nullif\(lower\(trim\(p->>'email'\)\), ''\), nullif\(regexp_replace/,
+                  /^        email = coalesce\(EXCLUDED\.email, joueurs_contacts\.email\),$/,
+                  /^        telephone = coalesce\(EXCLUDED\.telephone, joueurs_contacts\.telephone\),$/]
+    },
+    chercher_partenaire: { ajout: [/lien_si_nouveau/], retrait: [/./] },
+    inscrire_paire: { ajout: [/lien_si_nouveau/], retrait: [/./] }
+};
+function chaqueLigneUneRegle(lignes, regles, max) {   // chaque ligne prise par une règle distincte
+    var libres = regles.slice();
+    return lignes.length <= max && lignes.every(function (l) {
+        var i = libres.findIndex(function (r) { return r.test(l); });
+        if (i < 0) return false;
+        if (regles.length > 1) libres.splice(i, 1);
+        return true;
+    });
+}
+[['joueur_pour_inscription', '20261021_inscriptions.sql', 9, 4], ['chercher_partenaire', '20261024_partenaires_licences.sql', 2, 2],
+ ['inscrire_paire', '20261023_resultats_poids_alertes.sql', 2, 2]].forEach(function (f) {
     var neuf = bloc(cor, f[0]).replace(ALERTE_CONTACT, ''), ancien = bloc(fs.readFileSync(M + f[1], 'utf8'), f[0]);
     var ajout = lignesDiff(neuf, ancien).filter(function (l) { return !/^\s*--/.test(l); });
     var retrait = lignesDiff(ancien, neuf);
+    var exact = f[0] === 'joueur_pour_inscription';   // toutes les lignes attendues, ni plus ni moins
     check(f[0] + ' : reprise à l\'identique de ' + f[1] + ' sauf les lignes corrigées',
-          neuf !== '' && retrait.length <= 2 && ajout.length <= 2
-          && ajout.every(function (l) { return /lien_si_nouveau|coalesce\(joueurs_contacts\.(email|telephone), EXCLUDED/.test(l); }),
+          neuf !== '' && ajout.length > 0 && chaqueLigneUneRegle(ajout, TOLERE[f[0]].ajout, f[2]) && chaqueLigneUneRegle(retrait, TOLERE[f[0]].retrait, f[3])
+          && (!exact || (ajout.length === f[2] && retrait.length === f[3])),
           JSON.stringify({ ajout: ajout, retrait: retrait }));
 });
 check('joueur_pour_inscription : ne remplace jamais un e-mail ni un téléphone connus',
       /email = coalesce\(joueurs_contacts\.email, EXCLUDED\.email\)/.test(cor) && /telephone = coalesce\(joueurs_contacts\.telephone, EXCLUDED\.telephone\)/.test(cor)
-      && !/coalesce\(EXCLUDED\.email/.test(cor));
+      && !/coalesce\(EXCLUDED\.(email|telephone)\s*,/.test(cor));
+var sve = bloc(cor, 'staff_valider_email');
+check('staff_valider_email : réservé au staff (42501), enregistre email_propose et le vide, envoie le lien, 22023 si rien en attente',
+      /IF NOT est_staff\(\) THEN RAISE EXCEPTION 'réservé au staff' USING ERRCODE = '42501'/.test(sve)
+      && /UPDATE joueurs_contacts SET email = email_propose, email_propose = NULL, updated_at = now\(\)\s+WHERE joueur_id = p_joueur AND email IS NULL AND email_propose IS NOT NULL RETURNING email INTO v;/.test(sve)
+      && /IF v IS NULL THEN RAISE EXCEPTION 'Aucune adresse en attente de validation pour ce joueur' USING ERRCODE = '22023'/.test(sve)
+      && /PERFORM envoyer_mon_lien\(v\);\s+RETURN v;/.test(sve)
+      && cor.indexOf('REVOKE ALL ON FUNCTION staff_valider_email(uuid) FROM PUBLIC, anon;') >= 0
+      && cor.indexOf('GRANT EXECUTE ON FUNCTION staff_valider_email(uuid) TO authenticated;') >= 0);
 check('chercher_partenaire / inscrire_paire : lien seulement pour une fiche créée par l\'appel',
       /'lien', lien_si_nouveau\(v_j\)\)/.test(bloc(cor, 'chercher_partenaire')) && /'lien', lien_si_nouveau\(v_j1\)\)/.test(bloc(cor, 'inscrire_paire'))
       && /j\.created_at = now\(\) AND c\.created_at = now\(\)/.test(bloc(cor, 'lien_si_nouveau'))

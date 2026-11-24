@@ -8,14 +8,15 @@
 --   - Annuaire : seulement les profils ouverts, visible seulement par un joueur qui a
 --     un lien valide, jamais par le public. Prénom + initiale du nom, jamais d'e-mail
 --     ni de téléphone.
---   - Messagerie : on écrit à un joueur ouvert, ou dans une conversation qui existe déjà
---     (chacun peut répondre, même après avoir fermé son profil). Blocage, signalement au
+--   - Messagerie : on écrit à un joueur ouvert, ou à un joueur qui nous a déjà écrit
+--     (chacun peut répondre, même après avoir fermé son profil ; fermer son profil arrête
+--     les relances de qui n'a jamais eu de réponse). Blocage, signalement au
 --     club, anti-abus (par expéditeur, par destinataire et pour tout le site), et au plus
 --     un e-mail « nouveau message » par destinataire toutes les 30 minutes.
 --   - Fausses identités : un lien s'obtient sans vérifier son e-mail (chercher_partenaire
---     crée une fiche neuve). Un lien de moins de 24 h ne permet donc pas d'aborder un
---     nouveau joueur (annuaire, fiche, premier message, signalement hors conversation),
---     sauf pour un joueur inscrit à un tournoi.
+--     crée une fiche neuve). Un lien de moins de 24 h ne permet donc ni d'aborder un
+--     nouveau joueur (annuaire, fiche, premier message, signalement hors conversation) ni
+--     de publier un profil ouvert, sauf pour un joueur qui a déjà joué un tournoi au club.
 --   - Identifiants : les fonctions ne renvoient ni n'acceptent jamais joueurs.id (la table
 --     joueurs est lisible par tous, avec nom complet et licence) mais une référence opaque
 --     (joueurs_refs.ref), créée automatiquement avec le profil ou le premier message.
@@ -153,22 +154,25 @@ $$;
 -- Texte saisi par un joueur et repris dans un e-mail du club : les liens sont neutralisés
 -- (la mise en page n8n change toute adresse le-rebond.fr en bouton « Ouvrir mon espace joueur »,
 -- et les messageries rendent cliquable tout nom de domaine, même sans http ni www).
+-- Nom de domaine nu : extension en minuscules ou en capitales (« exemple.fr », « EXEMPLE.FR »),
+-- pour laisser intacts « samedi.On joue ? » ou « 18h.Ok ».
 CREATE OR REPLACE FUNCTION sans_liens(p text)
 RETURNS text LANGUAGE sql IMMUTABLE SET search_path = public AS $$
-    SELECT regexp_replace(p,
-        '(https?://|www\.)\S*|\S*le-rebond\.fr\S*|\m[[:alnum:]-]+(\.[[:alnum:]-]+)*\.[a-z]{2,}(/\S*)?',
-        '[lien]', 'gi')
+    SELECT regexp_replace(
+        regexp_replace(p, '(https?://|www\.)\S*|\S*le-rebond\.fr\S*', '[lien]', 'gi'),
+        '\m[[:alnum:]-]+(\.[[:alnum:]-]+)*\.([a-z]{2,}|[A-Z]{2,}\M)(/\S*)?', '[lien]', 'g')
 $$;
 
 -- Anti-fausses identités : un lien de moins de 24 h (fiche créée en ligne sans vérifier
--- l'e-mail, ou coordonnées tout juste rattachées à un joueur connu) n'aborde pas encore de
--- nouveau joueur, sauf pour un joueur inscrit à un tournoi.
+-- l'e-mail) n'aborde pas encore de nouveau joueur, sauf pour un joueur qui a déjà joué un
+-- tournoi au club (une simple inscription ne suffit pas : elle se fait sans vérification).
 CREATE OR REPLACE FUNCTION exiger_espace_etabli(p_joueur uuid)
 RETURNS void LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 BEGIN
     IF (SELECT created_at FROM joueurs_contacts WHERE joueur_id = p_joueur) > now() - interval '24 hours'
-       AND NOT EXISTS (SELECT 1 FROM inscriptions WHERE p_joueur IN (joueur1_id, joueur2_id) AND statut = 'inscrite') THEN
-        RAISE EXCEPTION 'Votre espace est trop récent pour contacter de nouveaux joueurs : réessayez demain' USING ERRCODE = '54000';
+       AND NOT EXISTS (SELECT 1 FROM equipes e JOIN tournois t ON t.id = e.tournoi_id
+                       WHERE p_joueur IN (e.joueur_j1_id, e.joueur_j2_id) AND t.status IN ('actif', 'cloture')) THEN
+        RAISE EXCEPTION 'Votre espace est trop récent : l''annuaire et les nouveaux contacts s''ouvrent 24 h après sa création (ou dès votre premier tournoi joué au club)' USING ERRCODE = '54000';
     END IF;
 END;
 $$;
@@ -262,12 +266,22 @@ BEGIN
         RAISE EXCEPTION 'Choix « annuaire » invalide' USING ERRCODE = '22023';
     END IF;
     v_ouvert := coalesce((p->>'ouvert')::boolean, false);
+    -- Un lien tout neuf (fiche créée en ligne) ne publie pas encore de profil dans l'annuaire.
+    IF v_ouvert THEN PERFORM exiger_espace_etabli(v_moi); END IF;
 
     INSERT INTO joueurs_profils (joueur_id, cote, niveau_declare, dispos, presentation, ouvert)
     VALUES (v_moi, v_cote, v_niveau, v_dispos, v_pres, v_ouvert)
     ON CONFLICT (joueur_id) DO UPDATE SET
         cote = EXCLUDED.cote, niveau_declare = EXCLUDED.niveau_declare, dispos = EXCLUDED.dispos,
-        presentation = EXCLUDED.presentation, ouvert = EXCLUDED.ouvert, maj_le = now();
+        presentation = EXCLUDED.presentation, ouvert = EXCLUDED.ouvert,
+        -- L'annuaire trie par maj_le : on ne remonte en tête que sur un vrai changement,
+        -- au plus une fois par heure.
+        maj_le = CASE WHEN (joueurs_profils.cote, joueurs_profils.niveau_declare, joueurs_profils.dispos,
+                            joueurs_profils.presentation, joueurs_profils.ouvert)
+                           IS DISTINCT FROM (EXCLUDED.cote, EXCLUDED.niveau_declare, EXCLUDED.dispos,
+                                             EXCLUDED.presentation, EXCLUDED.ouvert)
+                       AND joueurs_profils.maj_le < now() - interval '1 hour'
+                      THEN now() ELSE joueurs_profils.maj_le END;
     RETURN mon_profil(p_jeton);
 END;
 $$;
@@ -403,11 +417,14 @@ BEGIN
     IF EXISTS (SELECT 1 FROM joueurs_blocages WHERE joueur_id = v_dest AND bloque_id = v_moi) THEN
         RAISE EXCEPTION 'Ce joueur ne reçoit pas vos messages' USING ERRCODE = '22023';
     END IF;
-    -- On écrit à un joueur ouvert ; à un joueur fermé, seulement dans une conversation existante.
-    v_conv := conversation_existe(v_moi, v_dest);
-    IF NOT v_conv AND NOT EXISTS (SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert) THEN
+    -- On écrit à un joueur ouvert ; à un joueur fermé, seulement s'il nous a déjà écrit
+    -- (on lui répond). Fermer son profil arrête les relances restées sans réponse.
+    IF NOT EXISTS (SELECT 1 FROM messages WHERE de_joueur = v_dest AND a_joueur = v_moi)
+       AND NOT EXISTS (SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert) THEN
         RAISE EXCEPTION 'Ce joueur n''est pas ouvert aux propositions' USING ERRCODE = '22023';
     END IF;
+    -- Conversation déjà commencée (dans un sens ou l'autre) : hors plafonds « nouvelle conversation ».
+    v_conv := conversation_existe(v_moi, v_dest);
 
     -- anti-abus : 30 messages par heure, 5 nouvelles conversations par 24 h
     IF (SELECT count(*) FROM messages WHERE de_joueur = v_moi AND cree_le > now() - interval '1 hour') >= 30 THEN

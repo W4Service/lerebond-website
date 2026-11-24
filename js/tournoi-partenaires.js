@@ -104,7 +104,8 @@
                 if (jeton) ecrire(CLE_ESPACE, jeton);
                 setTimeout(afficher, 2500);
                 return 'C\'est noté ! Vous apparaissez dans la liste. Vous recevrez un e-mail à chaque proposition. '
-                    + 'Votre recherche se ferme toute seule dès que vous êtes inscrit·e.';
+                    + 'Votre recherche se ferme toute seule dès que vous êtes inscrit·e.'
+                    + (jeton ? '' : ' Première fois en ligne ? Le club vérifie d\'abord votre adresse e-mail.');
             }));
         return carte;
     }

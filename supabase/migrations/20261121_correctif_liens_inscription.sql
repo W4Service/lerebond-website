@@ -11,10 +11,16 @@
 --      par l'appel lui-même ; pour un joueur déjà connu, il part seulement par e-mail
 --      (notifier, comme avant). Le JS gère « lien » absent.
 --   3. staff_regenerer_lien(joueur) : révoque un lien compromis (nouveau jeton).
---   4. Un premier e-mail saisi pour un joueur déjà connu (sans e-mail jusque-là) alerte le
---      club : le lien de ce joueur part désormais à cette adresse, que personne n'a vérifiée.
+--   4. Un premier e-mail saisi pour un joueur déjà connu (sans e-mail jusque-là) n'est PAS
+--      enregistré : il est mis de côté (joueurs_contacts.email_propose) et le club est alerté.
+--      Sinon le lien de ce joueur partirait aussitôt à une adresse saisie par n'importe qui.
+--      staff_valider_email(joueur) l'enregistre et envoie le lien à cette adresse.
+--   5. Une adresse e-mail mal formée est refusée (22023).
 -- Les fonctions sont reprises à l'identique de leur dernière version (20261021, 20261024,
 -- 20261023), seules les lignes ci-dessus changent. Rejouable sans effet de bord.
+
+-- Adresse saisie en ligne pour un joueur déjà connu, en attente de validation par le club.
+ALTER TABLE joueurs_contacts ADD COLUMN IF NOT EXISTS email_propose text;
 
 -- Lien à renvoyer au navigateur : seulement si la fiche joueur ET ses coordonnées viennent
 -- d'être créées dans cette transaction (now() = début de la transaction).
@@ -27,7 +33,8 @@ $$;
 
 -- Retrouve ou crée la fiche d'un joueur. Priorité : identifiant FFT, puis nom exact
 -- (même normalisation que l'annuaire). Complète les coordonnées manquantes, sans jamais
--- remplacer celles déjà connues.
+-- remplacer celles déjà connues ; un premier e-mail pour un joueur déjà connu attend la
+-- validation du club.
 CREATE OR REPLACE FUNCTION joueur_pour_inscription(p jsonb)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions AS $$
 DECLARE
@@ -36,9 +43,14 @@ DECLARE
     v_nom text := nullif(trim(p->>'nom'), '');
     v_prenom text := nullif(trim(p->>'prenom'), '');
     c record;
+    v_email text := nullif(lower(trim(p->>'email')), '');
+    v_propose text;
 BEGIN
     IF v_nom IS NULL OR v_prenom IS NULL THEN
         RAISE EXCEPTION 'Nom et prénom obligatoires pour chaque joueur' USING ERRCODE = '22023';
+    END IF;
+    IF v_email IS NOT NULL AND v_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$' THEN
+        RAISE EXCEPTION 'Adresse e-mail invalide : %', left(v_email, 60) USING ERRCODE = '22023';
     END IF;
     IF v_crm IS NOT NULL THEN
         SELECT id INTO v_id FROM joueurs WHERE fft_id_crm = v_crm;
@@ -70,21 +82,28 @@ BEGIN
     END IF;
 
     -- Premier e-mail pour un joueur déjà connu (importé des tournois, ou partenaire inscrit par
-    -- téléphone) : son lien personnel va partir à cette adresse, saisie par n'importe qui.
-    IF nullif(trim(p->>'email'), '') IS NOT NULL AND (SELECT created_at FROM joueurs WHERE id = v_id) < now()
+    -- téléphone) : nom et prénom sont publics, l'adresse a pu être saisie par n'importe qui.
+    -- Elle n'est pas enregistrée (aucun lien n'y part) mais mise de côté pour le club.
+    IF v_email IS NOT NULL AND (SELECT created_at FROM joueurs WHERE id = v_id) < now()
        AND NOT EXISTS (SELECT 1 FROM joueurs_contacts WHERE joueur_id = v_id AND email IS NOT NULL) THEN
-        PERFORM alerter_staff('Coordonnées ajoutées à un joueur existant',
-            nom_joueur(v_id) || ' n''avait pas d''e-mail : l''adresse « ' || left(lower(trim(p->>'email')), 120)
-            || E' » vient d''être saisie en ligne et reçoit désormais son lien d''espace joueur.\n\n'
-            || 'Vérifiez que c''est bien lui ; sinon, corrigez l''e-mail et régénérez son lien (staff_regenerer_lien).', NULL);
+        IF NOT EXISTS (SELECT 1 FROM joueurs_contacts WHERE joueur_id = v_id AND email_propose = v_email) THEN
+            PERFORM alerter_staff('Adresse à valider pour un joueur existant',
+                nom_joueur(v_id) || ' n''a pas d''e-mail connu : l''adresse « ' || left(v_email, 120)
+                || E' » vient d''être saisie en ligne. Elle n''est pas enregistrée et ne reçoit rien tant que le club ne l''a pas validée.\n\n'
+                || 'Si c''est bien lui, validez-la : SELECT staff_valider_email(''' || v_id || E''');\n'
+                || 'Son lien d''espace joueur lui est alors envoyé à cette adresse. Sinon, ne faites rien.', NULL);
+        END IF;
+        v_propose := v_email;
+        v_email := NULL;
     END IF;
-    INSERT INTO joueurs_contacts (joueur_id, email, telephone)
-    VALUES (v_id, nullif(lower(trim(p->>'email')), ''), nullif(regexp_replace(coalesce(p->>'telephone', ''), '[^0-9+]', '', 'g'), ''))
+    INSERT INTO joueurs_contacts (joueur_id, email, telephone, email_propose)
+    VALUES (v_id, v_email, nullif(regexp_replace(coalesce(p->>'telephone', ''), '[^0-9+]', '', 'g'), ''), v_propose)
     ON CONFLICT (joueur_id) DO UPDATE SET
         -- Ne jamais remplacer des coordonnées déjà connues : nom et prénom sont publics,
         -- n'importe qui pourrait sinon détourner les e-mails (et le lien) d'un joueur.
         email = coalesce(joueurs_contacts.email, EXCLUDED.email),
         telephone = coalesce(joueurs_contacts.telephone, EXCLUDED.telephone),
+        email_propose = coalesce(EXCLUDED.email_propose, joueurs_contacts.email_propose),
         updated_at = now();
     RETURN v_id;
 END;
@@ -218,9 +237,26 @@ BEGIN
 END;
 $$;
 
+-- Staff : valide l'adresse saisie en ligne pour un joueur déjà connu (email_propose),
+-- l'enregistre et lui envoie son lien d'espace joueur. Renvoie l'adresse validée.
+CREATE OR REPLACE FUNCTION staff_valider_email(p_joueur uuid)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v text;
+BEGIN
+    IF NOT est_staff() THEN RAISE EXCEPTION 'réservé au staff' USING ERRCODE = '42501'; END IF;
+    UPDATE joueurs_contacts SET email = email_propose, email_propose = NULL, updated_at = now()
+    WHERE joueur_id = p_joueur AND email IS NULL AND email_propose IS NOT NULL RETURNING email INTO v;
+    IF v IS NULL THEN RAISE EXCEPTION 'Aucune adresse en attente de validation pour ce joueur' USING ERRCODE = '22023'; END IF;
+    PERFORM envoyer_mon_lien(v);
+    RETURN v;
+END;
+$$;
+
 REVOKE ALL ON FUNCTION lien_si_nouveau(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION joueur_pour_inscription(jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION chercher_partenaire(uuid, jsonb, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION inscrire_paire(uuid, jsonb, jsonb, text) TO anon, authenticated;
 REVOKE ALL ON FUNCTION staff_regenerer_lien(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION staff_regenerer_lien(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION staff_valider_email(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION staff_valider_email(uuid) TO authenticated;
