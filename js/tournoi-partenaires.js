@@ -26,9 +26,9 @@
     async function charger() {
         var id = new URLSearchParams(location.search).get('t');
         var zone = $('part-contenu');
-        if (!supa || !id) { zone.innerHTML = '<p class="events-empty">Tournoi introuvable. <a href="tournois/">Voir le calendrier</a></p>'; return; }
+        if (!supa || !id) { zone.innerHTML = '<p class="events-empty">Tournoi introuvable. <a href="tournois/">Voir le calendrier</a></p>'; lienAnnuaire(zone); return; }
         var res = await supa.from('tournois_calendrier').select('*').eq('id', id).maybeSingle();
-        if (res.error || !res.data) { zone.innerHTML = '<p class="events-empty">Tournoi introuvable. <a href="tournois/">Voir le calendrier</a></p>'; return; }
+        if (res.error || !res.data) { zone.innerHTML = '<p class="events-empty">Tournoi introuvable. <a href="tournois/">Voir le calendrier</a></p>'; lienAnnuaire(zone); return; }
         tournoi = res.data;
         document.title = 'Trouver un partenaire — ' + tournoi.nom + ' | Le Rebond';
         $('part-titre').textContent = 'Trouver un partenaire';
@@ -58,6 +58,10 @@
         lien.appendChild(a);
         zone.appendChild(lien);
 
+        lienAnnuaire(zone);
+    }
+
+    function lienAnnuaire(zone) {
         var annuaire = el('p', 'part-deja');
         var b = el('a', null, 'Voir l\'annuaire des joueurs →'); b.href = 'joueurs/';
         annuaire.appendChild(b);

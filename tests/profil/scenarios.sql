@@ -52,8 +52,42 @@ BEGIN
     INSERT INTO public.joueurs_contacts (joueur_id, email, telephone)
     VALUES (v, lower(p_prenom) || '.' || lower(p_nom) || '@exemple.fr', '0611' || lpad((random() * 999999)::int::text, 6, '0'));
     INSERT INTO t.joueurs VALUES (p_cle, v, (SELECT jeton FROM public.joueurs_contacts WHERE joueur_id = v));
+    -- joueurs connus depuis longtemps (le lien de moins de 24 h est testé à part)
+    UPDATE public.joueurs SET created_at = now() - interval '30 days' WHERE id = v;
+    UPDATE public.joueurs_contacts SET created_at = now() - interval '30 days' WHERE joueur_id = v;
     RETURN v;
 END $$;
+-- Joueur déjà connu (importé des tournois) sans coordonnées.
+CREATE FUNCTION t.joueur_sans_contact(p_prenom text, p_nom text) RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+    INSERT INTO public.joueurs (nom, prenom, created_at) VALUES (p_nom, p_prenom, now() - interval '30 days')
+$$;
+CREATE FUNCTION t.vieillir_lien(p_nom text, p_prenom text) RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+    UPDATE public.joueurs_contacts SET created_at = now() - interval '25 hours'
+    WHERE joueur_id = (SELECT id FROM public.joueurs WHERE nom = p_nom AND prenom = p_prenom)
+$$;
+CREATE FUNCTION t.alertes_contact() RETURNS text LANGUAGE sql STABLE SECURITY DEFINER AS $$
+    SELECT string_agg(corps, E'\n---\n' ORDER BY cree_le) FROM public.notifications
+    WHERE type = 'alerte_staff' AND sujet = '[Tournois] Coordonnées ajoutées à un joueur existant'
+$$;
+CREATE FUNCTION t.nb_alertes_contact() RETURNS integer LANGUAGE sql STABLE SECURITY DEFINER AS $$
+    SELECT count(*)::int FROM public.notifications
+    WHERE type = 'alerte_staff' AND sujet = '[Tournois] Coordonnées ajoutées à un joueur existant'
+$$;
+-- p_n nouvelles conversations (fiches fictives) vers p_dest, posées directement.
+CREATE FUNCTION t.remplir_conversations(p_n integer, p_dest text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v uuid;
+BEGIN
+    FOR i IN 1..p_n LOOP
+        INSERT INTO public.joueurs (nom, prenom) VALUES ('Fictif' || i, 'Bot') RETURNING id INTO v;
+        INSERT INTO public.messages (de_joueur, a_joueur, texte) VALUES (v, t.id(p_dest), 'Salut');
+    END LOOP;
+END $$;
+CREATE FUNCTION t.ref_jeton(p_jeton uuid) RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER AS $$
+    SELECT r.ref FROM public.joueurs_refs r JOIN public.joueurs_contacts c USING (joueur_id) WHERE c.jeton = p_jeton
+$$;
+CREATE FUNCTION t.dernier_motif() RETURNS text LANGUAGE sql STABLE SECURITY DEFINER AS $$
+    SELECT motif FROM public.joueurs_signalements ORDER BY cree_le DESC LIMIT 1
+$$;
 
 -- Profil posé directement (le parcours par enregistrer_profil est testé à part).
 CREATE FUNCTION t.profil(p_cle text, p_ouvert boolean, p_cote text DEFAULT NULL, p_niveau smallint DEFAULT NULL,
@@ -355,15 +389,16 @@ BEGIN
     PERFORM t.check('alice a disparu de l''annuaire', NOT EXISTS (SELECT 1 FROM annuaire_joueurs(t.j('marc')) x WHERE x.ref = t.ref('alice')));
     PERFORM t.profil('alice', true, 'gauche', NULL, '{weekend_matin}', 'Revers solide, dispo le week-end', now() - interval '2 days');
 
-    -- p3 ferme son profil sans avoir répondu : marc ne peut plus lui écrire ; p3 peut lui répondre
+    -- p3 ferme son profil sans avoir répondu : la conversation existe, marc peut relancer
+    -- (spécification) ; p3 peut répondre ; un autre joueur ne peut plus l'aborder.
     PERFORM envoyer_message(t.j('marc'), t.ref('p3'), 'Une partie samedi ?');
     PERFORM t.profil('p3', false);
     e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('marc')) || ', ' || quote_literal(t.ref('p3')) || ', ''Alors ?'')');
-    PERFORM t.check('B ferme son profil sans répondre : A ne peut plus lui écrire (22023)', e LIKE '22023 : Ce joueur n''est pas ouvert%', e);
+    PERFORM t.check('B ferme son profil sans répondre : A écrit encore dans la conversation existante', e IS NULL, e);
     e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('p3')) || ', ' || quote_literal(t.ref('marc')) || ', ''Oui, samedi'')');
-    PERFORM t.check('… mais B (fermé) peut répondre à A', e IS NULL, e);
-    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('marc')) || ', ' || quote_literal(t.ref('p3')) || ', ''Top'')');
-    PERFORM t.check('… et une fois que B a répondu, A peut continuer', e IS NULL, e);
+    PERFORM t.check('… B (fermé) peut répondre à A', e IS NULL, e);
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('alice')) || ', ' || quote_literal(t.ref('p3')) || ', ''Salut'')');
+    PERFORM t.check('… mais un autre joueur ne peut plus aborder B (22023)', e LIKE '22023 : Ce joueur n''est pas ouvert%', e);
     PERFORM t.profil('p3', true, NULL, NULL, '{}', NULL, now() - interval '10 days');
 
     e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('marc')) || ', ' || quote_literal(t.ref('marc')) || ', ''Moi'')');
@@ -407,6 +442,13 @@ BEGIN
     PERFORM t.check('B bloque A après échange : fiche_joueur(A → B) refusée (42501)', e LIKE '42501 : Ce profil n''est pas visible%', e);
     e := t.erreur('SELECT fiche_joueur(' || quote_literal(t.j('bruno')) || ', ' || quote_literal(t.ref('marc')) || ')');
     PERFORM t.check('… et fiche_joueur(B → A) aussi', e LIKE '42501%', e);
+    PERFORM t.check('B bloque A : A relit le fil, sans pouvoir répondre (bloque_par_lui)',
+        (conversation(t.j('marc'), t.ref('bruno'))->>'bloque_par_lui')::boolean
+        AND NOT (conversation(t.j('marc'), t.ref('bruno'))->>'bloque')::boolean
+        AND jsonb_array_length(conversation(t.j('marc'), t.ref('bruno'))->'messages') = 2);
+    PERFORM t.check('… côté B : bloque = true, bloque_par_lui = false',
+        (conversation(t.j('bruno'), t.ref('marc'))->>'bloque')::boolean
+        AND NOT (conversation(t.j('bruno'), t.ref('marc'))->>'bloque_par_lui')::boolean);
     PERFORM t.check('mes_conversations de bruno : marc marqué bloqué',
         (SELECT (x->>'bloque')::boolean FROM jsonb_array_elements(mes_conversations(t.j('bruno'))) x
          WHERE x->>'ref' = t.ref('marc')::text));
@@ -455,6 +497,41 @@ BEGIN
     PERFORM t.check('anti-abus : le quota est par expéditeur (alice peut écrire à marc)', e IS NULL, e);
 END $$;
 
+-- ===================================================================== anti-abus indépendant de l'expéditeur
+DO $$
+DECLARE e text;
+BEGIN
+    PERFORM t.reset();
+    FOR i IN 1..5 LOOP PERFORM envoyer_message(t.j('p' || i), t.ref('bruno'), 'Partie ?'); END LOOP;
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('p6')) || ', ' || quote_literal(t.ref('bruno')) || ', ''Partie ?'')');
+    PERFORM t.check('par destinataire : 6e nouvelle conversation reçue en 24 h refusée (54000)',
+        e LIKE '54000 : Ce joueur a déjà reçu beaucoup de nouvelles demandes%', e);
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('bruno')) || ', ' || quote_literal(t.ref('p1')) || ', ''Oui !'')');
+    PERFORM t.check('… le destinataire répond toujours', e IS NULL, e);
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('p2')) || ', ' || quote_literal(t.ref('bruno')) || ', ''Alors ?'')');
+    PERFORM t.check('… et les conversations ouvertes continuent', e IS NULL, e);
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('p6')) || ', ' || quote_literal(t.ref('alice')) || ', ''Partie ?'')');
+    PERFORM t.check('… p6 peut toujours aborder un autre joueur', e IS NULL, e);
+END $$;
+DO $$
+DECLARE e text;
+BEGIN
+    PERFORM t.reset();
+    PERFORM t.remplir_conversations(50, 'p6');
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('alice')) || ', ' || quote_literal(t.ref('fabien')) || ', ''Partie ?'')');
+    PERFORM t.check('tout le site : au-delà de 50 nouvelles conversations par heure, refusé (54000)',
+        e LIKE '54000 : Beaucoup de nouvelles conversations en ce moment%', e);
+END $$;
+DO $$
+DECLARE e text;
+BEGIN
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('p6')) || ', ' || quote_literal(t.ref('marc')) || ', ''Partie ?'')');
+    PERFORM t.check('… y compris pour un autre expéditeur', e LIKE '54000 : Beaucoup%', e);
+    PERFORM t.vieillir_messages(61);
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(t.j('alice')) || ', ' || quote_literal(t.ref('fabien')) || ', ''Partie ?'')');
+    PERFORM t.check('… une heure plus tard, ça repasse', e IS NULL, e);
+END $$;
+
 -- ===================================================================== notification
 DO $$
 DECLARE s text; c text;
@@ -467,7 +544,7 @@ BEGIN
     s := t.sujet_notif('bruno'); c := t.corps_notif('bruno');
     PERFORM t.check('notification : sujet « Nouveau message de Marc D. »', s = 'Nouveau message de Marc D.', s);
     PERFORM t.check('notification : texte, extrait sur une ligne, lien vers l''espace joueur',
-        c LIKE 'Marc D. t''a écrit : « Partie jeudi 19h ? Terrain 2 » Réponds depuis ton espace joueur, rubrique Messages.%'
+        c LIKE 'Marc D. vous a écrit : « Partie jeudi 19h ? Terrain 2 » Répondez depuis votre espace joueur, rubrique Messages.%'
         AND c LIKE '%https://le-rebond.fr/espace-joueur/?j=' || t.j('bruno') || '%', c);
     PERFORM t.check('notification : pas d''e-mail ni de téléphone de l''expéditeur',
         position('marc.durand@' IN c) = 0 AND position('Durand' IN c) = 0);
@@ -513,8 +590,11 @@ BEGIN
     PERFORM t.check('conversation : les reçus sont marqués lus (reste 1 non lu, celui d''alice)',
         (mon_profil(t.j('bruno'))->>'non_lus')::int = 1);
     r := conversation(t.j('marc'), t.ref('bruno'));
-    PERFORM t.check('conversation côté expéditeur : de_moi = true, lu_le renseigné',
-        (r->'messages'->0->>'de_moi')::boolean AND r->'messages'->0->>'lu_le' IS NOT NULL);
+    PERFORM t.check('conversation côté expéditeur : de_moi = true, pas d''accusé de lecture (lu_le absent)',
+        (r->'messages'->0->>'de_moi')::boolean AND r->'messages'->0->>'lu_le' IS NULL
+        AND (SELECT bool_and(x->>'lu_le' IS NULL) FROM jsonb_array_elements(r->'messages') x), r::text);
+    PERFORM t.check('conversation côté destinataire : lu_le renseigné sur les messages reçus',
+        (SELECT bool_and(x->>'lu_le' IS NOT NULL) FROM jsonb_array_elements(conversation(t.j('bruno'), t.ref('marc'))->'messages') x));
     PERFORM t.check('conversation côté expéditeur : ne marque pas lus les messages de l''autre',
         (mon_profil(t.j('bruno'))->>'non_lus')::int = 1);
     PERFORM t.check('conversation vide avec un joueur sans échange : liste vide',
@@ -539,10 +619,15 @@ BEGIN
     PERFORM t.check('anti-abus : 3 alertes seulement', t.nb_alertes() = 3);
     e := t.erreur('SELECT signaler_joueur(' || quote_literal(t.j('alice')) || ', ' || quote_literal(t.ref('chloe')) || ', ''Spam'')');
     PERFORM t.check('signaler un joueur fermé sans échange : refusé (22023)', e LIKE '22023 : Vous ne pouvez signaler qu''un joueur de l''annuaire%', e);
-    PERFORM t.remplir_signalements(17);   -- 20 signalements dans l'heure sur le site
+    PERFORM signaler_joueur(t.j('alice'), t.ref('p2'), 'Il renvoie vers https://le-rebond.fr/espace-joueur/?j=x et arnaque-padel.fr/gain');
+    a := t.alertes();
+    PERFORM t.check('signalement : liens du motif neutralisés dans l''e-mail au club, motif brut gardé',
+        position('arnaque-padel' IN a) = 0 AND position('?j=x' IN a) = 0 AND a LIKE '%Motif : « Il renvoie vers [lien] et [lien] »%'
+        AND t.dernier_motif() LIKE '%arnaque-padel.fr/gain', a);
+    PERFORM t.remplir_signalements(16);   -- 20 signalements dans l'heure sur le site
     PERFORM signaler_joueur(t.j('alice'), t.ref('bruno'), 'Insultes');
     PERFORM t.check('plafond global : au-delà de 20 par heure, enregistré sans e-mail au club',
-        t.nb_signalements() = 21 AND t.nb_alertes() = 3, t.nb_signalements() || ' / ' || t.nb_alertes());
+        t.nb_signalements() = 21 AND t.nb_alertes() = 4, t.nb_signalements() || ' / ' || t.nb_alertes());
 END $$;
 
 -- ===================================================================== aucune coordonnée en sortie
@@ -589,13 +674,18 @@ BEGIN
     c := t.corps_notif('alice');
     PERFORM t.check('extrait : les liens deviennent [lien] (pas de faux bouton « Ouvrir mon espace joueur »)',
         position('11111111-2222' IN c) = 0 AND position('www.exemple' IN c) = 0 AND position('le-rebond.fr/joueurs' IN c) = 0
-        AND c LIKE 'Marc D. t''a écrit : « Va voir [lien] ou [lien] ou [lien] »%'
+        AND c LIKE 'Marc D. vous a écrit : « Va voir [lien] ou [lien] ou [lien] »%'
         AND c LIKE '%https://le-rebond.fr/espace-joueur/?j=' || t.j('alice') || '%', c);
+    PERFORM envoyer_message(t.j('marc'), t.ref('p4'), 'Connecte-toi sur rebond-padel.com/login ou Club.Padel-Noyon.FR, rdv 19h30. Ok ?');
+    c := t.corps_notif('p4');
+    PERFORM t.check('extrait : un domaine sans http ni www devient aussi [lien], le reste du texte est gardé',
+        c LIKE 'Marc D. vous a écrit : « Connecte-toi sur [lien] ou [lien], rdv 19h30. Ok ? »%'
+        AND position('rebond-padel' IN c) = 0 AND position('Padel-Noyon' IN c) = 0, c);
     PERFORM t.joueur('pirate', 'https://le-rebond.fr/espace-joueur/?j=abc', 'Zorro', 'H');
     PERFORM envoyer_message(t.j('pirate'), t.ref('bruno'), 'Salut');
     s := t.sujet_notif('bruno');
     PERFORM t.check('prénom piégé : borné et sans lien dans le sujet et le texte',
-        s = 'Nouveau message de [lien] Z.' AND t.corps_notif('bruno') LIKE '[lien] Z. t''a écrit%', s);
+        s = 'Nouveau message de [lien] Z.' AND t.corps_notif('bruno') LIKE '[lien] Z. vous a écrit%', s);
 END $$;
 
 -- ===================================================================== correctif : liens personnels
@@ -626,6 +716,53 @@ BEGIN
     PERFORM t.check('inscrire_paire avec un joueur 1 nouveau : son lien est renvoyé ; e-mail du partenaire connu inchangé',
         r->>'lien' = 'https://le-rebond.fr/espace-joueur/?j=' || t.jeton_de('Nouvelle', 'Lea') AND t.email('bruno') = 'bruno.petit@exemple.fr',
         r::text || ' ' || t.email('bruno'));
+END $$;
+
+-- Fausses identités : un lien tout neuf n'aborde personne pendant 24 h (sauf inscrit).
+DO $$
+DECLARE jean uuid := t.jeton_de('Neuf', 'Jean'); lea uuid := t.jeton_de('Nouvelle', 'Lea'); e text; q text; ok boolean := true; bilan text := '';
+BEGIN
+    FOREACH q IN ARRAY ARRAY[
+        'SELECT * FROM annuaire_joueurs(' || quote_literal(jean) || ')',
+        'SELECT fiche_joueur(' || quote_literal(jean) || ', ' || quote_literal(t.ref('alice')) || ')',
+        'SELECT envoyer_message(' || quote_literal(jean) || ', ' || quote_literal(t.ref('alice')) || ', ''Salut'')',
+        'SELECT signaler_joueur(' || quote_literal(jean) || ', ' || quote_literal(t.ref('alice')) || ', ''Spam'')'] LOOP
+        e := t.erreur(q);
+        IF e IS NULL OR e NOT LIKE '54000 : Votre espace est trop récent%' THEN ok := false; bilan := bilan || q || ' → ' || coalesce(e, 'passe') || '; '; END IF;
+    END LOOP;
+    PERFORM t.check('lien de moins de 24 h (fiche créée en ligne) : annuaire, fiche, premier message, signalement refusés (54000)',
+        ok, nullif(bilan, ''));
+    PERFORM t.check('… son profil, lui, s''enregistre', (enregistrer_profil(jean, '{"ouvert":true}')->'profil'->>'ouvert')::boolean);
+    PERFORM envoyer_message(t.j('alice'), t.ref_jeton(jean), 'Bienvenue !');
+    e := t.erreur('SELECT envoyer_message(' || quote_literal(jean) || ', ' || quote_literal(t.ref('alice')) || ', ''Merci'')');
+    PERFORM t.check('… et il répond à qui lui écrit (conversation existante)', e IS NULL, e);
+    PERFORM t.check('… et voit la fiche de son interlocutrice', t.erreur('SELECT fiche_joueur(' || quote_literal(jean) || ', ' || quote_literal(t.ref('alice')) || ')') IS NULL);
+    PERFORM t.check('joueuse inscrite à un tournoi : annuaire ouvert tout de suite',
+        t.erreur('SELECT * FROM annuaire_joueurs(' || quote_literal(lea) || ')') IS NULL);
+    PERFORM t.vieillir_lien('Neuf', 'Jean');
+    PERFORM t.check('lien de plus de 24 h : annuaire ouvert', t.erreur('SELECT * FROM annuaire_joueurs(' || quote_literal(jean) || ')') IS NULL);
+END $$;
+
+-- Premier e-mail saisi pour un joueur déjà connu : le club est alerté.
+RESET ROLE;
+SELECT t.joueur_sans_contact('Gilles', 'Ancien');
+INSERT INTO tournois (nom, date, status, publie) VALUES ('P50 ouvert', current_date + 8, 'planifie', true);
+SET ROLE anon;
+DO $$
+DECLARE r jsonb; v_t uuid := (SELECT id FROM tournois WHERE nom = 'P50 ouvert'); a text;
+BEGIN
+    PERFORM t.reset();
+    r := chercher_partenaire(v_t, '{"nom":"Ancien","prenom":"Gilles","email":"Pirate@Evil.fr","telephone":"0700000000"}');
+    a := t.alertes_contact();
+    PERFORM t.check('joueur connu sans coordonnées : pas de lien renvoyé, le club est alerté (nom + adresse saisie)',
+        r->'lien' = 'null'::jsonb AND t.nb_alertes_contact() = 1
+        AND a LIKE 'Gilles Ancien n''avait pas d''e-mail : l''adresse « pirate@evil.fr » vient d''être saisie en ligne%staff_regenerer_lien%', a);
+    -- partenaire inscrit par téléphone seulement (Paul Frais, plus haut) : son premier e-mail alerte aussi
+    PERFORM chercher_partenaire(v_t, '{"nom":"Frais","prenom":"Paul","email":"paul@exemple.fr","telephone":"0611111111"}');
+    PERFORM t.check('joueur connu avec un téléphone seulement : son premier e-mail alerte le club', t.nb_alertes_contact() = 2, t.alertes_contact());
+    PERFORM chercher_partenaire(v_t, '{"nom":"Durand","prenom":"Marc","email":"pirate@evil.fr","telephone":"0700000000"}');
+    PERFORM chercher_partenaire(v_t, '{"nom":"Inconnu","prenom":"Tom","email":"tom@exemple.fr","telephone":"0633333333"}');
+    PERFORM t.check('pas d''alerte pour un joueur qui a déjà un e-mail, ni pour une fiche neuve', t.nb_alertes_contact() = 2, t.alertes_contact());
 END $$;
 
 RESET ROLE;

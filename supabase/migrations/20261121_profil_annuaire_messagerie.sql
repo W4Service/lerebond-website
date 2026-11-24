@@ -8,9 +8,14 @@
 --   - Annuaire : seulement les profils ouverts, visible seulement par un joueur qui a
 --     un lien valide, jamais par le public. Prénom + initiale du nom, jamais d'e-mail
 --     ni de téléphone.
---   - Messagerie : on écrit à un joueur ouvert ; il peut toujours répondre, même après
---     avoir fermé son profil. Blocage, signalement au club, anti-abus, et au plus un
---     e-mail « nouveau message » par destinataire toutes les 30 minutes.
+--   - Messagerie : on écrit à un joueur ouvert, ou dans une conversation qui existe déjà
+--     (chacun peut répondre, même après avoir fermé son profil). Blocage, signalement au
+--     club, anti-abus (par expéditeur, par destinataire et pour tout le site), et au plus
+--     un e-mail « nouveau message » par destinataire toutes les 30 minutes.
+--   - Fausses identités : un lien s'obtient sans vérifier son e-mail (chercher_partenaire
+--     crée une fiche neuve). Un lien de moins de 24 h ne permet donc pas d'aborder un
+--     nouveau joueur (annuaire, fiche, premier message, signalement hors conversation),
+--     sauf pour un joueur inscrit à un tournoi.
 --   - Identifiants : les fonctions ne renvoient ni n'acceptent jamais joueurs.id (la table
 --     joueurs est lisible par tous, avec nom complet et licence) mais une référence opaque
 --     (joueurs_refs.ref), créée automatiquement avec le profil ou le premier message.
@@ -146,10 +151,26 @@ RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
 $$;
 
 -- Texte saisi par un joueur et repris dans un e-mail du club : les liens sont neutralisés
--- (la mise en page n8n change toute adresse le-rebond.fr en bouton « Ouvrir mon espace joueur »).
+-- (la mise en page n8n change toute adresse le-rebond.fr en bouton « Ouvrir mon espace joueur »,
+-- et les messageries rendent cliquable tout nom de domaine, même sans http ni www).
 CREATE OR REPLACE FUNCTION sans_liens(p text)
 RETURNS text LANGUAGE sql IMMUTABLE SET search_path = public AS $$
-    SELECT regexp_replace(p, '(https?://|www\.)\S*|\S*le-rebond\.fr\S*', '[lien]', 'gi')
+    SELECT regexp_replace(p,
+        '(https?://|www\.)\S*|\S*le-rebond\.fr\S*|\m[[:alnum:]-]+(\.[[:alnum:]-]+)*\.[a-z]{2,}(/\S*)?',
+        '[lien]', 'gi')
+$$;
+
+-- Anti-fausses identités : un lien de moins de 24 h (fiche créée en ligne sans vérifier
+-- l'e-mail, ou coordonnées tout juste rattachées à un joueur connu) n'aborde pas encore de
+-- nouveau joueur, sauf pour un joueur inscrit à un tournoi.
+CREATE OR REPLACE FUNCTION exiger_espace_etabli(p_joueur uuid)
+RETURNS void LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+    IF (SELECT created_at FROM joueurs_contacts WHERE joueur_id = p_joueur) > now() - interval '24 hours'
+       AND NOT EXISTS (SELECT 1 FROM inscriptions WHERE p_joueur IN (joueur1_id, joueur2_id) AND statut = 'inscrite') THEN
+        RAISE EXCEPTION 'Votre espace est trop récent pour contacter de nouveaux joueurs : réessayez demain' USING ERRCODE = '54000';
+    END IF;
+END;
 $$;
 
 CREATE OR REPLACE FUNCTION conversation_existe(p_a uuid, p_b uuid)
@@ -274,6 +295,7 @@ DECLARE
     f jsonb := coalesce(p_filtres, '{}'::jsonb);
     v_genre text; v_cote text; v_dispo text; v_rang int; v_niveau int; v_texte text;
 BEGIN
+    PERFORM exiger_espace_etabli(v_moi);
     IF jsonb_typeof(f) <> 'object' THEN RAISE EXCEPTION 'Filtres invalides' USING ERRCODE = '22023'; END IF;
     v_genre := nullif(trim(f->>'genre'), '');
     v_cote  := nullif(trim(f->>'cote'), '');
@@ -337,6 +359,7 @@ BEGIN
                      OR EXISTS (SELECT 1 FROM joueurs_profils WHERE joueur_id = v_j AND ouvert)))) THEN
         RAISE EXCEPTION 'Ce profil n''est pas visible' USING ERRCODE = '42501';
     END IF;
+    IF v_j <> v_moi AND NOT conversation_existe(v_moi, v_j) THEN PERFORM exiger_espace_etabli(v_moi); END IF;
     SELECT fft_id_crm INTO v_crm FROM joueurs WHERE id = v_j;
     RETURN carte_joueur(v_j) || jsonb_build_object(
         'bloque', EXISTS (SELECT 1 FROM joueurs_blocages WHERE joueur_id = v_moi AND bloque_id = v_j),
@@ -380,12 +403,11 @@ BEGIN
     IF EXISTS (SELECT 1 FROM joueurs_blocages WHERE joueur_id = v_dest AND bloque_id = v_moi) THEN
         RAISE EXCEPTION 'Ce joueur ne reçoit pas vos messages' USING ERRCODE = '22023';
     END IF;
-    -- On écrit à un joueur ouvert ; à un joueur fermé, seulement pour lui répondre (il m'a écrit).
-    IF NOT EXISTS (SELECT 1 FROM messages WHERE de_joueur = v_dest AND a_joueur = v_moi)
-       AND NOT EXISTS (SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert) THEN
+    -- On écrit à un joueur ouvert ; à un joueur fermé, seulement dans une conversation existante.
+    v_conv := conversation_existe(v_moi, v_dest);
+    IF NOT v_conv AND NOT EXISTS (SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert) THEN
         RAISE EXCEPTION 'Ce joueur n''est pas ouvert aux propositions' USING ERRCODE = '22023';
     END IF;
-    v_conv := conversation_existe(v_moi, v_dest);
 
     -- anti-abus : 30 messages par heure, 5 nouvelles conversations par 24 h
     IF (SELECT count(*) FROM messages WHERE de_joueur = v_moi AND cree_le > now() - interval '1 hour') >= 30 THEN
@@ -399,6 +421,29 @@ BEGIN
         WHERE auteur = v_moi AND cree_le > now() - interval '24 hours') >= 5 THEN
         RAISE EXCEPTION 'Vous avez déjà contacté 5 nouveaux joueurs aujourd''hui : réessayez demain' USING ERRCODE = '54000';
     END IF;
+    IF NOT v_conv THEN
+        -- Plafonds qui ne dépendent pas de l'identité de l'expéditeur (fausses fiches) :
+        -- lien de plus de 24 h, 5 nouvelles conversations reçues par joueur et par 24 h,
+        -- 50 nouvelles conversations par heure sur tout le site.
+        PERFORM exiger_espace_etabli(v_moi);
+        PERFORM pg_advisory_xact_lock(hashtext('msg:nouvelles-conversations'));
+        IF (SELECT count(*) FROM messages p
+            WHERE p.a_joueur = v_dest AND p.cree_le > now() - interval '24 hours'
+              AND NOT EXISTS (SELECT 1 FROM messages x
+                              WHERE least(x.de_joueur, x.a_joueur) = least(p.de_joueur, p.a_joueur)
+                                AND greatest(x.de_joueur, x.a_joueur) = greatest(p.de_joueur, p.a_joueur)
+                                AND (x.cree_le, x.id) < (p.cree_le, p.id))) >= 5 THEN
+            RAISE EXCEPTION 'Ce joueur a déjà reçu beaucoup de nouvelles demandes aujourd''hui : réessayez demain' USING ERRCODE = '54000';
+        END IF;
+        IF (SELECT count(*) FROM messages p
+            WHERE p.cree_le > now() - interval '1 hour'
+              AND NOT EXISTS (SELECT 1 FROM messages x
+                              WHERE least(x.de_joueur, x.a_joueur) = least(p.de_joueur, p.a_joueur)
+                                AND greatest(x.de_joueur, x.a_joueur) = greatest(p.de_joueur, p.a_joueur)
+                                AND (x.cree_le, x.id) < (p.cree_le, p.id))) >= 50 THEN
+            RAISE EXCEPTION 'Beaucoup de nouvelles conversations en ce moment : réessayez dans une heure' USING ERRCODE = '54000';
+        END IF;
+    END IF;
 
     INSERT INTO messages (de_joueur, a_joueur, texte) VALUES (v_moi, v_dest, v_texte) RETURNING id, cree_le INTO m;
 
@@ -410,7 +455,7 @@ BEGIN
         v_extrait := sans_liens(regexp_replace(v_texte, '\s+', ' ', 'g'));
         v_extrait := CASE WHEN char_length(v_extrait) > 200 THEN left(v_extrait, 200) || '…' ELSE v_extrait END;
         PERFORM notifier(v_dest, 'message', 'Nouveau message de ' || v_nom,
-            v_nom || ' t''a écrit : « ' || v_extrait || ' » Réponds depuis ton espace joueur, rubrique Messages.');
+            v_nom || ' vous a écrit : « ' || v_extrait || ' » Répondez depuis votre espace joueur, rubrique Messages.');
     END IF;
     RETURN jsonb_build_object('id', m.id, 'cree_le', m.cree_le);
 END;
@@ -447,9 +492,13 @@ BEGIN
         'avec', jsonb_build_object('ref', p_avec, 'prenom', (SELECT prenom FROM joueurs WHERE id = v_avec),
                                    'initiale', (SELECT upper(left(nom, 1)) || '.' FROM joueurs WHERE id = v_avec)),
         'bloque', EXISTS (SELECT 1 FROM joueurs_blocages WHERE joueur_id = v_moi AND bloque_id = v_avec),
+        -- L'autre m'a bloqué : je relis le fil, sans pouvoir répondre (envoyer_message refuse aussi).
+        'bloque_par_lui', EXISTS (SELECT 1 FROM joueurs_blocages WHERE joueur_id = v_avec AND bloque_id = v_moi),
         'messages', coalesce((
+            -- lu_le seulement pour mes messages reçus : pas d'accusé de lecture côté expéditeur.
             SELECT jsonb_agg(jsonb_build_object('id', m.id, 'de_moi', m.de_joueur = v_moi, 'texte', m.texte,
-                                                'cree_le', m.cree_le, 'lu_le', m.lu_le) ORDER BY m.cree_le, m.id)
+                                                'cree_le', m.cree_le, 'lu_le', CASE WHEN m.a_joueur = v_moi THEN m.lu_le END)
+                             ORDER BY m.cree_le, m.id)
             FROM (SELECT * FROM messages
                   WHERE least(de_joueur, a_joueur) = least(v_moi, v_avec)
                     AND greatest(de_joueur, a_joueur) = greatest(v_moi, v_avec)
@@ -485,6 +534,7 @@ BEGIN
     IF NOT (conversation_existe(v_moi, v_j) OR EXISTS (SELECT 1 FROM joueurs_profils WHERE joueur_id = v_j AND ouvert)) THEN
         RAISE EXCEPTION 'Vous ne pouvez signaler qu''un joueur de l''annuaire ou avec qui vous avez échangé' USING ERRCODE = '22023';
     END IF;
+    IF NOT conversation_existe(v_moi, v_j) THEN PERFORM exiger_espace_etabli(v_moi); END IF;
     IF v_motif IS NULL THEN RAISE EXCEPTION 'Indiquez le motif du signalement' USING ERRCODE = '22023'; END IF;
     IF (SELECT count(*) FROM joueurs_signalements WHERE joueur_id = v_moi AND cree_le > now() - interval '24 hours') >= 3 THEN
         RAISE EXCEPTION 'Trop de signalements aujourd''hui : contactez directement le club' USING ERRCODE = '54000';
@@ -492,8 +542,9 @@ BEGIN
     INSERT INTO joueurs_signalements (joueur_id, signale_id, motif) VALUES (v_moi, v_j, v_motif);
     IF (SELECT count(*) FROM joueurs_signalements WHERE cree_le > now() - interval '1 hour') <= 20 THEN
         PERFORM alerter_staff('Signalement annuaire',
-            nom_joueur(v_moi) || ' signale ' || nom_joueur(v_j) || E' depuis l''annuaire des joueurs.\n\nMotif : « '
-            || v_motif || E' »\n\nLes échanges sont dans la table messages, le signalement dans joueurs_signalements.', NULL);
+            -- textes saisis par des joueurs : liens neutralisés (le motif brut reste dans joueurs_signalements)
+            sans_liens(nom_joueur(v_moi)) || ' signale ' || sans_liens(nom_joueur(v_j)) || E' depuis l''annuaire des joueurs.\n\nMotif : « '
+            || sans_liens(v_motif) || E' »\n\nLes échanges sont dans la table messages, le signalement dans joueurs_signalements.', NULL);
     END IF;
 END;
 $$;
@@ -503,6 +554,7 @@ REVOKE ALL ON FUNCTION joueur_du_jeton(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION joueur_de_ref(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION prenom_initiale(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION sans_liens(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION exiger_espace_etabli(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION trg_joueurs_refs() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION conversation_existe(uuid, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION blocage_entre(uuid, uuid) FROM PUBLIC, anon, authenticated;

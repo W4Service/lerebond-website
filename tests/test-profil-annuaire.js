@@ -72,12 +72,21 @@ publiques.forEach(function (f) {
 check('joueur_du_jeton : « Lien inconnu ou expiré » (42501)',
       /RAISE EXCEPTION 'Lien inconnu ou expiré' USING ERRCODE = '42501'/.test(corps('joueur_du_jeton')));
 ['joueur_du_jeton(uuid)', 'joueur_de_ref(uuid)', 'prenom_initiale(uuid)', 'sans_liens(text)', 'conversation_existe(uuid, uuid)',
- 'blocage_entre(uuid, uuid)', 'carte_joueur(uuid)', 'trg_joueurs_refs()'].forEach(function (f) {
+ 'blocage_entre(uuid, uuid)', 'carte_joueur(uuid)', 'trg_joueurs_refs()', 'exiger_espace_etabli(uuid)'].forEach(function (f) {
     check('outil interne fermé : ' + f, code.indexOf('REVOKE ALL ON FUNCTION ' + f + ' FROM PUBLIC, anon, authenticated;') >= 0
           && code.indexOf('GRANT EXECUTE ON FUNCTION ' + f) < 0);
 });
-check('joueurs_contacts n\'est lu que pour résoudre le jeton', code.split('joueurs_contacts').length === 2
-      && /FROM joueurs_contacts WHERE jeton = p_jeton/.test(corps('joueur_du_jeton')));
+check('joueurs_contacts n\'est lu que pour résoudre le jeton et dater le lien (jamais les coordonnées)', code.split('joueurs_contacts').length === 3
+      && /FROM joueurs_contacts WHERE jeton = p_jeton/.test(corps('joueur_du_jeton'))
+      && /SELECT created_at FROM joueurs_contacts WHERE joueur_id = p_joueur/.test(corps('exiger_espace_etabli')));
+var etabli = corps('exiger_espace_etabli');
+check('fausses identités : lien de moins de 24 h refusé (54000), sauf joueur inscrit à un tournoi',
+      /> now\(\) - interval '24 hours'/.test(etabli) && /statut = 'inscrite'/.test(etabli) && /ERRCODE = '54000'/.test(etabli));
+check('… exigé pour l\'annuaire, et hors conversation pour la fiche, le premier message et le signalement',
+      /PERFORM exiger_espace_etabli\(v_moi\);\s+IF jsonb_typeof\(f\)/.test(corps('annuaire_joueurs'))
+      && /IF v_j <> v_moi AND NOT conversation_existe\(v_moi, v_j\) THEN PERFORM exiger_espace_etabli\(v_moi\)/.test(corps('fiche_joueur'))
+      && /IF NOT v_conv THEN[\s\S]*PERFORM exiger_espace_etabli\(v_moi\)/.test(corps('envoyer_message'))
+      && /IF NOT conversation_existe\(v_moi, v_j\) THEN PERFORM exiger_espace_etabli\(v_moi\)/.test(corps('signaler_joueur')));
 check('aucune colonne e-mail ni téléphone dans la migration', !/\bemail\b|\btelephone\b|\blicence\b|fft_id_crm'/.test(code));
 check('annuaire : colonnes renvoyées sans coordonnées',
       /RETURNS TABLE \(ref uuid, prenom text, initiale text, genre char\(1\), fft_rang integer,\s+niveau_declare smallint, cote text, dispos text\[\], presentation text,\s+nb_tournois integer, meilleure_place integer, maj_le timestamptz\)/.test(code));
@@ -105,8 +114,12 @@ check('fiche : historique des tournois et du classement', /'tournois'/.test(fich
 
 console.log('\n=== Base : messagerie et anti-abus ===');
 var env = corps('envoyer_message');
-check('dest non ouvert refusé, sauf pour lui répondre (il m\'a déjà écrit)',
-      /IF NOT EXISTS \(SELECT 1 FROM messages WHERE de_joueur = v_dest AND a_joueur = v_moi\)\s+AND NOT EXISTS \(SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert\)/.test(env));
+check('dest non ouvert refusé, sauf dans une conversation qui existe déjà',
+      /v_conv := conversation_existe\(v_moi, v_dest\);\s+IF NOT v_conv AND NOT EXISTS \(SELECT 1 FROM joueurs_profils WHERE joueur_id = v_dest AND ouvert\)/.test(env));
+check('anti-abus indépendant de l\'expéditeur : 5 nouvelles conversations reçues / 24 h, 50 sur le site / heure',
+      /p\.a_joueur = v_dest AND p\.cree_le > now\(\) - interval '24 hours'[\s\S]*\(x\.cree_le, x\.id\) < \(p\.cree_le, p\.id\)\)\) >= 5/.test(env)
+      && /p\.cree_le > now\(\) - interval '1 hour'[\s\S]*\(x\.cree_le, x\.id\) < \(p\.cree_le, p\.id\)\)\) >= 50/.test(env)
+      && /pg_advisory_xact_lock\(hashtext\('msg:nouvelles-conversations'\)\)/.test(env));
 check('blocage dans un sens ou l\'autre refusé', /joueur_id = v_moi AND bloque_id = v_dest/.test(env) && /joueur_id = v_dest AND bloque_id = v_moi/.test(env));
 check('verrous : un envoi à la fois par expéditeur, une notification à la fois par destinataire',
       /pg_advisory_xact_lock\(hashtext\('msg:' \|\| v_moi\)\)/.test(env) && /pg_advisory_xact_lock\(hashtext\('notif-msg:' \|\| v_dest\)\)/.test(env)
@@ -114,18 +127,24 @@ check('verrous : un envoi à la fois par expéditeur, une notification à la foi
 check('texte : blancs (retours, tabulations) retirés en tête et en fin', /regexp_replace\(left\(coalesce\(p_texte, ''\), 2000\), '\^\\s\+\|\\s\+\$', '', 'g'\)/.test(env));
 check('e-mail : liens neutralisés dans le prénom et l\'extrait, prénom borné',
       /v_nom := sans_liens\(prenom_initiale\(v_moi\)\)/.test(env) && /v_extrait := sans_liens\(/.test(env)
-      && /left\(trim\(prenom\), 30\)/.test(corps('prenom_initiale')) && /https\?:\/\/\|www/.test(corps('sans_liens')));
+      && /left\(trim\(prenom\), 30\)/.test(corps('prenom_initiale')) && /https\?:\/\/\|www/.test(corps('sans_liens'))
+      && /\\m\[\[:alnum:\]-\]\+\(\\\.\[\[:alnum:\]-\]\+\)\*\\\.\[a-z\]\{2,\}/.test(corps('sans_liens')));   // tout nom de domaine
 check('anti-abus : 30 messages par heure (54000)', /interval '1 hour'\) >= 30/.test(env) && /ERRCODE = '54000'/.test(env));
 check('anti-abus : 5 nouvelles conversations par 24 h', /interval '24 hours'\) >= 5/.test(env));
 check('notification au plus toutes les 30 min par destinataire',
       /NOT EXISTS \(SELECT 1 FROM notifications WHERE type = 'message' AND joueur_id = v_dest\s+AND cree_le > now\(\) - interval '30 minutes'\)/.test(env));
 check('notification : « Nouveau message de Prénom I. », extrait de 200 caractères',
       /PERFORM notifier\(v_dest, 'message', 'Nouveau message de ' \|\| v_nom,/.test(env) && /left\(v_extrait, 200\)/.test(env)
-      && /Réponds depuis ton espace joueur, rubrique Messages\./.test(env));
+      && /Répondez depuis votre espace joueur, rubrique Messages\./.test(env));
 check('conversation : marque lus les messages reçus', /UPDATE messages SET lu_le = now\(\) WHERE a_joueur = v_moi AND de_joueur = v_avec AND lu_le IS NULL/.test(corps('conversation')));
+check('conversation : pas d\'accusé de lecture côté expéditeur ; « bloque_par_lui » renvoyé',
+      /'lu_le', CASE WHEN m\.a_joueur = v_moi THEN m\.lu_le END/.test(corps('conversation'))
+      && /'bloque_par_lui', EXISTS \(SELECT 1 FROM joueurs_blocages WHERE joueur_id = v_avec AND bloque_id = v_moi\)/.test(corps('conversation')));
 var sig = corps('signaler_joueur');
 check('signalement : alerte staff avec noms + motif, 3 par jour', /PERFORM alerter_staff\('Signalement annuaire'/.test(sig)
       && /nom_joueur\(v_moi\)/.test(sig) && /interval '24 hours'\) >= 3/.test(sig));
+check('signalement : liens neutralisés dans l\'e-mail au club (noms et motif)',
+      /sans_liens\(nom_joueur\(v_moi\)\)/.test(sig) && /sans_liens\(nom_joueur\(v_j\)\)/.test(sig) && /sans_liens\(v_motif\)/.test(sig));
 check('signalement : seulement un joueur ouvert ou avec qui on a échangé ; plafond global de 20 e-mails par heure ; verrou',
       /IF NOT \(conversation_existe\(v_moi, v_j\) OR EXISTS \(SELECT 1 FROM joueurs_profils WHERE joueur_id = v_j AND ouvert\)\)/.test(sig)
       && /cree_le > now\(\) - interval '1 hour'\) <= 20 THEN\s+PERFORM alerter_staff/.test(sig)
@@ -143,9 +162,17 @@ function lignesDiff(a, b) {   // lignes de a absentes de b
     var lb = b.split('\n'); return a.split('\n').filter(function (l) { return lb.indexOf(l) < 0; });
 }
 var M = '../supabase/migrations/';
+// Seul ajout de joueur_pour_inscription en plus des lignes corrigées : l'alerte au club.
+var ALERTE_CONTACT = /\n *-- Premier e-mail pour un joueur déjà connu[\s\S]*?\n    END IF;/;
+var jpi = bloc(cor, 'joueur_pour_inscription');
+check('joueur_pour_inscription : premier e-mail pour un joueur déjà connu → alerte au club, avant l\'enregistrement',
+      ALERTE_CONTACT.test(jpi) && /\(SELECT created_at FROM joueurs WHERE id = v_id\) < now\(\)/.test(jpi)
+      && /NOT EXISTS \(SELECT 1 FROM joueurs_contacts WHERE joueur_id = v_id AND email IS NOT NULL\)/.test(jpi)
+      && /PERFORM alerter_staff\('Coordonnées ajoutées à un joueur existant'/.test(jpi)
+      && jpi.indexOf('alerter_staff') < jpi.indexOf('INSERT INTO joueurs_contacts'));
 [['joueur_pour_inscription', '20261021_inscriptions.sql'], ['chercher_partenaire', '20261024_partenaires_licences.sql'],
  ['inscrire_paire', '20261023_resultats_poids_alertes.sql']].forEach(function (f) {
-    var neuf = bloc(cor, f[0]), ancien = bloc(fs.readFileSync(M + f[1], 'utf8'), f[0]);
+    var neuf = bloc(cor, f[0]).replace(ALERTE_CONTACT, ''), ancien = bloc(fs.readFileSync(M + f[1], 'utf8'), f[0]);
     var ajout = lignesDiff(neuf, ancien).filter(function (l) { return !/^\s*--/.test(l); });
     var retrait = lignesDiff(ancien, neuf);
     check(f[0] + ' : reprise à l\'identique de ' + f[1] + ' sauf les lignes corrigées',
@@ -190,6 +217,7 @@ check('zone de contenu #ann-contenu', /<div id="ann-contenu" aria-live="polite">
 check('absente du sitemap', !/\/joueurs\//.test(fs.readFileSync('../sitemap.xml', 'utf8')));
 var partJs = fs.readFileSync('../js/tournoi-partenaires.js', 'utf8');
 check('la page partenaires renvoie vers l\'annuaire', /'Voir l\\'annuaire des joueurs →'\); b\.href = 'joueurs\/'/.test(partJs));
+check('… y compris quand le tournoi est introuvable', (partJs.match(/Tournoi introuvable[^\n]*lienAnnuaire\(zone\); return;/g) || []).length === 2);
 
 console.log('\n=== JavaScript : pas d\'HTML injecté ===');
 var annJs = fs.readFileSync('../js/annuaire-joueurs.js', 'utf8');
@@ -197,6 +225,9 @@ var espJs = fs.readFileSync('../js/espace-joueur.js', 'utf8');
 function innerHtmlNonVide(src) { return (src.match(/innerHTML\s*=\s*(?!\s|'';)[^\n]*/g) || []); }
 check('annuaire-joueurs.js : innerHTML seulement pour vider', innerHtmlNonVide(annJs).length === 0 && !/insertAdjacentHTML|outerHTML|document\.write/.test(annJs));
 check('espace-joueur.js : innerHTML seulement pour vider', innerHtmlNonVide(espJs).length === 0 && !/insertAdjacentHTML|outerHTML/.test(espJs));
+check('annuaire : seule la dernière recherche lancée s\'affiche', /var n = \+\+demande;[\s\S]*await supa\.rpc\('annuaire_joueurs'[^\n]*\n\s*if \(n !== demande\) return;/.test(annJs));
+check('espace : pas de formulaire de réponse si l\'autre m\'a bloqué', /\} else if \(c\.bloque_par_lui\) \{/.test(espJs));
+check('espace : le texte d\'accord dit que le nom complet peut être retrouvé', /votre nom complet peut être retrouvé/.test(espJs));
 check('annuaire : même clé de stockage que l\'espace joueur', /CLE_ESPACE = 'rebond-espace-joueur'/.test(annJs) && /JSON\.parse\(localStorage\.getItem\(CLE_ESPACE\)/.test(annJs));
 check('dégradation : RPC absente reconnue (PGRST202 / 42883)', /'PGRST202'/.test(annJs) && /'42883'/.test(annJs) && /PGRST202 \/ 42883/.test(espJs));
 

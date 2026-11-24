@@ -11,6 +11,8 @@
 --      par l'appel lui-même ; pour un joueur déjà connu, il part seulement par e-mail
 --      (notifier, comme avant). Le JS gère « lien » absent.
 --   3. staff_regenerer_lien(joueur) : révoque un lien compromis (nouveau jeton).
+--   4. Un premier e-mail saisi pour un joueur déjà connu (sans e-mail jusque-là) alerte le
+--      club : le lien de ce joueur part désormais à cette adresse, que personne n'a vérifiée.
 -- Les fonctions sont reprises à l'identique de leur dernière version (20261021, 20261024,
 -- 20261023), seules les lignes ci-dessus changent. Rejouable sans effet de bord.
 
@@ -67,6 +69,15 @@ BEGIN
         UPDATE joueurs SET genre = coalesce(genre, p->>'genre') WHERE id = v_id;
     END IF;
 
+    -- Premier e-mail pour un joueur déjà connu (importé des tournois, ou partenaire inscrit par
+    -- téléphone) : son lien personnel va partir à cette adresse, saisie par n'importe qui.
+    IF nullif(trim(p->>'email'), '') IS NOT NULL AND (SELECT created_at FROM joueurs WHERE id = v_id) < now()
+       AND NOT EXISTS (SELECT 1 FROM joueurs_contacts WHERE joueur_id = v_id AND email IS NOT NULL) THEN
+        PERFORM alerter_staff('Coordonnées ajoutées à un joueur existant',
+            nom_joueur(v_id) || ' n''avait pas d''e-mail : l''adresse « ' || left(lower(trim(p->>'email')), 120)
+            || E' » vient d''être saisie en ligne et reçoit désormais son lien d''espace joueur.\n\n'
+            || 'Vérifiez que c''est bien lui ; sinon, corrigez l''e-mail et régénérez son lien (staff_regenerer_lien).', NULL);
+    END IF;
     INSERT INTO joueurs_contacts (joueur_id, email, telephone)
     VALUES (v_id, nullif(lower(trim(p->>'email')), ''), nullif(regexp_replace(coalesce(p->>'telephone', ''), '[^0-9+]', '', 'g'), ''))
     ON CONFLICT (joueur_id) DO UPDATE SET
