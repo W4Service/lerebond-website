@@ -2700,6 +2700,68 @@ select.tournoi-input option {
     line-height: 1;
 }
 
+/* ===== Vue multi-chances (tous les formats) =====
+   Comme la feuille « Formule Multi-Chances » : un bloc par ensemble de places,
+   les tours en colonnes, les matchs centrés sur ceux qui les alimentent. */
+.bracket-grille--mc { gap: 1.6rem; align-items: stretch; }
+.bracket-grille--mc .bracket-colonne { flex-basis: 13rem; min-width: 13rem; }
+
+.bracket-colonne-corps {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 0.6rem;
+}
+
+/* Trait de liaison vers le tour suivant */
+.bracket-grille--mc .bracket-colonne:not(:last-child) .bracket-match { position: relative; overflow: visible; }
+.bracket-grille--mc .bracket-colonne:not(:last-child) .bracket-match::after {
+    content: "";
+    position: absolute;
+    right: -0.8rem;
+    top: 50%;
+    width: 0.8rem;
+    border-top: 1px solid #d8c4c8;
+}
+
+.bracket-tete {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.22rem 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.66rem;
+}
+
+.bracket-num { font-weight: 700; color: #680920; white-space: nowrap; }
+.bracket-etat { color: #999; text-align: right; }
+.bracket-etat--en_cours { color: #b07a00; font-weight: 700; }
+.bracket-etat--a_lancer { color: #1d6b3c; font-weight: 700; }
+.bracket-etat--pret { color: #1d6b3c; }
+.bracket-etat--termine { color: #aaa; }
+
+.bracket-match--a_lancer {
+    border-color: #2f8a52;
+    box-shadow: 0 0 0 2px rgba(47, 138, 82, 0.16);
+}
+.bracket-match--pret { border-color: #2f8a52; border-style: dashed; }
+.bracket-match--projete { background: #fcfafa; }
+.bracket-match--attente.bracket-match--projete { border-style: dashed; }
+
+.bracket-prochains-grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.6rem;
+}
+
+.bracket-note {
+    margin: 0.5rem 0 0;
+    font-size: 0.72rem;
+    color: #888;
+}
+
 /* ===== Horaires théoriques ===== */
 .horaires-barre {
     display: flex;
